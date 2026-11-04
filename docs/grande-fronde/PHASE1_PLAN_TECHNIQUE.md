@@ -395,11 +395,25 @@ Cette partie sera détaillée au début de la Phase 3 (simulation), et les paris
 
 ---
 
-## 13. Points à valider avec Adrien
+## 13. Décisions d'Adrien (4 novembre 2026)
 
-1. **Où vit la sandbox** : ici (`catabyte-starbyte/sandbox/`, proposé), ou dans `starbyte/labo/fronde-sandbox/` à
-   côté des laboratoires de carte.
-2. **Racer témoin** : la frégate SR-01 (`sb_sr01_lod.glb`) en attendant les quatre racers de la Phase 3 ?
-3. **Échelle des astres** : vraie échelle physique (géante ≈ Jupiter) avec exagération en vue système (proposé),
-   ou échelle « Starbyte » réduite assumée.
-4. **Cible de performance minimale** : le seuil de 26 i/s de `SBPerf` vaut-il aussi pour la Fronde ?
+1. **La sandbox vit dans ce dépôt** : `catabyte-starbyte/sandbox/`.
+2. **Racer témoin** : la frégate SR-01 (`sb_sr01_lod.glb`).
+3. **Grande échelle** : vraie échelle physique (géante de 62 000 à 81 000 km de rayon, étoile à 5,2 UA). L'exagération
+   des petits corps ne sert qu'à la lisibilité de la vue système.
+4. **Seuil de performance minimal** : à décider plus tard.
+
+## 14. Avancement
+
+| Étape | État |
+|---|---|
+| 1. Squelette (page, shim SB3D r186, profondeur log, PostFX, panneau) | fait |
+| 2. WorldFrame (float64, origine flottante) + caméra libre à zoom log | fait |
+| 3. Ciel cuit + étoile | fait (le plan rapproché de l'étoile reste à travailler) |
+| 4. Géante v1 (bandes, rotation différentielle, éclairage, limbe) | fait |
+| 5. Géante v2 (tempêtes, aurores, éclairs, 3 variantes) | fait, **sauf** le cache cuit et le détail fin du plan rapproché |
+| 6. Anneaux : disque + ombres croisées | fait |
+| 7 à 15 | à faire |
+
+Captures : `node tools/fronde/shots.js amber,blue,black` (serveur statique à la racine du dépôt sur le port 8766 ;
+`THREE_DIR` pointe vers un `node_modules/three` 0.186.0 local si le CDN n'est pas joignable).

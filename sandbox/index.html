@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>La Grande Fronde · Race World Sandbox</title>
+<style>
+  :root { --sai: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px); --fg: #dfe8ee; --dim: #8fa3b5; --line: rgba(150, 200, 240, .22); --bg: rgba(6, 10, 16, .72); }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: var(--fg); font: 13px/1.4 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; touch-action: none; -webkit-user-select: none; user-select: none; }
+  #view { position: fixed; inset: 0; }
+  #view canvas { display: block; width: 100%; height: 100%; }
+  #title { position: fixed; left: 16px; top: calc(var(--sai) + 12px); pointer-events: none; }
+  #title b { display: block; font-weight: 800; letter-spacing: .32em; font-size: 11px; text-transform: uppercase; }
+  #title span { font-size: 10px; letter-spacing: .14em; color: var(--dim); text-transform: uppercase; }
+  #panel { position: fixed; left: 16px; right: 16px; bottom: calc(var(--sab) + 14px); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  #panel select, #panel button, #panel label { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font: inherit; font-size: 12px; }
+  #panel label { display: flex; gap: 6px; align-items: center; }
+  #panel input[type=range] { width: 90px; accent-color: #9fc4e0; }
+  #readout { position: fixed; left: 16px; right: 16px; bottom: calc(var(--sab) + 58px); font: 600 11px/1.3 ui-monospace, 'SF Mono', monospace; color: #9fc4e0; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.clean #panel, body.clean #readout, body.clean #title { display: none; }
+</style>
+<!-- hors du jeu : la même révision de three.js que le moteur embarqué (window.SB3D, r186) -->
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/" } }</script>
+</head>
+<body>
+<div id="view"></div>
+<div id="title"><b>La Grande Fronde</b><span>Race World Visual Sandbox · phase 1</span></div>
+<div id="readout">chargement…</div>
+<div id="panel">
+  <select id="giant" aria-label="Géante">
+    <option value="amber">Géante ambre</option>
+    <option value="blue">Géante bleue</option>
+    <option value="black">Géante noire</option>
+  </select>
+  <select id="view-sel" aria-label="Vue de test">
+    <option value="giant">Géante · trois quarts</option>
+    <option value="system">Vue générale du système</option>
+    <option value="limb">Limbe rapproché</option>
+    <option value="night">Côté nocturne, lumière rasante</option>
+    <option value="backlit">Contre-jour</option>
+    <option value="rings">Anneaux · au-dessus</option>
+    <option value="ringskim">Anneaux · rasant</option>
+    <option value="star">Étoile</option>
+  </select>
+  <select id="target" aria-label="Cible">
+    <option value="giant">Cible : géante</option>
+    <option value="rings">Cible : anneaux</option>
+    <option value="star">Cible : étoile</option>
+  </select>
+  <label>Temps <input id="speed" type="range" min="0" max="4.5" step="0.05" value="2.38"></label>
+  <button id="shot">Capture</button>
+</div>
+<script>if (/[?&]clean\b/.test(location.search)) document.body.classList.add('clean');</script>
+<script type="module" src="main.js"></script>
+</body>
+</html>
