@@ -25,7 +25,7 @@ const views = process.argv.slice(3);
   await p.waitForFunction(() => window.RW && RW.ready, null, { timeout: 120000 });
   await p.evaluate(() => RW.stop());
   for (const g of giants) {
-    await p.evaluate((g) => RW.setGiant(g), g);
+    await p.evaluate((g) => (['kerath', 'vessa', 'nox'].includes(g) ? RW.setSystem(g) : RW.setGiant(g)), g);
     const vs = views.length ? views : await p.evaluate(() => RW.views);
     for (const v of vs) {
       if (v.startsWith('cine:')) {           // plan de la caméra cinématique : cine:<indice>:<fraction>

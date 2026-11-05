@@ -127,4 +127,5 @@ choisis par le Race Director. On n'en construit pas de copie : le plateau de rou
 | Étape | État |
 |---|---|
 | 1. `RaceFeed` + `DemoFeed` | fait : `sandbox/race/` (JavaScript pur, réutilisable côté serveur). Course pilote de 72 h 37 sur Kerath, Vessa et Nox, 11 points de contrôle identiques pour tous, 4 racers aux profils distincts. Arrivée serrée : La Mule devant Le Fulgurant (8 min), Sentinelle à 86 min, Kerath Lourd à 3 h 37. Le classement n'utilise que les passages déjà faits (équité des paris). Démo console : `node tools/fronde/race_demo.mjs`. |
-| 2 à 9 | à faire |
+| 2. Systèmes Vessa et Nox | fait : bascule de système dans la sandbox (étoile et distance, direction du soleil, reflets, géante et anneaux, lunes et leurs vues, cibles) à partir de `race/raceData.js`. Vessa : géante bleue, étoile blanche à 9,5 UA, Tirn et Saël. Nox : géante noire, naine rouge à 0,9 UA, Cendre. Kerath garde l'éclairage validé en Phase 1. |
+| 3 à 9 | à faire |

@@ -33,10 +33,10 @@
 <div id="caption"></div>
 <div id="fade"></div>
 <div id="panel">
-  <select id="giant" aria-label="Géante">
-    <option value="amber">Géante ambre</option>
-    <option value="blue">Géante bleue</option>
-    <option value="black">Géante noire</option>
+  <select id="giant" aria-label="Système">
+    <option value="kerath">Kerath · géante ambre</option>
+    <option value="vessa">Vessa · géante bleue</option>
+    <option value="nox">Nox · géante noire</option>
   </select>
   <select id="view-sel" aria-label="Vue de test">
     <option value="giant">Géante · trois quarts</option>
@@ -56,12 +56,12 @@
     <option value="field-entry">Champ d'astéroïdes · entrée</option>
     <option value="field-in">Champ d'astéroïdes · intérieur</option>
     <option value="moons">Géante et lunes</option>
-    <option value="kesh">Kesh · lune cratérisée</option>
-    <option value="ilva">Ilva · lune glacée</option>
-    <option value="oro">Oro · lune volcanique</option>
-    <option value="graze-kesh">Kesh · passage rasant</option>
-    <option value="graze-ilva">Ilva · passage rasant</option>
-    <option value="graze-oro">Oro · passage rasant</option>
+    <option value="kesh" data-moon>Kesh · lune cratérisée</option>
+    <option value="ilva" data-moon>Ilva · lune glacée</option>
+    <option value="oro" data-moon>Oro · lune volcanique</option>
+    <option value="graze-kesh" data-moon>Kesh · passage rasant</option>
+    <option value="graze-ilva" data-moon>Ilva · passage rasant</option>
+    <option value="graze-oro" data-moon>Oro · passage rasant</option>
   </select>
   <select id="target" aria-label="Cible">
     <option value="giant">Cible : géante</option>
@@ -69,9 +69,9 @@
     <option value="star">Cible : étoile</option>
     <option value="racer">Cible : racer</option>
     <option value="field">Cible : champ d'astéroïdes</option>
-    <option value="moon:oro">Cible : Oro</option>
-    <option value="moon:kesh">Cible : Kesh</option>
-    <option value="moon:ilva">Cible : Ilva</option>
+    <option value="moon:oro" data-moon>Cible : Oro</option>
+    <option value="moon:kesh" data-moon>Cible : Kesh</option>
+    <option value="moon:ilva" data-moon>Cible : Ilva</option>
   </select>
   <label>Temps <input id="speed" type="range" min="0" max="4.5" step="0.05" value="2.38"></label>
   <select id="quality" aria-label="Qualité">
