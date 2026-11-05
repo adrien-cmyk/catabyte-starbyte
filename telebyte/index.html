@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Télébyte · La Grande Fronde</title>
+<style>
+  /* Télébyte : antenne sobre sur le noir de l'espace — un seul accent (le cyan des tracés), les couleurs des racers
+     ne servent qu'à les reconnaître. Mise en page : scène plein écran, bandeau d'antenne en haut, classement à
+     droite (en bas sur téléphone), horloge de course tout en bas. */
+  :root {
+    color-scheme: dark;
+    --bg: #020306; --ink: #e6eef3; --dim: #8b9aa6; --faint: #5a6873; --line: rgba(159, 212, 236, .18);
+    --panel: rgba(4, 8, 13, .78); --accent: #9fd4ec; --live: #ff5a4f;
+    --f-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --f-num: ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, monospace;
+    --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 13px/1.35 var(--f-ui); overflow: hidden; -webkit-user-select: none; user-select: none; }
+  #scene { position: fixed; inset: 0; touch-action: none; }
+  #scene canvas { display: block; width: 100%; height: 100%; }
+  #labels { position: fixed; inset: 0; pointer-events: none; }
+  .tb-sys { position: absolute; left: 0; top: 0; text-align: center; translate: -50% 0; pointer-events: none; }
+  .tb-sys b { display: block; font-size: 11px; letter-spacing: .26em; text-transform: uppercase; font-weight: 700; }
+  .tb-sys span { font: 10px var(--f-num); color: var(--dim); letter-spacing: .08em; }
+  .tb-racer { position: absolute; left: 0; top: 0; translate: -7px -7px; display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; color: var(--ink); font: 600 11px var(--f-ui); pointer-events: auto; cursor: pointer; transition: opacity .3s; }
+  .tb-racer i { width: 10px; height: 10px; border-radius: 50%; background: var(--livery); box-shadow: 0 0 0 2px rgba(2, 3, 6, .9), 0 0 10px var(--livery); }
+  .tb-racer span { padding: 1px 6px; border-radius: 4px; background: rgba(2, 3, 6, .62); }
+  .tb-racer.on span { background: var(--livery); color: #05080c; }
+  .tb-racer.dim { opacity: .45; }
+  .tb-racer:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+  header { position: fixed; top: 0; left: 0; right: 0; padding: calc(var(--sat) + 12px) max(16px, var(--sar)) 0 max(16px, var(--sal)); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; pointer-events: none; }
+  .brand b { display: block; font-size: 12px; font-weight: 800; letter-spacing: .38em; }
+  .brand b em { font-style: normal; color: var(--accent); }
+  .brand span { display: block; margin-top: 3px; font-size: 11px; color: var(--dim); }
+  .brand small { display: block; margin-top: 2px; font-size: 10px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase; }
+  .onair { text-align: right; }
+  .onair .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); }
+  .onair .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--live); }
+  .onair .t { display: block; margin-top: 6px; font: 600 20px var(--f-num); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+
+  #board { position: fixed; right: max(16px, var(--sar)); top: calc(var(--sat) + 78px); width: 290px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 0 6px; backdrop-filter: blur(6px); }
+  #board h2 { margin: 0 14px 6px; font-size: 10px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; color: var(--dim); }
+  #standings { list-style: none; margin: 0; padding: 0; }
+  #standings li { display: grid; grid-template-columns: 22px 8px 1fr auto; align-items: center; gap: 8px; padding: 7px 14px; cursor: pointer; border-top: 1px solid rgba(159, 212, 236, .06); }
+  #standings li:hover, #standings li.on { background: rgba(159, 212, 236, .08); }
+  #standings .rk { font: 700 13px var(--f-num); color: var(--dim); }
+  #standings i { width: 8px; height: 22px; border-radius: 2px; background: var(--livery); }
+  #standings .nm { font-weight: 600; min-width: 0; }
+  #standings .nm small { display: block; font-weight: 400; font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #standings .gp { font: 12px var(--f-num); font-variant-numeric: tabular-nums; color: var(--ink); }
+  #focus { margin: 8px 14px 4px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 11px; color: var(--dim); }
+  #focus b { color: var(--ink); }
+  #focus button { float: right; background: none; border: 1px solid var(--line); color: var(--dim); border-radius: 6px; font: inherit; padding: 1px 7px; cursor: pointer; }
+
+  footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px max(16px, var(--sar)) calc(var(--sab) + 12px) max(16px, var(--sal)); display: grid; grid-template-columns: auto auto 1fr; gap: 10px; align-items: center; background: linear-gradient(to top, rgba(2, 3, 6, .9), rgba(2, 3, 6, 0)); }
+  footer button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; font: 600 12px var(--f-ui); cursor: pointer; min-width: 64px; }
+  footer button:focus-visible, #clock:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .track { min-width: 0; }
+  #clock { width: 100%; accent-color: var(--accent); margin: 0; }
+  #next { display: block; margin-top: 3px; font-size: 11px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #next::before { content: "Prochain · "; color: var(--faint); }
+
+  @media (max-width: 720px) {
+    #board { left: max(12px, var(--sal)); right: max(12px, var(--sar)); top: auto; bottom: calc(var(--sab) + 74px); width: auto; padding: 6px 0 2px; }
+    #board h2 { display: none; }
+    #standings li { padding: 5px 12px; }
+    #standings .nm small { display: none; }
+    .onair .t { font-size: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .tb-racer { transition: none; } }
+  body.clean header, body.clean footer { opacity: 1; }
+</style>
+<!-- hors du jeu : la même révision de three.js que le moteur embarqué (window.SB3D, r186) -->
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/" } }</script>
+</head>
+<body>
+<div id="scene"></div>
+<div id="labels"></div>
+<header>
+  <div class="brand"><b>TÉLÉ<em>BYTE</em></b><span id="edition">La Grande Fronde</span><small id="route">—</small></div>
+  <div class="onair"><span class="pill" id="state">en direct</span><span class="t" id="time">00 h 00</span></div>
+</header>
+<aside id="board" aria-label="Classement">
+  <h2>Classement</h2>
+  <ol id="standings"></ol>
+  <div id="focus" hidden><button id="focus-clear" type="button">Tout le parcours</button><b id="focus-name"></b><br><span id="focus-tele"></span></div>
+</aside>
+<footer>
+  <button id="play" type="button" aria-pressed="false">Pause</button>
+  <button id="speed" type="button" aria-label="Vitesse de lecture">×600</button>
+  <div class="track"><input id="clock" type="range" min="0" max="1" step="1" value="0" aria-label="Temps de course"><span id="next">—</span></div>
+</footer>
+<script type="module" src="main.js"></script>
+</body>
+</html>
