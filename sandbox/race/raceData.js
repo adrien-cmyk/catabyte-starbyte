@@ -44,9 +44,9 @@ export const RACE_SYSTEMS = [
 // profils : rp = périapse visée (rayons de géante), dv = poussée à la périapse (m/s, effet Oberth),
 // warp = facteur de vitesse interstellaire (1 = référence), risk = goût du risque (fenêtres plus rasantes)
 export const RACERS = [
-  { id: 'sentinelle', name: 'Sentinelle', ship: 'sr01', livery: '#9fe6ff', rp: 1.12, dv: 900, warp: 1.00, vInf: 1.20e4 },
-  { id: 'cuirasse', name: 'Kerath Lourd', ship: 'kv01', livery: '#ff8a5c', rp: 1.30, dv: 1300, warp: 0.96, vInf: 1.15e4 },
-  { id: 'mule', name: 'La Mule', ship: 'tk07', livery: '#ffd166', rp: 1.20, dv: 650, warp: 1.05, vInf: 1.18e4 },
+  { id: 'sentinelle', name: 'Sentinelle', ship: 'sr01', livery: '#e8394a', rp: 1.12, dv: 900, warp: 1.00, vInf: 1.20e4 },
+  { id: 'cuirasse', name: 'Kerath Lourd', ship: 'kv01', livery: '#5b86ff', rp: 1.30, dv: 1300, warp: 0.96, vInf: 1.15e4 },
+  { id: 'mule', name: 'La Mule', ship: 'tk07', livery: '#56c878', rp: 1.20, dv: 650, warp: 1.05, vInf: 1.18e4 },
   { id: 'fulgurant', name: 'Le Fulgurant', ship: 'sport', livery: '#f2c230', rp: 1.06, dv: 1000, warp: 1.02, vInf: 1.25e4 },
 ];
 

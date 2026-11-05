@@ -13,7 +13,8 @@ import { LodManager } from './core/LodManager.js';
 import { GIANTS } from './presets/giants.js';
 import { Moon, PatchPool } from './bodies/Moon.js';
 import { sandboxMoons } from './presets/moons.js';
-import { RACE_SYSTEMS, gmOfGiant } from './race/raceData.js';
+import { RACE_SYSTEMS, RACERS, gmOfGiant } from './race/raceData.js';
+import { RACER_PROFILES } from './scene/racerProfiles.js';
 import { AsteroidField } from './bodies/AsteroidField.js';
 import { RingDebris } from './bodies/RingDebris.js';
 import { Racer } from './scene/Racer.js';
@@ -106,6 +107,7 @@ const marker = new RacerMarker(); racer.group.add(marker.points);
 var holo = new TrajectoryHolo();   // var : setGiant (appelé plus haut) le teste avant sa création
 scene.add(holo.group);
 let racerOn = false, fovOv = null, race = null, exag = 0;
+let fleet = null, fleetOn = false;                                // flotte de la course pilote (voir plus bas)
 const DENSITY = { rocky: 3300, icy: 1900, volcanic: 3500 };
 // astres pour l'intégration : positions exactes au temps t (mêmes formules que Moon.place)
 function raceBodies() {
@@ -262,9 +264,46 @@ function moonViews(defs) {
   }
 }
 moonViews(sandboxMoons(GIANTS.amber.radius));
-const wrapView = (k) => { const f = VIEWS[k]; if (f._w) return; VIEWS[k] = () => { fovOv = null; if (!['racer', 'racer-pass', 'trajectory'].includes(k)) { timeScale = 240; racerOn = false; } f(); }; VIEWS[k]._w = true; };
+const wrapView = (k) => { const f = VIEWS[k]; if (f._w) return; VIEWS[k] = () => { fovOv = null; fleetOn = false; if (!['racer', 'racer-pass', 'trajectory'].includes(k)) { timeScale = 240; racerOn = false; } f(); }; VIEWS[k]._w = true; };
 for (const k of Object.keys(VIEWS)) wrapView(k);
 VIEWS.giant();
+
+/* ── flotte de la course pilote : quatre racers en livrée, chargés à la première vue de flotte ── */
+const lineup = { center: new Float64Array(3) };
+function ensureFleet() {
+  if (fleet) return fleet;
+  fleet = RACERS.map((r) => {
+    const P = RACER_PROFILES[r.ship], rc = new Racer(P, { livery: r.livery }); rc.def = r;
+    frame.add(rc.group, rc.pos); scene.add(rc.group, rc.trail.mesh);
+    targets['racer:' + r.id] = { pos: rc.pos, minDist: P.length * 0.4, label: r.name };
+    return rc;
+  });
+  return fleet;
+}
+// côte à côte sur la face de jour, à 1,6 R, cap prograde ; les gabarits vont de 29 m à 1,3 km (vraie échelle)
+function placeLineup() {
+  ensureFleet(); fleetOn = true; racerOn = false;
+  const q = giant.group.quaternion, sL = SUN_DIR.clone().applyQuaternion(q.clone().invert());
+  const a = Math.atan2(sL.z, sL.x) + 0.7, R = giant.R;
+  const radial = new THREE.Vector3(Math.cos(a), 0, Math.sin(a)).applyQuaternion(q);
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
+  const fwd = new THREE.Vector3().crossVectors(up, radial).normalize();            // sens de l'orbite
+  const base = radial.clone().multiplyScalar(1.6 * R).addScaledVector(up, 0.12 * R);
+  const lateral = [0, 1250, 1850, 2050];                                            // KV-01, Fulgurant, SR-01, TK-07
+  const order = ['cuirasse', 'fulgurant', 'sentinelle', 'mule'];
+  for (const rc of fleet) {
+    const k = order.indexOf(rc.def.id), o = radial.clone().multiplyScalar(lateral[k] - 1000);
+    rc.pos.set([giant.pos[0] + base.x + o.x, giant.pos[1] + base.y + o.y, giant.pos[2] + base.z + o.z]);
+    rc.vel.set([fwd.x, fwd.y, fwd.z]); rc.throttle = 1; rc.trail.reset();
+  }
+  lineup.center.set([giant.pos[0] + base.x, giant.pos[1] + base.y, giant.pos[2] + base.z]);
+  // caméra de trois quarts avant, soleil dans le dos
+  const d = fwd.clone().multiplyScalar(0.7).addScaledVector(SUN_DIR, 0.55).addScaledVector(up, 0.2).normalize();
+  return { yaw: Math.atan2(d.x, d.z), pitch: Math.asin(d.y) };
+}
+VIEWS.fleet = () => { const aim = placeLineup(); targets.lineup = { pos: lineup.center, minDist: 100, label: 'La flotte' }; cam.setTarget(targets.lineup, { dist: 3600, ...aim }); };
+for (const r of RACERS) VIEWS['fleet-' + r.id] = () => { const aim = placeLineup(); cam.setTarget(targets['racer:' + r.id], { dist: RACER_PROFILES[r.ship].length * 1.9, ...aim }); };
+for (const k of ['fleet', ...RACERS.map((r) => 'fleet-' + r.id)]) { const f = VIEWS[k]; VIEWS[k] = () => { fovOv = null; timeScale = 1; f(); }; VIEWS[k]._w = true; }
 
 /* ── systèmes de la course : bascule (étoile, soleil, reflets, géante, lunes, cibles, vues) ── */
 const STAR_GLOW = { amber: [0.5, 0.3, 0.16], blue: [0.12, 0.3, 0.42], black: [0.08, 0.07, 0.06] };
@@ -383,13 +422,16 @@ function step(dt) {
   sunLight.position.copy(sunDirAtGiant).multiplyScalar(1000); sunLight.target.position.set(0, 0, 0);
   {
     // lumière renvoyée par la géante : proportionnelle à sa taille apparente et à la part éclairée vue du racer
-    const gx = giant.pos[0] - racer.pos[0], gy = giant.pos[1] - racer.pos[1], gz = giant.pos[2] - racer.pos[2];
-    const d = Math.hypot(gx, gy, gz), solid = Math.min(1, (giant.R / d) ** 2);
+    // depuis le sujet de la vue (la flotte, sinon le racer témoin) ; garde : jamais à l'intérieur de la géante
+    const sp = fleetOn ? lineup.center : racer.pos;
+    const gx = giant.pos[0] - sp[0], gy = giant.pos[1] - sp[1], gz = giant.pos[2] - sp[2];
+    const d = Math.max(Math.hypot(gx, gy, gz), giant.R * 1.001), solid = Math.min(1, (giant.R / d) ** 2);
     const lit = 0.5 - 0.5 * (gx * SUN_DIR.x + gy * SUN_DIR.y + gz * SUN_DIR.z) / d;      // 1 = on voit sa face de jour
     giantShine.intensity = 0.05 + 3.2 * 0.55 * solid * lit;
     giantShine.position.set(gx, gy, gz).multiplyScalar(1000 / d);
   }
   racer.update(frame, simT, performance.now() / 1000);
+  if (fleet) for (const rc of fleet) { rc.group.visible = rc.trail.mesh.visible = fleetOn; if (fleetOn) rc.update(frame, simT, performance.now() / 1000); }
   holo.group.visible = racerOn;
   // lisibilité en vue système : balise du racer, lunes agrandies (jamais en vue rapprochée : échelle réelle)
   {
@@ -457,6 +499,7 @@ window.RW = {
   exag: () => ({ exag, moons: moons.map((m) => +m.group.scale.x.toFixed(1)) }),
   cineDiag: () => ({ racer: { d: Math.hypot(racer.pos[0] - frame.cam[0], racer.pos[1] - frame.cam[1], racer.pos[2] - frame.cam[2]), model: !!racer.model, gp: racer.group.position.toArray().map((x) => +x.toFixed(1)), v: Math.hypot(...racer.vel) }, title: director.title, t: director.t, simT, tc: race.tc, ring: debris && debris.stats, alt: debris && (() => { const g = giant, c = frame.cam, q = g.group.quaternion.clone().invert(); const v = new THREE.Vector3(c[0] - g.pos[0], c[1] - g.pos[1], c[2] - g.pos[2]).applyQuaternion(q); return { y: v.y, r: Math.hypot(v.x, v.z) / g.R, dens: debris.data.density(v.x, v.y, v.z) }; })() }),
   frames: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) step(dt); render(); },
+  fleetReady: () => !!fleet && fleet.every((r) => r.ready),
   info: () => ({ ...renderer.info.render, race: race && { n: race.S.length, rp: race.rp / giant.R, hit: !!race.hit, alt: (race.rp - giant.R) / 1e3, vmax: Math.max(...race.S.map((x) => Math.hypot(...x.v))) / 1e3, marks: holo.markData.map((m) => m.k + ':' + (m.ring ? (m.ring / giant.R).toFixed(2) : '')).filter((x) => !x.startsWith('0:')) }, q: Q, dist: cam.distance, pending: pool.pending, field: field.stats, ring: debris ? debris.stats : null }),
   // attend que toutes les parcelles de relief demandées soient construites (captures)
   settle: async (maxMs = 60000) => {

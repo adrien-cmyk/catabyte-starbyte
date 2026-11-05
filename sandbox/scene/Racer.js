@@ -138,19 +138,30 @@ export class Trail {
   }
 }
 
+// modèles du Blackmarket : .glb.gz (le serveur peut l'avoir déjà décompressé : on teste la signature gzip)
+async function gunzipIf(ab) {
+  const raw = new Uint8Array(ab);
+  if (raw[0] !== 0x1f || raw[1] !== 0x8b) return ab;
+  return new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+}
+
 export class Racer {
-  constructor(profile = SR01) {
+  // opts : livery (couleur de course : traînée, balise)
+  constructor(profile = SR01, { livery = null } = {}) {
     this.P = profile; this.pos = new Float64Array(3); this.vel = new Float64Array(3); this.throttle = 1;
     this.group = new THREE.Group();                     // placé par WorldFrame ; orienté selon la vitesse
     this.ready = false;
     this.plumes = profile.nozzles.map((nz) => { const p = createPlume(nz.r, profile.plume); p.group.position.set(nz.x, nz.y, nz.z); this.group.add(p.group); return p; });
-    this.trail = new Trail({ color: profile.plume[1] });
+    const rMax = Math.max(...profile.nozzles.map((n) => n.r));
+    this.livery = livery;
+    this.trail = new Trail({ color: livery || profile.plume[1], width: Math.max(6, rMax * 3.5) });   // à l'échelle du vaisseau
     this._q = new THREE.Quaternion(); this._m = new THREE.Matrix4();
     const onModel = (gltf) => {
       const m = gltf.scene;
       m.traverse((o) => {
         if (!o.isMesh) return;
         const mat = o.material;
+        if (profile.tint && profile.tint[mat.name]) { mat.color = new THREE.Color(profile.tint[mat.name]); }   // livrée de course
         if (/GLOW_MOTEUR/.test(mat.name)) { mat.emissive.setRGB(...profile.engine); mat.emissiveIntensity = 6; }
         else if (/NAV/.test(mat.name)) { mat.emissiveIntensity = 1.2; }                  // feux de navigation discrets
         else if (/GLOW/.test(mat.name)) { mat.emissiveIntensity = 1.8; }
@@ -163,12 +174,11 @@ export class Racer {
     const loader = new SB3D.GLTFLoader();
     const fallback = (e) => {
       if (!profile.embedded) return console.warn('[racer] modèle', e);
-      import(profile.embedded).then(({ default: b64 }) => {
-        const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-        loader.parse(bin.buffer, '', onModel, (e2) => console.warn('[racer] modèle embarqué', e2));
-      }).catch((e2) => console.warn('[racer] modèle', e, e2));
+      import(profile.embedded).then(({ default: b64 }) => gunzipIf(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer))
+        .then((buf) => loader.parse(buf, '', onModel, (e2) => console.warn('[racer] modèle embarqué', e2)))
+        .catch((e2) => console.warn('[racer] modèle', e, e2));
     };
-    fetch(profile.url).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+    fetch(profile.url).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status))).then(gunzipIf)
       .then((buf) => loader.parse(buf, '', onModel, fallback)).catch(fallback);
   }
   // orientation : proue (+z) le long de la vitesse, ventre vers le bas du plan (up = y monde)

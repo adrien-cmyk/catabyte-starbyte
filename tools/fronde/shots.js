@@ -33,7 +33,7 @@ const views = process.argv.slice(3);
         await p.evaluate(async ([i, u]) => { RW.cine(+i, +u); RW.frames(2); await RW.settle(); RW.frames(2); }, [i, u || 0.5]);
         await p.waitForTimeout(700);          // fin du fondu
         console.log('diag', JSON.stringify(await p.evaluate(() => RW.cineDiag())));
-      } else await p.evaluate(async (v) => { RW.setView(v); RW.frames(3); await RW.settle(); RW.frames(60); }, v);   // 60 images : le plafond de triangles a convergé
+      } else await p.evaluate(async (v) => { RW.setView(v); RW.frames(3); await RW.settle(); if (v.startsWith('fleet')) { const t0 = performance.now(); while (!RW.fleetReady() && performance.now() - t0 < 60000) await new Promise((r) => setTimeout(r, 200)); } RW.frames(60); }, v);   // 60 images : le plafond de triangles a convergé
       const f = path.join(OUT, `${g}_${v.replace(/:/g, '-')}.png`);
       await p.screenshot({ path: f, timeout: 120000 });
       console.log('ok', f, JSON.stringify(await p.evaluate(() => RW.exag ? RW.exag() : RW.info())));
