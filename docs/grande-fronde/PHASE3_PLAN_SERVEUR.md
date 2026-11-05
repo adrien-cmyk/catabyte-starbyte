@@ -1,6 +1,6 @@
 # Grande Fronde — Phase 3 : serveur commun (plan technique)
 
-> Statut : **plan à valider** (aucun code serveur écrit). Les décisions ouvertes sont au §10, avec une recommandation pour chacune.
+> Statut : **validé le 05/11/2026** (décisions au §10). Avancement au §12.
 
 ## 1. Objectif
 
@@ -96,8 +96,8 @@ fixe, l'arrivée ~3 jours plus tard) — le Télébyte garde son curseur pour re
 
 | Fichier | Rôle |
 |---|---|
-| `sandbox/race/engine/` (nouveau dossier) | le moteur partagé, sans dépendance au rendu : `Gravity`, `raceData`, pilotes, simulation, `ServerFeed` / `DemoFeed` |
-| `tools/fronde/sync_engine.py` | génère `github_upload/server/fronde-tick/engine.js` (copie en un fichier, en-tête « ne pas modifier ») |
+| `sandbox/race/engine.js` + `sandbox/core/Gravity.js` + `sandbox/race/raceData.js` | le moteur partagé, sans dépendance au rendu (déjà le cas : pas de nouveau dossier) ; `DemoFeed.js` / `ServerFeed.js` n'en sont que la lecture |
+| `tools/fronde/sync_engine.mjs` | génère `server/fronde-tick/engine.js` (copie en un fichier, en-tête « ne pas modifier ») ; `server/` est le miroir de `github_upload/server/` de starbyte |
 | `tools/fronde/engine_test.mjs` | déterminisme : même empreinte de résultat (temps de passage, plans) entre la copie serveur et le moteur client, sur 40 graines |
 | `github_upload/server/fronde-tick/index.ts` | fonction Deno : création d'édition, révélations, règlement |
 | `github_upload/server/schema_mp_v41_grande_fronde.sql` | tables et fonctions `mp_fronde_*`, à coller dans le SQL Editor (comme les versions précédentes) |
@@ -123,10 +123,10 @@ lien depuis le jeu.
 
 | Décision | Options | Recommandation |
 |---|---|---|
-| Rythme et durée réelle | (a) 1 édition / mois, 72 h en temps réel ; (b) chaque semaine ; (c) accélérée | (a) : un événement attendu, 3 jours de suspense, cohérent avec le brief |
-| Part de la maison | 0 % · 5 % · 10 % | 5 % : visible mais légère ; les CG prélevés sortent de l'économie (puits de CG) |
-| Plafonds de mise | fixe (ex. 5 000 CG) · proportionnel à la production du joueur | fixe au départ, simple à expliquer ; ajustable par édition |
-| Marchés au lancement | vainqueur seul · vainqueur + podium | vainqueur seul (Phase 3), podium et duels en Phase 6 |
+| Rythme et durée réelle | (a) 1 édition / mois, 72 h en temps réel ; (b) chaque semaine ; (c) accélérée | **décidé : (a)** |
+| Part de la maison | 0 % · 5 % · 10 % | **décidé : 5 %** (puits de CG) |
+| Plafonds de mise | fixe (ex. 5 000 CG) · proportionnel à la production du joueur | **décidé : 5 000 CG par joueur et par édition** (ajustable par édition) |
+| Marchés au lancement | vainqueur seul · vainqueur + podium | **décidé : vainqueur seul** (podium, duels en Phase 6) |
 | Racers | maison seulement · plus tard ouverts aux vaisseaux des joueurs | maison seulement ; l'ouverture demande un équilibre et une modération à part |
 | Fermeture des paris | au départ · avant chaque système (paris en direct) | au départ (Phase 3) ; le direct en Phase 6 |
 
@@ -140,3 +140,10 @@ lien depuis le jeu.
   de passage publiés par le serveur, pas du recalcul local.
 - **Charge** : la simulation d'une édition prend ~0,1 s ; elle n'a lieu qu'une fois par édition. Les appels des joueurs
   ne font que lire et révéler.
+
+## 12. Avancement
+
+| Étape | État | Notes |
+|---|---|---|
+| 1 | fait | `sandbox/race/engine.js` : moteur séparé de la lecture (`DemoFeed` = `RaceFeed` sur `runRace`) ; `runRace` décide (pilotes, surchauffe) ou **rejoue des plans** (complets ou partiels) ; `planOf`, `plansMap`, `digest`. `tools/fronde/sync_engine.mjs` génère `server/fronde-tick/engine.js` (24 Kio, sans import). `tools/fronde/engine_test.mjs` : 40 éditions, empreintes de référence (`engine_ref.json`), rejeu JSON identique, rejeu partiel, copie serveur identique ; mêmes empreintes dans Chromium. Résultats de la démo inchangés. |
+| 2 à 7 | à faire | |
