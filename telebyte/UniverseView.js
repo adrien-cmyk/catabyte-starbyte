@@ -135,7 +135,7 @@ export class UniverseView {
     const ov = this.overlay; ov.innerHTML = '';
     this.sysLabels = this.nodes.map((n) => {
       const el = document.createElement('button'); el.type = 'button'; el.className = 'tb-sys';
-      el.innerHTML = `<b>${n.sys.name}</b><span>${n.sys.address}</span>`; el.setAttribute('aria-label', 'Entrer dans le système ' + n.sys.name);
+      el.innerHTML = `<b>${n.sys.name}</b><span>${n.sys.address}</span><i>voir en 3D ▸</i>`; el.setAttribute('aria-label', 'Entrer dans le système ' + n.sys.name);
       el.onclick = (e) => { e.stopPropagation(); this.onEnter(n.sys.id); };
       ov.appendChild(el); return el;
     });
@@ -174,7 +174,7 @@ export class UniverseView {
     if (this.sel) { const p = this._placeOf(this.sel, t); focus = [p[0] + this.pan[0] * 0.2, 0, p[2] + this.pan[1] * 0.2]; }
     this._f = this._f || focus.slice();
     for (let i = 0; i < 3; i++) this._f[i] += (focus[i] - this._f[i]) * (1 - Math.exp(-dt * 4));
-    const fit = this.span / Math.min(aspect, 1.6) * (aspect < 0.8 ? 1.25 : 1);
+    const fit = this.span / Math.min(aspect, 1.6) * (aspect < 0.8 ? 1.25 : 1) * (aspect < 0.6 ? 1.25 : 1);   // portrait étroit : marge pour les systèmes extrêmes
     const dist = fit * (wide ? 1.5 : 1.15) * this.zoom * (this.sel ? 0.45 : 1);
     this._d = this._d ? this._d + (dist - this._d) * (1 - Math.exp(-dt * 3)) : dist;
     c.position.set(this._f[0], this._d * Math.sin(1.0), this._f[2] + this._d * Math.cos(1.0)); c.lookAt(this._f[0], 0, this._f[2]);

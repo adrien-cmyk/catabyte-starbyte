@@ -42,6 +42,16 @@ $('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); enterSys
 $('edition').textContent = E.name;
 $('route').textContent = E.systems.map((s) => s.name).join(' → ');
 
+/* ── étapes : chaque système, à l'instant où le premier racer y passe la périapse ── */
+const STAGES = E.systems.map((sys) => {
+  let tp = Infinity, t0 = Infinity;
+  for (const r of E.racers) for (const sg of feed.tracks[r.id].segs) if (sg.kind === 'system' && sg.sys.id === sys.id) { tp = Math.min(tp, sg.tp); t0 = Math.min(t0, sg.t0); }
+  return { sys, tp, t0 };
+});
+$('stages').innerHTML = STAGES.map((s, i) => `<button type="button" data-i="${i}" aria-label="Voir le passage à ${s.sys.name}"><b>${s.sys.name}</b><span>${hh(s.tp)}</span></button>`).join('');
+for (const b of $('stages').children) b.onclick = () => { const s = STAGES[+b.dataset.i]; t = Math.max(0, s.tp - 1800); enterSystem(s.sys.id); };   // 30 min avant le passage
+
+
 /* ── classement ── */
 const PHASE = { system: 'en passage', leg: 'en voyage', done: 'arrivé' };
 let lastSig = '';
@@ -63,6 +73,7 @@ function renderStandings(force = false) {
 }
 function renderClock() {
   $('time').textContent = hh(t);
+  { let cur = 0; STAGES.forEach((s, i) => { if (t >= s.t0) cur = i; }); [...$('stages').children].forEach((b, i) => b.classList.toggle('now', i === cur)); }
   slider.value = String(Math.round(t));
   const ev = feed.nextEvent(t);
   $('next').textContent = ev ? `${ev.label} · ${racer[ev.racer].name} dans ${dur(ev.t - t)}` : 'course terminée';

@@ -61,13 +61,14 @@ export function createPlume(R, colors) {
       uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(color) }, uAlpha: { value: alpha }, uFlick: { value: flick }, uLayer: { value: layer }, uThrottle: { value: 1 } },
       vertexShader: PLUME_VERT, fragmentShader: PLUME_FRAG,
     });
-    mats.push(m); const mesh = new THREE.Mesh(geo, m); mesh.renderOrder = 3; g.add(mesh);
+    m.userData.a0 = alpha; mats.push(m); const mesh = new THREE.Mesh(geo, m); mesh.renderOrder = 3; g.add(mesh);
   }
   return {
     group: g,
-    update(t, throttle, boost = 1) {
+    // dim : atténuation de l'éclat (vue de poursuite : le panache vu de l'arrière ne doit pas noyer la coque)
+    update(t, throttle, boost = 1, dim = 1) {
       g.scale.set(1, 1, (0.45 + 0.55 * throttle) * boost);                // le panache s'allonge avec la poussée
-      for (const m of mats) { m.uniforms.uTime.value = t; m.uniforms.uThrottle.value = throttle; }
+      for (const m of mats) { m.uniforms.uTime.value = t; m.uniforms.uThrottle.value = throttle; m.uniforms.uAlpha.value = m.userData.a0 * dim; }
     },
   };
 }
@@ -203,7 +204,7 @@ export class Racer {
   update(frame, timeS, realT) {
     this.orient();
     const boost = this.piste ? this.piste.boost : 1;
-    for (const p of this.plumes) p.update(realT, this.throttle, boost);
+    for (const p of this.plumes) p.update(realT, this.throttle, boost, this.dim ?? 1);
     const clock = this.piste ? realT : timeS;
     this.trail.push(this.pos, clock);
     this.trail.update(frame.cam, clock);

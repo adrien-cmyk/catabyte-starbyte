@@ -470,6 +470,9 @@ function step(dt) {
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
   if (raceLayer && raceLayer.on) raceLayer.position(simT);
   const sportRc = raceLayer ? sportCam(dt) : null;
+  // vue de poursuite : moins d'éclat (panache du racer suivi atténué, bloom plus sélectif) pour que la coque reste lisible
+  if (fleet) for (const r of fleet) r.dim = r === sportRc ? 0.45 : 1;
+  bloom.strength = sportRc ? 0.16 : 0.55; bloom.threshold = sportRc ? 0.99 : 0.92;
   cam.update(dt);
   if (sportRc && sportRc.throttle > 0.5) { const tt = performance.now() / 1000; camera.rotateX(Math.sin(tt * 37) * 0.0012); camera.rotateY(Math.sin(tt * 29 + 1) * 0.0012); }   // vibration de poussée
   if (director.apply()) frame.cam.set(director.pos); else frame.cam.set(cam.pos);
