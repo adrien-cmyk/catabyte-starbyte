@@ -17,6 +17,9 @@
   #panel label { display: flex; gap: 6px; align-items: center; }
   #panel input[type=range] { width: 90px; accent-color: #9fc4e0; }
   #readout { position: fixed; left: 16px; right: 16px; bottom: calc(var(--sab) + 58px); font: 600 11px/1.3 ui-monospace, 'SF Mono', monospace; color: #9fc4e0; pointer-events: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #caption { position: fixed; left: 16px; top: calc(var(--sai) + 52px); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #cfe3f2; pointer-events: none; }
+  #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .45s ease; }
+  #fade.on { opacity: 1; transition: none; }
   body.clean #panel, body.clean #readout, body.clean #title { display: none; }
 </style>
 <!-- hors du jeu : la même révision de three.js que le moteur embarqué (window.SB3D, r186) -->
@@ -26,6 +29,8 @@
 <div id="view"></div>
 <div id="title"><b>La Grande Fronde</b><span>Race World Visual Sandbox · phase 1</span></div>
 <div id="readout">chargement…</div>
+<div id="caption"></div>
+<div id="fade"></div>
 <div id="panel">
   <select id="giant" aria-label="Géante">
     <option value="amber">Géante ambre</option>
@@ -67,6 +72,7 @@
     <option value="moon:ilva">Cible : Ilva</option>
   </select>
   <label>Temps <input id="speed" type="range" min="0" max="4.5" step="0.05" value="2.38"></label>
+  <button id="cine">Cinématique</button>
   <button id="shot">Capture</button>
 </div>
 <script>if (/[?&]clean\b/.test(location.search)) document.body.classList.add('clean');</script>

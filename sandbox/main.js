@@ -1,4 +1,4 @@
-// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 11 du plan technique).
+// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 12 du plan technique).
 // Assemble : renderer à profondeur logarithmique, origine flottante, ciel cuit, étoile, géante gazeuse + anneaux, trois lunes,
 // caméra libre à zoom logarithmique, post-traitement (bloom), panneau de réglages, vues des tests visuels.
 import { SB3D, THREE, qualityLevel } from './lib/sb3d-shim.js';
@@ -8,6 +8,7 @@ import { RingSystem } from './bodies/RingSystem.js';
 import { Star, STAR_TYPES } from './bodies/Star.js';
 import { bakeBackdrop } from './scene/Backdrop.js';
 import { FreeCamera } from './camera/FreeCamera.js';
+import { CinematicDirector } from './camera/CinematicDirector.js';
 import { GIANTS } from './presets/giants.js';
 import { Moon, PatchPool } from './bodies/Moon.js';
 import { sandboxMoons } from './presets/moons.js';
@@ -132,7 +133,8 @@ function buildRace() {
   const S = propagate(raceBodies(), { t: t0, p: [giant.pos[0] + p.x, giant.pos[1] + p.y, giant.pos[2] + p.z], v: [v.x, v.y, v.z] }, 2.2 * 86400, { dtMax: 120 });
   const axis = Y.clone().applyQuaternion(q);
   holo.setPath(S, { tickEvery: 1800, ringPlane: giant.ring ? { center: giant.pos, normal: axis.toArray(), inner: giant.ring.inner * R, outer: giant.ring.outer * R } : null });
-  race = { S, t0: S[0].t, t1: S[S.length - 1].t, tp: holo.periapsis.t, rp: holo.periapsis.r, hit: S.hit };
+  const cross = holo.markData.find((m) => m.k === 2);
+  race = { S, t0: S[0].t, t1: S[S.length - 1].t, tp: holo.periapsis.t, rp: holo.periapsis.r, hit: S.hit, tc: cross ? cross.t : holo.periapsis.t - 3600 };
 }
 buildRace();
 const _P = [0, 0, 0], _V = [0, 0, 0];
@@ -250,6 +252,20 @@ for (const m of sandboxMoons(GIANTS.amber.radius)) {
 for (const k of Object.keys(VIEWS)) { const f = VIEWS[k]; VIEWS[k] = () => { fovOv = null; if (!['racer', 'racer-pass', 'trajectory'].includes(k)) { timeScale = 240; racerOn = false; } f(); }; }
 VIEWS.giant();
 
+/* ── caméra cinématique : bobine en boucle (plans, temps de course, coupes et fondus) ── */
+const director = new CinematicDirector(camera, {
+  get racer() { return racer; }, get race() { return race; }, sun: SUN_DIR,
+  get giant() { return { R: giant.R, pos: giant.pos, axis: new THREE.Vector3(0, 1, 0).applyQuaternion(giant.group.quaternion).toArray() }; },
+  sampleAt: (t) => { const p = [0, 0, 0], v = [0, 0, 0]; sampleAt(race.S, t, p, v); return { p, v }; },
+  setTime: (t) => { simT = t; racerAt(simT); racer.trail.reset(); },
+  setTimeScale: (x) => { timeScale = x; },
+  advance: (dtReal) => { simT += dtReal * timeScale; if (racerOn) racerAt(simT); },
+  setRacer: (on) => { racerOn = on; },
+  view: (name) => { VIEWS[name](); cam.update(0); return { target: cam.target.pos, yaw: cam.goal.yaw, pitch: cam.goal.pitch, dist: Math.exp(cam.goal.logD), fov: fovOv || baseFov }; },
+  fade: (on) => { document.getElementById('fade').classList.toggle('on', on); },
+  caption: (t) => { document.getElementById('caption').textContent = t; },
+});
+
 /* ── post-traitement : bloom réservé aux sources très lumineuses (étoile, moteurs) ── */
 const composer = new SB3D.EffectComposer(renderer);
 composer.addPass(new SB3D.RenderPass(scene, camera));
@@ -270,16 +286,17 @@ addEventListener('resize', resize); resize();
 const sunDirAtGiant = new THREE.Vector3();
 function step(dt) {
   simT += dt * timeScale;
+  director.tick(dt);
   for (const m of moons) m.place(giant, simT);
   if (racerOn && race) {
     if (simT > race.t1) { simT = race.tp - 3 * 3600; racer.trail.reset(); }    // la course témoin repart en boucle
     racerAt(simT);
     racer.throttle = Math.abs(simT - race.tp) < 1200 ? 1 : 0.3;                // poussée maximale autour de la périapse (effet Oberth)
   }
-  { const f = fovOv || baseFov; if (camera.fov !== f) { camera.fov = f; camera.updateProjectionMatrix(); } }
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
   cam.update(dt);
-  frame.cam.set(cam.pos);
+  if (director.apply()) frame.cam.set(director.pos); else frame.cam.set(cam.pos);
+  { const f = (director.active ? director.fov : fovOv) || baseFov; if (camera.fov !== f) { camera.fov = f; camera.updateProjectionMatrix(); } }
   frame.update();
   sunDirAtGiant.set(star.pos[0] - giant.pos[0], star.pos[1] - giant.pos[1], star.pos[2] - giant.pos[2]).normalize();
   giant.update(frame, simT, sunDirAtGiant, star.color, 1.7 * star.type.intensity);
@@ -299,7 +316,7 @@ function step(dt) {
   giantShine.position.set(giant.pos[0] - racer.pos[0], giant.pos[1] - racer.pos[1], giant.pos[2] - racer.pos[2]).normalize().multiplyScalar(1000);
   racer.update(frame, simT, performance.now() / 1000);
   holo.group.visible = racerOn;
-  if (racerOn) holo.update(frame.cam, simT, pix);
+  if (racerOn) holo.update(frame.cam, simT, pix, 1.3 * renderer.getPixelRatio(), [renderer.domElement.width, renderer.domElement.height]);
 }
 function render() { composer.render(); }
 function loop(now) {
@@ -318,17 +335,21 @@ function hud() {
   $('readout').textContent = `${fps.toFixed(0)} i/s · ${t ? t.label : ''} · distance ${fmtDist(d)}${alt} · ×${timeScale}`;
 }
 $('giant').onchange = (e) => { setGiant(e.target.value); };
-$('view-sel').onchange = (e) => { const v = e.target.value; curTarget = v.startsWith('ring') ? 'rings' : v === 'star' ? 'star' : moonById[v] ? 'moon:' + v : 'giant'; if (!v.startsWith('graze')) graze = null; VIEWS[v](); };
+$('view-sel').onchange = (e) => { if (director.active) { director.stop(); cam.enabled = true; $('cine').textContent = 'Cinématique'; } const v = e.target.value; curTarget = v.startsWith('ring') ? 'rings' : v === 'star' ? 'star' : moonById[v] ? 'moon:' + v : 'giant'; if (!v.startsWith('graze')) graze = null; VIEWS[v](); };
 $('target').onchange = (e) => { curTarget = e.target.value; graze = null;
   const m = curTarget.startsWith('moon:') ? moonById[curTarget.slice(5)] : null;
   cam.setTarget(targets[curTarget], { dur: 3.2, dist: m ? m.R * 3 : curTarget === 'racer' ? 300 : curTarget === 'field' ? 2e6 : curTarget === 'star' ? star.R * 8 : curTarget === 'rings' ? 2e7 : giant.R * 3 }); };
 $('speed').oninput = (e) => { timeScale = Math.round(Math.pow(10, +e.target.value)); hud(); };
+$('cine').onclick = () => { if (director.active) { director.stop(); cam.enabled = true; $('cine').textContent = 'Cinématique'; } else { cam.enabled = false; director.start(0); $('cine').textContent = 'Caméra libre'; } };
 $('shot').onclick = () => { render(); const a = document.createElement('a'); a.download = `fronde_${giantKey}_${Date.now()}.png`; a.href = renderer.domElement.toDataURL('image/png'); a.click(); };
 
 // accès de test (tools/fronde/shots.js) : rendu image par image, sans boucle
 window.RW = {
   views: Object.keys(VIEWS), setView: (v) => { VIEWS[v](); }, setGiant, setTime: (t) => { simT = t; }, setTimeScale: (s) => { timeScale = s; },
   stop: () => renderer.setAnimationLoop(null),
+  shots: () => director.reel.map((s) => s.title),
+  cine: (i, u, hold = true) => { cam.enabled = false; director.seek(i, u); director.hold = hold; },
+  cineDiag: () => ({ racer: { d: Math.hypot(racer.pos[0] - frame.cam[0], racer.pos[1] - frame.cam[1], racer.pos[2] - frame.cam[2]), model: !!racer.model, gp: racer.group.position.toArray().map((x) => +x.toFixed(1)), v: Math.hypot(...racer.vel) }, title: director.title, t: director.t, simT, tc: race.tc, ring: debris && debris.stats, alt: debris && (() => { const g = giant, c = frame.cam, q = g.group.quaternion.clone().invert(); const v = new THREE.Vector3(c[0] - g.pos[0], c[1] - g.pos[1], c[2] - g.pos[2]).applyQuaternion(q); return { y: v.y, r: Math.hypot(v.x, v.z) / g.R, dens: debris.data.density(v.x, v.y, v.z) }; })() }),
   frames: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) step(dt); render(); },
   info: () => ({ ...renderer.info.render, race: race && { n: race.S.length, rp: race.rp / giant.R, hit: !!race.hit, alt: (race.rp - giant.R) / 1e3, vmax: Math.max(...race.S.map((x) => Math.hypot(...x.v))) / 1e3, marks: holo.markData.map((m) => m.k + ':' + (m.ring ? (m.ring / giant.R).toFixed(2) : '')).filter((x) => !x.startsWith('0:')) }, q: Q, dist: cam.distance, pending: pool.pending, field: field.stats, ring: debris ? debris.stats : null }),
   // attend que toutes les parcelles de relief demandées soient construites (captures)

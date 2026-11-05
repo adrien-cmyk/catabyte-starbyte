@@ -39,7 +39,7 @@ void main(){
   float diamonds = 0.78 + 0.22 * pow(0.5 + 0.5 * sin(t * 46.0 - uTime * 3.0), 3.0) * (1.0 - uLayer * 0.6) * smoothstep(0.35, 0.9, t);
   float a = uAlpha * along * core * turb * diamonds * (0.35 + 0.65 * uThrottle);
   vec3 c = mix(uColor * vec3(0.75, 0.8, 1.15), uColor, t);
-  gl_FragColor = vec4(c * a * 2.2, a);
+  gl_FragColor = vec4(c * a * 1.5, a);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`;
@@ -48,7 +48,7 @@ void main(){
 export function createPlume(R, colors) {
   const g = new THREE.Group(), mats = [];
   for (const [len, rIn, rOut, color, alpha, flick, layer] of [
-    [R * 40, R * 0.86, R * 0.2, colors[0], 0.16, 1.0, 1.0],
+    [R * 40, R * 0.86, R * 0.2, colors[0], 0.07, 1.0, 1.0],
     [R * 28, R * 0.74, R * 0.1, colors[1], 0.3, 1.0, 0.7],
     [R * 16, R * 0.58, R * 0.05, colors[2], 0.42, 0.8, 0.4],
     [R * 7, R * 0.4, R * 0.03, colors[3], 0.55, 0.4, 0.0],

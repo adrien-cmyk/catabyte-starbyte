@@ -28,8 +28,13 @@ const views = process.argv.slice(3);
     await p.evaluate((g) => RW.setGiant(g), g);
     const vs = views.length ? views : await p.evaluate(() => RW.views);
     for (const v of vs) {
-      await p.evaluate(async (v) => { RW.setView(v); RW.frames(3); await RW.settle(); RW.frames(2); }, v);
-      const f = path.join(OUT, `${g}_${v}.png`);
+      if (v.startsWith('cine:')) {           // plan de la caméra cinématique : cine:<indice>:<fraction>
+        const [, i, u] = v.split(':');
+        await p.evaluate(async ([i, u]) => { RW.cine(+i, +u); RW.frames(2); await RW.settle(); RW.frames(2); }, [i, u || 0.5]);
+        await p.waitForTimeout(700);          // fin du fondu
+        console.log('diag', JSON.stringify(await p.evaluate(() => RW.cineDiag())));
+      } else await p.evaluate(async (v) => { RW.setView(v); RW.frames(3); await RW.settle(); RW.frames(2); }, v);
+      const f = path.join(OUT, `${g}_${v.replace(/:/g, '-')}.png`);
       await p.screenshot({ path: f, timeout: 120000 });
       console.log('ok', f, JSON.stringify(await p.evaluate(() => RW.info())));
     }

@@ -7,12 +7,24 @@ import { THREE } from '../lib/sb3d-shim.js';
 const LINE_VERT = /* glsl */`
 #include <common>
 #include <logdepthbuf_pars_vertex>
-attribute float aSide, aT;
-uniform float uNow, uSpan;
+attribute float aSide, aT; attribute vec3 aNext;
+uniform float uNow, uSpan, uPx; uniform vec2 uRes;
 varying float vSide, vAhead; varying vec3 vMV;
+// ligne écran : on projette le point et son voisin, puis on décale perpendiculairement de uPx pixels
 void main(){ vSide = aSide; vAhead = (aT - uNow) / uSpan;
-  vec4 mv = modelViewMatrix * vec4(position, 1.0); vMV = mv.xyz;
-  gl_Position = projectionMatrix * mv;
+  vec4 mv = modelViewMatrix * vec4(position, 1.0), mn = modelViewMatrix * vec4(aNext, 1.0);
+  // découpage au plan proche : un sommet derrière la caméra glisse vers son voisin (sinon la projection s'inverse)
+  if (mv.z > -1.0) {
+    if (mn.z > -1.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
+    mv = mix(mv, mn, (-1.0 - mv.z) / (mn.z - mv.z));
+  }
+  if (mn.z > -1.0) mn = mix(mn, mv, (-1.0 - mn.z) / (mv.z - mn.z));
+  vMV = mv.xyz;
+  vec4 c0 = projectionMatrix * mv, c1 = projectionMatrix * mn;
+  vec2 s0 = c0.xy / max(abs(c0.w), 1e-6) * uRes, s1 = c1.xy / max(abs(c1.w), 1e-6) * uRes;
+  vec2 d = s1 - s0; d = length(d) > 1e-6 ? normalize(d) : vec2(1.0, 0.0);
+  c0.xy += vec2(-d.y, d.x) * aSide * uPx / uRes * c0.w;
+  gl_Position = c0;
   #include <logdepthbuf_vertex>
 }`;
 const LINE_FRAG = /* glsl */`
@@ -68,7 +80,9 @@ export class TrajectoryHolo {
     g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
     g.setAttribute('aSide', new THREE.BufferAttribute(this.side, 1));
     g.setAttribute('aT', new THREE.BufferAttribute(this.tt, 1));
-    this.u = { uCol: { value: new THREE.Color(color) }, uPast: { value: new THREE.Color(past) }, uNow: { value: 0 }, uSpan: { value: 3600 }, uWarn: { value: new THREE.Color(warn) }, uNear: { value: 3e4 } };
+    this.nxt = new Float32Array(maxPoints * 2 * 3);
+    g.setAttribute('aNext', new THREE.BufferAttribute(this.nxt, 3).setUsage(THREE.DynamicDrawUsage));
+    this.u = { uCol: { value: new THREE.Color(color) }, uPast: { value: new THREE.Color(past) }, uNow: { value: 0 }, uSpan: { value: 3600 }, uWarn: { value: new THREE.Color(warn) }, uNear: { value: 3e4 }, uPx: { value: 1.3 }, uRes: { value: new THREE.Vector2(640, 360) } };
     this.line = new THREE.Mesh(g, new THREE.ShaderMaterial({ uniforms: this.u, vertexShader: LINE_VERT, fragmentShader: LINE_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
     this.line.frustumCulled = false; this.line.renderOrder = 4;
     this.marks = new THREE.Points(new THREE.BufferGeometry(), new THREE.ShaderMaterial({ uniforms: this.u, vertexShader: MARK_VERT, fragmentShader: MARK_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
@@ -100,7 +114,7 @@ export class TrajectoryHolo {
         if (d0 * d1 < 0) {
           const f = d0 / (d0 - d1), p = [0, 1, 2].map((c) => S[i - 1].p[c] + (s.p[c] - S[i - 1].p[c]) * f);
           const r = Math.hypot(p[0] - ringPlane.center[0], p[1] - ringPlane.center[1], p[2] - ringPlane.center[2]);
-          M.push({ p, t: s.t, k: r > ringPlane.inner && r < ringPlane.outer ? 2 : 0, ring: r });
+          M.push({ p, t: S[i - 1].t + (s.t - S[i - 1].t) * f, k: r > ringPlane.inner && r < ringPlane.outer ? 2 : 0, ring: r });   // instant interpolé
         }
       }
       if (ringPlane) { const r = Math.hypot(s.p[0] - ringPlane.center[0], s.p[1] - ringPlane.center[1], s.p[2] - ringPlane.center[2]); if (r < rmin) { rmin = r; ip = i; } }
@@ -113,23 +127,20 @@ export class TrajectoryHolo {
     mg.setAttribute('aT', new THREE.BufferAttribute(Float32Array.from(M.map((m) => m.t)), 1));
     this.marks.geometry.dispose(); this.marks.geometry = mg;
   }
-  // relatif caméra à chaque image (float64 → float32) ; largeur constante en pixels
-  update(cam, now, pixAngle, px = 1.6) {
-    const P = this.pos, T = this.tt, pts = this.pts, n = pts.length;
-    this.u.uNow.value = now;
-    for (let i = 0; i < this.M; i++) {
-      const k = Math.min(i, n - 1), s = pts[k];
-      if (!s) break;
-      const a = [s.p[0] - cam[0], s.p[1] - cam[1], s.p[2] - cam[2]];
-      const b = pts[Math.max(0, k - 1)].p, c = pts[Math.min(n - 1, k + 1)].p;
-      const tx = c[0] - b[0], ty = c[1] - b[1], tz = c[2] - b[2];
-      let sx = ty * a[2] - tz * a[1], sy = tz * a[0] - tx * a[2], sz = tx * a[1] - ty * a[0];
-      const sl = Math.hypot(sx, sy, sz) || 1, d = Math.hypot(...a), w = d * pixAngle * px / sl;
-      sx *= w; sy *= w; sz *= w;
-      P.set([a[0] - sx, a[1] - sy, a[2] - sz, a[0] + sx, a[1] + sy, a[2] + sz], i * 6);
+  // relatif caméra à chaque image (float64 → float32) ; la largeur en pixels est faite dans le vertex shader
+  update(cam, now, pixAngle, px = 1.3, res = null) {
+    const P = this.pos, X = this.nxt, T = this.tt, pts = this.pts, n = pts.length;
+    this.u.uNow.value = now; this.u.uPx.value = px;
+    if (res) this.u.uRes.value.set(res[0] / 2, res[1] / 2);
+    for (let i = 0; i < Math.min(n, this.M); i++) {
+      const s = pts[i], j = i < n - 1 ? i + 1 : i - 1, q = pts[j].p;
+      const ax = s.p[0] - cam[0], ay = s.p[1] - cam[1], az = s.p[2] - cam[2];
+      // voisin : pour le dernier point, on prolonge à l'opposé de l'avant-dernier (même direction)
+      const bx = i < n - 1 ? q[0] - cam[0] : 2 * ax - (q[0] - cam[0]), by = i < n - 1 ? q[1] - cam[1] : 2 * ay - (q[1] - cam[1]), bz = i < n - 1 ? q[2] - cam[2] : 2 * az - (q[2] - cam[2]);
+      P.set([ax, ay, az, ax, ay, az], i * 6); X.set([bx, by, bz, bx, by, bz], i * 6);
       T[i * 2] = T[i * 2 + 1] = s.t;
     }
-    const g = this.line.geometry; g.attributes.position.needsUpdate = true; g.attributes.aT.needsUpdate = true;
+    const g = this.line.geometry; g.attributes.position.needsUpdate = true; g.attributes.aT.needsUpdate = true; g.attributes.aNext.needsUpdate = true;
     g.setDrawRange(0, Math.max(0, (n - 1) * 6));
     const mp = this.marks.geometry.attributes.position;
     this.markData.forEach((m, i) => mp.array.set([m.p[0] - cam[0], m.p[1] - cam[1], m.p[2] - cam[2]], i * 3));
