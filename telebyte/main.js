@@ -44,21 +44,29 @@ setTimeout(loadFrame, 800);                                          // après l
 addEventListener('message', (e) => {
   const m = e.data; if (!sysFrame || e.source !== sysFrame.contentWindow || !m || !m.fronde) return;
   if (m.type === 'loaded') { frameOk = true; if (pending) { const p = pending; pending = null; p(); } }
-  else if (m.type === 'ready') { inSystem = true; sysFrame.classList.add('on'); streaks.play('in', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 1.1 }); }
+  else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); inSystem = true; sysFrame.classList.add('on'); streaks.play('in', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 1.1 }); }
   else if (m.type === 'surface') {
     t = Math.min(E.t1, m.t); if (m.sel !== view.sel) { view.sel = m.sel || null; view.onSelect(view.sel); }
     inSystem = false; sysFrame.classList.remove('on'); view.surfaceFrom(m.sys || curSysId); renderStandings(true);
     streaks.play('out', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 1.1 });
   }
 });
+// repli : changement de page classique (le cadre n'a pas répondu)
+function fallbackEnter(sysId) {
+  pending = null; clearTimeout(watch); view.diving = null; inSystem = false;
+  if (sysFrame) sysFrame.classList.remove('on');
+  streaks.handoff('in'); enterSystem(sysId);
+}
+let watch = 0;
 const dive = (sysId, x, y) => {
   if (streaks.busy || inSystem) return;
   view.diveTo(sysId); curSysId = sysId;
   streaks.play('in', x, y, { hold: true, onMid: () => {
-    const go = () => sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null }, '*');
+    // au sommet de l'éclair : le cadre devient visible (sous l'éclair) — iOS ralentit les cadres invisibles
+    const go = () => { sysFrame.classList.add('on'); sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null }, '*'); };
+    clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(sysId); }, 7000);   // jamais bloqué sur l'éclair
     if (frameOk) return go();
     loadFrame(); pending = go;
-    setTimeout(() => { if (pending) { pending = null; view.diving = null; streaks.handoff('in'); enterSystem(sysId); } }, 8000);    // repli : changement de page si le cadre ne répond pas
   } });
 };
 const view = new UniverseView($('scene'), $('labels'), feed, { onEnter: (id) => { const el = [...document.querySelectorAll('.tb-sys')].find((e) => e.textContent.startsWith(E.systems.find((s) => s.id === id).name)); const r = el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 2, width: 0 }; dive(id, r.left + r.width / 2, r.top); }, onDive: dive, onSelect: (id) => { renderStandings(true); $('focus').hidden = !id; if (id) $('focus-name').textContent = racer[id].name; } });

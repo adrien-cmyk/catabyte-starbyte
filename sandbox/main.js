@@ -662,7 +662,8 @@ if (EMBED) {
       courseView({ t: m.t, sel: m.sel || null });
       if (cam.tr) cam.tr.logFrom += Math.log(80); else cam.logD += Math.log(80);   // on arrive de très haut
       last = performance.now(); renderer.setAnimationLoop(loop);
-      requestAnimationFrame(() => requestAnimationFrame(() => parent.postMessage({ fronde: 1, type: 'ready' }, '*')));
+      step(1 / 60); render();                                           // une image tout de suite (sans attendre l'horloge d'affichage)
+      setTimeout(() => parent.postMessage({ fronde: 1, type: 'ready' }, '*'), 60);
     } else if (m.type === 'pause') renderer.setAnimationLoop(null);
   });
   parent.postMessage({ fronde: 1, type: 'loaded' }, '*');
