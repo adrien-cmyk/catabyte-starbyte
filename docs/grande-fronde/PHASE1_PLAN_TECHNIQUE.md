@@ -421,7 +421,7 @@ Cette partie sera détaillée au début de la Phase 3 (simulation), et les paris
 | 12. Caméra cinématique + séquenceur de plans | fait (bobine de 64 s en boucle, 9 plans : vue générale, approche, traversée des anneaux au ralenti ×0,02, devant la géante, échelle planétaire, périapse, côté nuit, passage rasant, champ d'astéroïdes ; chaque plan règle le temps de course ; coupes franches et fondus au changement de lieu) |
 | 13. Zoom continu système → racer | fait (plan de 12 s, 8·10⁹ m → 150 m en log, visée géante → racer, vue haute → poursuite, temps de course qui ralentit jusqu'au réel ; lunes agrandies seulement en vue système, balise holographique du racer quand il fait moins de ~5 px) |
 | 14. LodManager branché sur SBPerf + passe de performance | fait côté géométrie : 48 mesures (12 vues × 4 niveaux) toutes dans les budgets de §9 — voir [PERF_PHASE1.md](PERF_PHASE1.md). **Reste à mesurer les images par seconde sur de vrais appareils** (le banc tourne en rendu logiciel). |
-| 15 | à faire |
+| 15. Captures promotionnelles des 7 tests (DSF 2) | fait : [promo/](promo/README.md), 14 images en 2560 × 1440, avec les points faibles connus. **En attente de la validation d'Adrien.** |
 
 Captures : `node tools/fronde/shots.js amber,blue,black` (serveur statique à la racine du dépôt sur le port 8766 ;
 `THREE_DIR` pointe vers un `node_modules/three` 0.186.0 local si le CDN n'est pas joignable).

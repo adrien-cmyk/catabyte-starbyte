@@ -20,6 +20,7 @@
   #caption { position: fixed; left: 16px; top: calc(var(--sai) + 52px); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #cfe3f2; pointer-events: none; }
   #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .45s ease; }
   #fade.on { opacity: 1; transition: none; }
+  body.clean #caption,
   body.clean #panel, body.clean #readout, body.clean #title { display: none; }
 </style>
 <!-- hors du jeu : la même révision de three.js que le moteur embarqué (window.SB3D, r186) -->
