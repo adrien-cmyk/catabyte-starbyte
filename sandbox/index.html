@@ -44,6 +44,13 @@
   #race li .nm { font-size: 12px; font-weight: 600; min-width: 0; }
   #race li small { display: block; font-weight: 400; font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #race li .gp { font: 11px ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  #race #rh-win { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); display: grid; gap: 3px; font-size: 11px; color: var(--dim); }
+  #race #rh-win[hidden] { display: none; }
+  .rl-gate { position: absolute; left: 0; top: 0; translate: 8px -50%; display: grid; gap: 1px; font-size: 10px; color: var(--dim); pointer-events: none; background: rgba(2, 4, 8, .6); padding: 4px 7px; border-radius: 5px; border-left: 2px solid #9fd4ec; }
+  .rl-gate[hidden] { display: none; }
+  .rl-gate b { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg); }
+  .rl-gate span::before { content: ""; display: inline-block; width: 8px; height: 2px; margin-right: 5px; vertical-align: middle; background: var(--c, #9fd4ec); }
+  .rl-gate span.grad::before { background: #29c6b8; } .rl-gate span.grad.hot::before { background: #e0503a; }
   #race #rh-wait { margin-top: 8px; font-size: 11px; color: var(--dim); display: flex; gap: 8px; align-items: center; justify-content: space-between; }
   #race #rh-wait[hidden] { display: none; }
   #race #rh-wait button { background: transparent; color: #9fd4ec; border: 1px solid var(--line); border-radius: 6px; font: 600 11px -apple-system, system-ui, sans-serif; padding: 3px 7px; cursor: pointer; }
@@ -77,6 +84,7 @@
     <option value="trajectory">Fronde gravitationnelle · trajectoire</option>
     <option value="zoom">Zoom continu · système → racer</option>
     <option value="course">Course · vue système</option>
+    <option value="course-portes">Course · fenêtres orbitales</option>
     <option value="fleet">Les quatre racers · côte à côte</option>
     <option value="fleet-sentinelle">Sentinelle · SR-01</option>
     <option value="fleet-cuirasse">Kerath Lourd · KV-01</option>

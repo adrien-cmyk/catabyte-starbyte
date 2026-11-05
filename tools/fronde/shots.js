@@ -30,7 +30,7 @@ const views = process.argv.slice(3);
     for (const v of vs) {
       if (v.startsWith('course')) {         // vue système de course : course[:racer[:heures après l'instant par défaut]]
         const [, sel, dh] = v.split(':');
-        await p.evaluate(async ([sel, dh]) => { RW.course({ sel: sel || null }); if (dh) RW.advanceRace && RW.advanceRace(+dh * 3600); RW.frames(3); await RW.settle();
+        await p.evaluate(async ([sel, dh]) => { if (sel === 'portes') RW.coursePortes(); else RW.course({ sel: sel || null }); if (dh) RW.advanceRace && RW.advanceRace(+dh * 3600); RW.frames(3); await RW.settle();
           const t0 = performance.now(); while (!RW.fleetReady() && performance.now() - t0 < 60000) await new Promise((r) => setTimeout(r, 200)); RW.frames(110); }, [sel, dh]);
         await p.waitForTimeout(300);
       } else if (v.startsWith('cine:')) {           // plan de la caméra cinématique : cine:<indice>:<fraction>

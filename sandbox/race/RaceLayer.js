@@ -8,6 +8,7 @@
 // Les racers qui ne sont pas dans ce système (en voyage, ailleurs) sont masqués et annoncés dans le panneau.
 import { THREE } from '../lib/sb3d-shim.js';
 import { TrajectoryHolo } from '../scene/TrajectoryHolo.js';
+import { OrbitalWindows, BANDS } from './OrbitalWindows.js';
 
 const hh = (s) => { s = Math.max(0, s); const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return (d ? `J+${d} ` : '') + `${String(h).padStart(2, '0')} h ${String(m).padStart(2, '0')}`; };
 const dur = (s) => { s = Math.abs(s); if (s < 60) return `${Math.round(s)} s`; const h = Math.floor(s / 3600), m = Math.round(s % 3600 / 60); return h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`; };
@@ -18,6 +19,7 @@ export class RaceLayer {
   constructor(ctx) {
     this.c = ctx; this.on = false; this.sel = null; this.holos = {}; this._q = new THREE.Quaternion(); this._v = new THREE.Vector3();
     this.speeds = [1, 20, 200, 2000]; this.speedI = 2;
+    this.windows = new OrbitalWindows(); this.gateEls = {};
   }
   get feed() { return this.c.feed; }
   enter({ t = null, sel = null } = {}) {
@@ -35,6 +37,7 @@ export class RaceLayer {
   exit() {
     this.on = false; this.c.hud.hidden = true; this.c.labels.hidden = true;
     for (const h of Object.values(this.holos)) h.group.visible = false;
+    this.windows.group.visible = false; for (const e of Object.values(this.gateEls)) e.hidden = true;
   }
   // trajectoires du système affiché, converties dans le repère du monde
   rebuild() {
@@ -50,6 +53,8 @@ export class RaceLayer {
       h.ok = S.length > 1;
       if (h.ok) h.setPath(S, { tickEvery: 3600, ringPlane: g.ring ? { center: gp, normal: axis, inner: g.ring.inner * g.R, outer: g.ring.outer * g.R } : null });
     }
+    // fenêtres orbitales du système (portes de périapse et des anneaux)
+    this.windows.build(this.feed, sys, g); this.windows.group.visible = true;
     this._hud(true);
   }
   // à chaque image, avant le rendu : racers à leur place du flux
@@ -101,6 +106,20 @@ export class RaceLayer {
       el.style.transform = `translate(${x | 0}px, ${y | 0}px)`;
       el.classList.toggle('on', this.sel === rc.def.id); el.classList.toggle('dim', !!this.sel && this.sel !== rc.def.id);
     }
+    // étiquettes des portes
+    for (const a of this.windows.anchors()) {
+      let el = this.gateEls[a.kind];
+      if (!el) {
+        el = this.gateEls[a.kind] = document.createElement('div'); el.className = 'rl-gate';
+        el.innerHTML = a.kind === 'peri'
+          ? '<b>Porte de périapse</b>' + BANDS.map((b) => `<span style="--c:#${new THREE.Color(b.col).getHexString()}">${b.label}</span>`).join('')
+          : '<b>Traversée des anneaux</b><span class="grad">vide · raccourci</span><span class="grad hot">dense · risque</span>';
+        this.c.labels.appendChild(el);
+      }
+      v.set(a.p[0] - frame.cam[0], a.p[1] - frame.cam[1], a.p[2] - frame.cam[2]).project(camera);
+      el.hidden = v.z > 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1;
+      el.style.transform = `translate(${((v.x * 0.5 + 0.5) * W) | 0}px, ${((-v.y * 0.5 + 0.5) * H) | 0}px)`;
+    }
     this._hud();
   }
   _label(rc) {
@@ -129,6 +148,7 @@ export class RaceLayer {
       el.innerHTML = `<div class="rh-top"><a id="rh-back" href="#">← Télébyte</a><span class="rh-live">en direct</span></div>
         <b id="rh-sys"></b><span id="rh-time" class="rh-time"></span>
         <ol id="rh-list"></ol>
+        <div id="rh-win" hidden></div>
         <div id="rh-wait" hidden><span></span><button type="button">Aller à son arrivée</button></div>
         <div class="rh-clock"><input id="rh-clock" type="range" min="0" step="1" aria-label="Temps de course"><button id="rh-speed" type="button">×200</button></div>`;
       el.querySelector('#rh-clock').max = String(Math.ceil(F.edition.t1));
@@ -146,6 +166,9 @@ export class RaceLayer {
     const ck = el.querySelector('#rh-clock'); if (document.activeElement !== ck) ck.value = String(Math.round(t));
     const rows = F.standingsAt(t), sig = rows.map((r) => r.id + r.cp).join('|') + this.sel + sys.id + Math.floor(t / 60);
     if (!force && sig === this._sig) return; this._sig = sig;
+    // fenêtres du racer suivi dans ce système
+    const win = el.querySelector('#rh-win'), lines = this.sel ? this.windows.describe(this.sel) : [];
+    win.hidden = !lines.length; win.innerHTML = lines.map((l) => `<span>${l}</span>`).join('');
     el.querySelector('#rh-list').innerHTML = rows.map((r) => {
       const R = F.racers.find((x) => x.id === r.id), st = F.stateAt(r.id, t);
       const where = st.phase === 'system' ? (st.system === sys.id ? 'ici' : 'à ' + F.edition.systems.find((s) => s.id === st.system).name)

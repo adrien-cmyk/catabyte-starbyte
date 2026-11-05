@@ -332,6 +332,14 @@ function courseView(opts = {}) {
 }
 VIEWS.course = () => { fovOv = null; courseView(); };
 VIEWS.course._w = true;
+// les fenêtres orbitales vues de près, en surplomb côté soleil
+VIEWS['course-portes'] = () => {
+  fovOv = null; courseView();
+  const f = raceLayer.windows.frameWorld(); if (!f) return;
+  targets.gates = { pos: Float64Array.from(f.c), minDist: 1000, label: 'Fenêtres orbitales' };
+  cam.setTarget(targets.gates, { dist: Math.max(f.spread * 1.6, giant.R * 0.6), yaw: sunYaw + 0.9, pitch: 0.75 });
+};
+VIEWS['course-portes']._w = true;
 
 /* ── systèmes de la course : bascule (étoile, soleil, reflets, géante, lunes, cibles, vues) ── */
 const STAR_GLOW = { amber: [0.5, 0.3, 0.16], blue: [0.12, 0.3, 0.42], black: [0.08, 0.07, 0.06] };
@@ -524,7 +532,7 @@ if (location.hash.startsWith('#course')) {
 
 // accès de test (tools/fronde/shots.js) : rendu image par image, sans boucle
 window.RW = {
-  course: (o) => courseView(o || {}), advanceRace: (dt) => { simT += dt; }, raceSelect: (id) => raceLayer.select(id),
+  coursePortes: () => VIEWS['course-portes'](), course: (o) => courseView(o || {}), advanceRace: (dt) => { simT += dt; }, raceSelect: (id) => raceLayer.select(id),
   setSystem: (id) => setSystem(id), views: Object.keys(VIEWS), setView: (v) => { if (director.active) { director.stop(); cam.enabled = true; } VIEWS[v](); }, setGiant, setTime: (t) => { simT = t; }, setTimeScale: (s) => { timeScale = s; },
   stop: () => renderer.setAnimationLoop(null),
   shots: () => director.reel.map((s) => s.title),
