@@ -42,7 +42,8 @@ function sprite(tex, size, color, opacity) {
 const bez = (a, b, c, t) => { const u = 1 - t; return [0, 1, 2].map((i) => u * u * a[i] + 2 * u * t * b[i] + t * t * c[i]); };
 
 export class UniverseView {
-  constructor(host, overlay, feed, { onSelect = () => {}, onEnter = () => {} } = {}) {
+  constructor(host, overlay, feed, { onSelect = () => {}, onEnter = () => {}, onDive = null } = {}) {
+    this.onDive = onDive;                                       // (sysId, x, y) : pincer à fond sur un système = y plonger
     this.host = host; this.overlay = overlay; this.feed = feed; this.onSelect = onSelect; this.onEnter = onEnter; this.sel = null;
     GLOW.star = GLOW.star || glowTex('rgba(255,255,255,1)', 'rgba(255,230,200,.35)');
     GLOW.soft = GLOW.soft || glowTex('rgba(255,255,255,.55)', 'rgba(255,255,255,.08)');
@@ -151,14 +152,40 @@ export class UniverseView {
   select(id) { this.sel = this.sel === id ? null : id; this.onSelect(this.sel); }
   _bind() {
     const d = this.renderer.domElement, pts = new Map(); let pinch0 = 0, zoom0 = 1;
-    d.addEventListener('pointerdown', (e) => { d.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); zoom0 = this.zoom; } });
-    d.addEventListener('pointermove', (e) => {
-      if (!pts.has(e.pointerId)) return; const p = pts.get(e.pointerId), dx = e.clientX - p[0], dy = e.clientY - p[1]; pts.set(e.pointerId, [e.clientX, e.clientY]);
+    // les gestes commencés sur une étiquette de la scène comptent aussi (sinon pincer sur un vaisseau ne zoome pas)
+    const ok = (e) => e.target === d || !!(e.target.closest && e.target.closest('.tb-racer, .tb-sys'));
+    let movedPx = 0;                                       // un glissé ou un pincement commencé sur une étiquette n'est pas un tap
+    addEventListener('click', (e) => { if (movedPx > 8 && e.target !== d && ok(e)) { e.stopPropagation(); e.preventDefault(); } }, true);
+    addEventListener('pointerdown', (e) => { if (!pts.size) movedPx = 0; if (!ok(e)) return; if (e.target === d) d.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); zoom0 = this.zoom; } });
+    addEventListener('pointermove', (e) => {
+      if (!pts.has(e.pointerId)) return; { const q = pts.get(e.pointerId); movedPx += Math.abs(e.clientX - q[0]) + Math.abs(e.clientY - q[1]) + (pts.size > 1 ? 99 : 0); } const p = pts.get(e.pointerId), dx = e.clientX - p[0], dy = e.clientY - p[1]; pts.set(e.pointerId, [e.clientX, e.clientY]);
       if (pts.size === 1) { const k = this.span * this.zoom / this.host.clientWidth; this.pan[0] -= dx * k; this.pan[1] -= dy * k * 1.4; }
-      else if (pts.size === 2) { const [a, b] = [...pts.values()]; this.zoom = THREE.MathUtils.clamp(zoom0 * pinch0 / Math.hypot(a[0] - b[0], a[1] - b[1]), 0.18, 1.6); }
+      else if (pts.size === 2) { const [a, b] = [...pts.values()], dd = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0) this.zoomBy(pinch0 / dd, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); pinch0 = dd; }
     });
-    const up = (e) => pts.delete(e.pointerId); d.addEventListener('pointerup', up); d.addEventListener('pointercancel', up);
-    d.addEventListener('wheel', (e) => { e.preventDefault(); this.zoom = THREE.MathUtils.clamp(this.zoom * Math.exp(e.deltaY * 0.0012), 0.18, 1.6); }, { passive: false });
+    const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0; }; addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    addEventListener('wheel', (e) => { if (!ok(e)) return; e.preventDefault(); this.zoomBy(Math.exp(e.deltaY * 0.0012), e.clientX, e.clientY); }, { passive: false });
+  }
+  // zoom vers le doigt (comme la carte du jeu) ; à la butée, continuer à pincer vers un système = y plonger
+  zoomBy(f, x, y) {
+    const now = performance.now(); if (now - (this._zl || 0) > 450) this._acc = 1; this._zl = now; this._acc *= f;
+    const z0 = this.zoom, z1 = THREE.MathUtils.clamp(z0 * f, 0.18, 1.6), q = z1 / z0;
+    if (f < 1 && this.onDive) {
+      const n = this._nearSys(x, y);
+      if (n && n.px < 110 && (z0 <= 0.2 || this._acc < 0.3)) { this._acc = 1; this.onDive(n.id, n.x, n.y); return; }
+    }
+    if (q < 1 && x != null) {                                  // le point sous les doigts glisse vers le centre
+      const g = this._ground(x, y); if (g) { const f0 = this._f || [this.center[0], 0, this.center[2]]; this.pan[0] += (g[0] - f0[0]) * (1 - q); this.pan[1] += (g[2] - f0[2]) * (1 - q); }
+    } else if (q > 1) { this.pan[0] /= q; this.pan[1] /= q; }
+    this.zoom = z1;
+  }
+  _ground(x, y) {
+    const r = this.renderer.domElement.getBoundingClientRect(), c = this.camera, v = new THREE.Vector3(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1, 0.5).unproject(c).sub(c.position).normalize();
+    if (Math.abs(v.y) < 1e-6) return null; const s = -c.position.y / v.y; return s > 0 ? [c.position.x + v.x * s, 0, c.position.z + v.z * s] : null;
+  }
+  _nearSys(x, y) {
+    const r = this.renderer.domElement.getBoundingClientRect(), v = new THREE.Vector3(); let best = null;
+    for (const n of this.nodes) { v.set(n.p[0], n.p[1], n.p[2]).project(this.camera); const sx = (v.x * 0.5 + 0.5) * r.width + r.left, sy = (-v.y * 0.5 + 0.5) * r.height + r.top, px = Math.hypot(sx - x, sy - y); if (!best || px < best.px) best = { id: n.sys.id, px, x: sx, y: sy }; }
+    return best;
   }
   resize() {
     const w = this.host.clientWidth, h = this.host.clientHeight; this.renderer.setSize(w, h, false);

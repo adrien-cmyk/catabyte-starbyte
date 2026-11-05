@@ -25,6 +25,8 @@
   .rl-racer { position: absolute; left: 0; top: 0; display: flex; gap: 6px; align-items: center; translate: -6px -6px; background: none; border: 0; padding: 0; color: var(--fg); font: 600 11px/1.2 -apple-system, system-ui, sans-serif; pointer-events: auto; cursor: pointer; text-align: left; }
   .rl-racer i { width: 9px; height: 9px; border-radius: 50%; background: var(--livery); box-shadow: 0 0 0 2px rgba(0, 0, 0, .8), 0 0 10px var(--livery); flex: none; }
   .rl-racer span { padding: 2px 6px; border-radius: 4px; background: rgba(2, 4, 8, .66); }
+  .rl-racer u { position: absolute; left: 4px; top: 6px; width: 1px; height: 0; background: var(--livery); opacity: .7; pointer-events: none; }
+  .rl-racer span { position: relative; }
   .rl-racer small { display: block; font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
   .rl-racer.on span { outline: 1px solid var(--livery); }
   .rl-racer.dim { opacity: .5; }
@@ -47,7 +49,7 @@
   #race #rh-win { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); display: grid; gap: 3px; font-size: 11px; color: var(--dim); }
   #race #rh-win[hidden] { display: none; }
   .rl-gate { position: absolute; left: 0; top: 0; translate: 8px -50%; display: grid; gap: 1px; font-size: 10px; color: var(--dim); pointer-events: none; background: rgba(2, 4, 8, .6); padding: 4px 7px; border-radius: 5px; border-left: 2px solid #9fd4ec; }
-  .rl-gate[hidden] { display: none; }
+  .rl-gate[hidden], .rl-racer[hidden] { display: none; }
   .rl-gate b { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg); }
   .rl-gate span::before { content: ""; display: inline-block; width: 8px; height: 2px; margin-right: 5px; vertical-align: middle; background: var(--c, #9fd4ec); }
   .rl-gate span.grad::before { background: #29c6b8; } .rl-gate span.grad.hot::before { background: #e0503a; }

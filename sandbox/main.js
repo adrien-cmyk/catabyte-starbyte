@@ -18,6 +18,7 @@ import { RACER_PROFILES } from './scene/racerProfiles.js';
 import { DemoFeed } from './race/DemoFeed.js';
 import { RaceLayer } from './race/RaceLayer.js';
 import { SpeedLines } from './scene/SpeedLines.js';
+import { ZoomStreaks } from './ui/ZoomStreaks.js';
 import { AsteroidField } from './bodies/AsteroidField.js';
 import { RingDebris } from './bodies/RingDebris.js';
 import { Racer } from './scene/Racer.js';
@@ -323,6 +324,45 @@ raceLayer = new RaceLayer({
     location.href = url;
   },
 });
+/* ── zoom accéléré (comme la carte du jeu) : pincer à fond vers un racer = plonger en poursuite ;
+   reculer depuis la poursuite = vue Ensemble ; reculer encore = retour au Télébyte. Effet de stries au passage. ── */
+const streaks = new ZoomStreaks();
+let pinchAcc = 1, pinchLast = 0;
+function racerNear(x, y) {
+  const r = renderer.domElement.getBoundingClientRect(), v = new THREE.Vector3(); let best = null;
+  for (const rc of ensureFleet()) {
+    if (!rc.inSys) continue;
+    v.set(rc.pos[0] - frame.cam[0], rc.pos[1] - frame.cam[1], rc.pos[2] - frame.cam[2]).project(camera);
+    if (v.z > 1) continue;
+    const px = Math.hypot((v.x * 0.5 + 0.5) * r.width + r.left - x, (-v.y * 0.5 + 0.5) * r.height + r.top - y);
+    if (!best || px < best.px) best = { rc, px };
+  }
+  return best;
+}
+function diveTo(rc, x, y) {
+  streaks.play('in', x, y, { onMid: () => {
+    raceLayer.sel = rc.def.id; raceLayer._view = 'follow'; cam.u.yaw = cam.u.pitch = cam.u.logD = 0;
+    const L = RACER_PROFILES[rc.def.ship].length; cam.setTarget(targets['racer:' + rc.def.id], { dist: L * 2.2 + 25 }); raceLayer._hud(true);
+  } });
+}
+cam.onZoom = (f, x, y) => {
+  if (streaks.busy) return true;
+  if (!raceLayer || !raceLayer.on || cam.tr || director.active) return false;
+  const now = performance.now(); if (now - pinchLast > 450) pinchAcc = 1; pinchLast = now; pinchAcc *= f;
+  const v = raceLayer._view, D = cam.distance;
+  if (v === 'follow') {
+    if (f > 1 && cam.u.logD > Math.log(30)) { streaks.play('out', x, y, { onMid: () => { cam.u.logD = 0; trackPack(0); raceLayer._hud(true); } }); return true; }
+    return false;
+  }
+  if (f < 1) {
+    const n = racerNear(x, y);
+    // pincement franc vers un racer (au moins ×2,5), ou plancher atteint : on plonge sur le plus proche du doigt
+    if (n && ((n.px < 90 && pinchAcc < 0.4) || D < giant.R * 0.02)) { diveTo(n.rc, x, y); return true; }
+  } else if (v === 'overview' && D > Math.max(packDist() * 4, giant.R * 4) && pinchAcc > 2) {
+    streaks.play('out', x, y, { hold: true, onMid: () => { streaks.handoff('out'); raceLayer.c.back(); } }); return true;
+  }
+  return false;
+};
 // vue Ensemble : la caméra suit le peloton présent dans le système et s'ajuste à son écartement
 targets.pack = { pos: null, minDist: 2000, label: 'Le peloton' };
 const speedLines = new SpeedLines(); scene.add(speedLines.mesh);
@@ -332,7 +372,8 @@ let sportFov = false;
 function sportCam(dt) {
   const on = raceLayer.on && raceLayer._view === 'follow';
   const rc = on && fleet && fleet.find((r) => r.def.id === raceLayer.sel && r.inSys);
-  if (!rc) { if (sportFov) { fovOv = null; sportFov = false; } speedLines.update(false); return null; }
+  if (!rc) { if (sportFov) { fovOv = null; sportFov = false; } speedLines.update(false); if (cam.chase) { cam.chase = false; cam.u.yaw = cam.u.pitch = cam.u.logD = 0; } return null; }
+  cam.chase = true;                                                   // les gestes s'ajoutent au cadrage de poursuite
   const P = RACER_PROFILES[rc.def.ship], L = P.length;
   const v = new THREE.Vector3(...rc.vel), sp = v.length(); v.normalize();
   const up = new THREE.Vector3(0, 1, 0).applyQuaternion(giant.group.quaternion);
@@ -340,17 +381,19 @@ function sportCam(dt) {
   const dir = v.clone().multiplyScalar(-Math.cos(0.28)).addScaledVector(up, Math.sin(0.28)).addScaledVector(side, 0.32).normalize();
   let yaw = Math.atan2(dir.x, dir.z); const pitch = Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
   while (yaw - cam.goal.yaw > Math.PI) yaw -= 2 * Math.PI; while (yaw - cam.goal.yaw < -Math.PI) yaw += 2 * Math.PI;
-  if (!cam.tr) { cam.goal.yaw = yaw; cam.goal.pitch = pitch; cam.goal.logD += (Math.log(L * 2.2 + 25) - cam.goal.logD) * Math.min(1, dt * 1.5); }
+  yaw += cam.u.yaw; const pitchU = THREE.MathUtils.clamp(pitch + cam.u.pitch, -1.45, 1.45);
+  if (!cam.tr) { cam.goal.yaw = yaw; cam.goal.pitch = pitchU; cam.goal.logD += (Math.log(L * 2.2 + 25) + cam.u.logD - cam.goal.logD) * Math.min(1, dt * 1.5); }
   const k = THREE.MathUtils.clamp((sp - 20000) / 40000, 0, 1);
   fovOv = 50 + 12 * k + 6 * rc.throttle; sportFov = true;
-  speedLines.update(true, rc.vel, L, rc.throttle > 0.5 ? 1 : 0, dt);
+  speedLines.update(cam.u.logD < 2, rc.vel, L, rc.throttle > 0.5 ? 1 : 0, dt);
   return rc;
 }
+let packAt = 0;                                       // cadrage automatique du peloton jusqu'au premier geste de zoom
 const packDist = () => Math.max(raceLayer.packSpread * 3.2, giant.R * 0.35);
 function trackPack(dur = 0) {
   targets.pack.pos = raceLayer.pack; raceLayer.position(simT);
   cam.setTarget(targets.pack, { dur, dist: packDist(), yaw: sunYaw + 0.6, pitch: 0.5 });
-  raceLayer._view = 'overview';
+  raceLayer._view = 'overview'; packAt = performance.now();
 }
 // vue d'ensemble du système en course ; la sélection d'un racer passe en poursuite
 function courseView(opts = {}) {
@@ -508,7 +551,7 @@ function step(dt) {
   const raceOn = raceLayer && raceLayer.on;
   if (fleet) for (const rc of fleet) { const vis = fleetOn && (!raceOn || rc.inSys); rc.group.visible = rc.trail.mesh.visible = vis; if (vis) rc.update(frame, simT, performance.now() / 1000); }
   // vue Ensemble : le cadrage suit l'écartement du peloton (en douceur : l'utilisateur peut encore zoomer)
-  if (raceOn && raceLayer._view === 'overview' && !cam.tr) cam.goal.logD += (Math.log(packDist()) - cam.goal.logD) * Math.min(1, dt * 0.8);
+  if (raceOn && raceLayer._view === 'overview' && !cam.tr && cam.userAt < packAt) cam.goal.logD += (Math.log(packDist()) - cam.goal.logD) * Math.min(1, dt * 0.8);
   // téléphone : le panneau de course occupe le bas ; on remonte le centre de l'image au milieu de la zone libre
   {
     const hud = document.getElementById('race'), narrow = innerWidth <= 720;
@@ -577,10 +620,12 @@ if (location.hash.startsWith('#course')) {
   if (sys !== curSys.id) setSystem(sys);
   $('giant').value = sys;
   courseView({ t, sel });
+  requestAnimationFrame(() => requestAnimationFrame(() => streaks.arrive()));    // fin du zoom accéléré venu du Télébyte
 }
 
 // accès de test (tools/fronde/shots.js) : rendu image par image, sans boucle
 window.RW = {
+  camDiag: (x, y) => ({ tr: !!cam.tr, D: cam.distance, R: giant.R, view: raceLayer._view, chase: cam.chase, busy: streaks.busy, near: x != null ? (({ rc, px }) => ({ id: rc.def.id, px }))(racerNear(x, y) || { rc: { def: {} }, px: -1 }) : null, acc: pinchAcc, dir: director.active }),
   coursePortes: () => VIEWS['course-portes'](), course: (o) => courseView(o || {}), advanceRace: (dt) => { simT += dt; }, raceSelect: (id) => raceLayer.select(id),
   setSystem: (id) => setSystem(id), views: Object.keys(VIEWS), setView: (v) => { if (director.active) { director.stop(); cam.enabled = true; } VIEWS[v](); }, setGiant, setTime: (t) => { simT = t; }, setTimeScale: (s) => { timeScale = s; },
   stop: () => renderer.setAnimationLoop(null),

@@ -3,6 +3,8 @@
 // Le flux de course est ici le flux de démonstration ; en Phase 3, le flux serveur aura la même interface.
 import { DemoFeed } from '../sandbox/race/DemoFeed.js';
 import { UniverseView } from './UniverseView.js';
+import { ZoomStreaks } from '../sandbox/ui/ZoomStreaks.js';
+const streaks = new ZoomStreaks();
 
 const feed = new DemoFeed();
 const $ = (id) => document.getElementById(id);
@@ -28,7 +30,8 @@ function enterSystem(sysId) {
 let restore = null;
 try { const ts = sessionStorage.getItem('fronde.t'); if (ts && document.referrer) restore = { t: +ts, sel: sessionStorage.getItem('fronde.sel') || null }; } catch (e) {}
 
-const view = new UniverseView($('scene'), $('labels'), feed, { onEnter: enterSystem, onSelect: (id) => { renderStandings(true); $('focus').hidden = !id; if (id) $('focus-name').textContent = racer[id].name; } });
+const dive = (sysId, x, y) => { if (streaks.busy) return; streaks.play('in', x, y, { hold: true, onMid: () => { streaks.handoff('in'); enterSystem(sysId); } }); };
+const view = new UniverseView($('scene'), $('labels'), feed, { onEnter: (id) => { const el = [...document.querySelectorAll('.tb-sys')].find((e) => e.textContent.startsWith(E.systems.find((s) => s.id === id).name)); const r = el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 2, width: 0 }; dive(id, r.left + r.width / 2, r.top); }, onDive: dive, onSelect: (id) => { renderStandings(true); $('focus').hidden = !id; if (id) $('focus-name').textContent = racer[id].name; } });
 addEventListener('resize', () => view.resize());
 
 const slider = $('clock');
@@ -49,7 +52,7 @@ const STAGES = E.systems.map((sys) => {
   return { sys, tp, t0 };
 });
 $('stages').innerHTML = STAGES.map((s, i) => `<button type="button" data-i="${i}" aria-label="Voir le passage à ${s.sys.name}"><b>${s.sys.name}</b><span>${hh(s.tp)}</span></button>`).join('');
-for (const b of $('stages').children) b.onclick = () => { const s = STAGES[+b.dataset.i]; t = Math.max(0, s.tp - 1800); enterSystem(s.sys.id); };   // 30 min avant le passage
+for (const b of $('stages').children) b.onclick = () => { const s = STAGES[+b.dataset.i]; t = Math.max(0, s.tp - 1800); const r = b.getBoundingClientRect(); dive(s.sys.id, r.left + r.width / 2, r.top + r.height / 2); };   // 30 min avant le passage
 
 
 /* ── classement ── */
@@ -91,6 +94,7 @@ if (restore) { t = Math.min(restore.t, E.t1); if (restore.sel) view.select(resto
 
 function loop(now) {
   requestAnimationFrame(loop);
+requestAnimationFrame(() => streaks.arrive());                    // retour d'un système : fin du zoom accéléré
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   if (playing) { t = Math.min(E.t1, t + dt * SPEEDS[speedI]); if (t >= E.t1) { playing = false; $('play').textContent = 'Lecture'; } }
   renderStandings(); renderClock();

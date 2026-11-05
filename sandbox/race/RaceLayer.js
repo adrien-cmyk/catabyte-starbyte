@@ -133,7 +133,10 @@ export class RaceLayer {
       for (let k = 0; k < 6; k++) { const hit = placed.find((q) => Math.abs(q[0] - x) < 150 && Math.abs(q[1] - y) < 22); if (!hit) break; y = hit[1] + 22; }
       placed.push([x, y]);
       el._y = el._y == null ? y : el._y + (y - el._y) * 0.25;            // amorti : l'étiquette glisse au lieu de sauter
-      el.style.transform = `translate(${x | 0}px, ${el._y | 0}px)`;
+      // le point reste exactement sur le racer (donc sur sa ligne) ; seule l'étiquette s'écarte, reliée par un filet
+      const dy = Math.max(0, el._y - (-v.y * 0.5 + 0.5) * H) | 0;
+      el.style.transform = `translate(${x | 0}px, ${((-v.y * 0.5 + 0.5) * H) | 0}px)`;
+      if (el._dy !== dy) { el._dy = dy; el.querySelector('span').style.transform = dy ? `translateY(${dy}px)` : ''; el.querySelector('u').style.height = dy + 'px'; }
       el.classList.toggle('on', me); el.classList.toggle('dim', !!this.sel && !me);
     }
     // étiquettes des portes
@@ -183,7 +186,7 @@ export class RaceLayer {
   _label(rc) {
     if (rc._el) return rc._el;
     const el = rc._el = document.createElement('button'); el.type = 'button'; el.className = 'rl-racer'; el.hidden = true;
-    el.style.setProperty('--livery', rc.def.livery); el.innerHTML = '<i></i><span><b></b><small></small></span>';
+    el.style.setProperty('--livery', rc.def.livery); el.innerHTML = '<i></i><u></u><span><b></b><small></small></span>';
     el.onclick = () => this.select(rc.def.id);
     this.c.labels.appendChild(el); return el;
   }
