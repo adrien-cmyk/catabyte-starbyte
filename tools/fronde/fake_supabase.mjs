@@ -34,11 +34,19 @@ http.createServer(async (req, res) => {
     }
     if (req.url.startsWith('/functions/v1/fronde-tick')) {
       if (!uid) return send(res, 401, { error: 'not_signed_in' });
-      const open = await c.query("select id from public.fronde_editions where status = 'annoncee' limit 1");
+      if (args.action === 'test') {
+        if (!(await c.query('select 1 from public.fronde_admins where user_id = $1', [uid])).rows.length) return send(res, 403, { error: 'not_admin' });
+        const { edition: e, secrets: s } = await prepareEdition(Date.now(), null, { test: true, minutes: +(process.env.TEST_MINUTES || 30), leadMin: +(process.env.TEST_LEAD || 8) });
+        await c.query('insert into public.fronde_editions (id, name, systems, racers, pilot, start_at, opens_at, nominal_end_at, seed_hash, engine, rate, test_user) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
+          [e.id, e.name, JSON.stringify(e.systems), JSON.stringify(e.racers), JSON.stringify(e.pilot), e.start_at, e.opens_at, e.nominal_end_at, e.seed_hash, e.engine, e.rate, uid]);
+        await c.query('insert into public.fronde_secrets values ($1,$2,$3,$4)', [s.edition_id, s.seed, JSON.stringify(s.reveals), JSON.stringify(s.result)]);
+        return send(res, 200, { created: e.id, edition: e.id, test: true });
+      }
+      const open = await c.query("select id from public.fronde_editions where status = 'annoncee' and test_user is null limit 1");
       if (open.rows.length) return send(res, 200, { created: null, edition: open.rows[0].id });
       const { edition: e, secrets: s } = await prepareEdition(Date.now());
-      await c.query('insert into public.fronde_editions (id, name, systems, racers, pilot, start_at, nominal_end_at, seed_hash, engine) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-        [e.id, e.name, JSON.stringify(e.systems), JSON.stringify(e.racers), JSON.stringify(e.pilot), e.start_at, e.nominal_end_at, e.seed_hash, e.engine]);
+      await c.query('insert into public.fronde_editions (id, name, systems, racers, pilot, start_at, opens_at, nominal_end_at, seed_hash, engine, rate) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
+        [e.id, e.name, JSON.stringify(e.systems), JSON.stringify(e.racers), JSON.stringify(e.pilot), e.start_at, e.opens_at, e.nominal_end_at, e.seed_hash, e.engine, e.rate]);
       await c.query('insert into public.fronde_secrets values ($1,$2,$3,$4)', [s.edition_id, s.seed, JSON.stringify(s.reveals), JSON.stringify(s.result)]);
       return send(res, 200, { created: e.id, edition: e.id, start_at: e.start_at });
     }

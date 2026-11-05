@@ -1,6 +1,7 @@
 // STARBYTE — Grande Fronde : préparation d'une édition (JavaScript pur, testé sous Node : tools/fronde/edition_test.mjs).
 // Utilisé par la fonction serveur fronde-tick (index.ts). Rien ici ne touche la base : on calcule les lignes à écrire.
-//   · calendrier : départ le premier samedi du mois à 20 h (heure de Zurich), au moins 5 jours après la création ;
+//   · calendrier : une course tous les 21 jours, le dimanche à 20 h (heure de Zurich), à partir du dimanche 8 novembre
+//     2026 ; paris ouverts 3 jours avant le départ ;
 //   · graine : 256 bits aléatoires ; empreinte sha-256 publiée, graine gardée secrète jusqu'à l'arrivée ;
 //   · parcours : les systèmes de course dans un ordre tiré de la graine ; racers : la flotte de la maison ;
 //   · course simulée une fois avec le moteur partagé : plans des pilotes (publiés au fil de la course) et résultat.
@@ -18,31 +19,43 @@ function zurichHM(ms) {
   return [+p.find((x) => x.type === 'hour').value % 24, +p.find((x) => x.type === 'minute').value];
 }
 // premier samedi du mois (y, m : 0–11) à 20 h, heure de Zurich (été comme hiver)
-export function firstSaturday20(y, m) {
+export function firstSaturday20(y, m) {   // (ancien calendrier mensuel, gardé pour référence)
   const d1 = new Date(Date.UTC(y, m, 1)).getUTCDay(), day = 1 + ((6 - d1 + 7) % 7);
   let t = Date.UTC(y, m, day, 19, 0);                         // 19 h UTC = 20 h en hiver
   const [h] = zurichHM(t); t += (20 - h) * 3600e3;            // été : 18 h UTC
   return t;
 }
-// prochain départ : le premier « premier samedi » à au moins 5 jours d'ici
+// 20 h à Zurich d'un jour donné (y, m : 0–11, d), été comme hiver
+export function at20Zurich(y, m, d) {
+  let t = Date.UTC(y, m, d, 19, 0);
+  const [h] = zurichHM(t); return t + (20 - h) * 3600e3;
+}
+export const PERIOD_DAYS = 21, OPEN_DAYS = 3;
+const ANCHOR = [2026, 10, 8];                                   // dimanche 8 novembre 2026, première édition
+// prochain départ : le premier créneau (tous les 21 jours) encore à au moins 2 heures d'ici
 export function nextStart(now) {
-  const d = new Date(now);
-  for (let k = 0; k < 4; k++) {
-    const y = d.getUTCFullYear() + Math.floor((d.getUTCMonth() + k) / 12), m = (d.getUTCMonth() + k) % 12, t = firstSaturday20(y, m);
-    if (t - now >= 5 * 86400e3) return { t, y, m };
+  for (let k = 0; k < 400; k++) {
+    const day = new Date(Date.UTC(ANCHOR[0], ANCHOR[1], ANCHOR[2] + k * PERIOD_DAYS));
+    const t = at20Zurich(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate());
+    if (t - now >= 2 * 3600e3) return { t, y: day.getUTCFullYear(), m: day.getUTCMonth(), d: day.getUTCDate() };
   }
   throw new Error('no_start');
 }
 
 // prépare une édition : { edition, secrets } (lignes des tables fronde_editions et fronde_secrets)
-export async function prepareEdition(now = Date.now(), seed = null) {
-  const { t, y, m } = nextStart(now);
-  const id = `${y}-${String(m + 1).padStart(2, '0')}`;
+// opts.test : course d'essai accélérée (départ dans opts.leadMin minutes, course de 72 h ramenée à opts.minutes)
+export async function prepareEdition(now = Date.now(), seed = null, opts = {}) {
+  let { t, y, m, d } = nextStart(now);
+  let id = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, rate = 1, opensAt = t - OPEN_DAYS * 86400e3;
+  if (opts.test) {
+    t = now + (opts.leadMin || 8) * 60e3; opensAt = now; rate = Math.round(72 * 3600 / ((opts.minutes || 30) * 60));
+    const z = new Date(now); id = 'essai-' + z.toISOString().slice(0, 16).replace(/[-:T]/g, '');
+  }
   seed = seed || hex(crypto.getRandomValues(new Uint8Array(32)).buffer);
   // parcours : ordre des systèmes tiré de la graine (mélange de Fisher-Yates déterministe)
   const R = rngOf(seed + '|parcours'), systems = RACE_SYSTEMS.slice();
   for (let i = systems.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [systems[i], systems[j]] = [systems[j], systems[i]]; }
-  const name = `Grande Fronde · ${MONTHS[m]} ${y}`;
+  const name = opts.test ? `Course d'essai · ${opts.minutes || 30} min` : `Grande Fronde · dimanche ${d} ${MONTHS[m]} ${y}`;
   const pilot = { ...PILOT, id, name, seed };
   const res = runRace({ systems, racers: RACERS, pilot });
   if (!res.complete) throw new Error('race_incomplete');
@@ -53,7 +66,8 @@ export async function prepareEdition(now = Date.now(), seed = null) {
   return {
     edition: {
       id, name, systems, racers: RACERS, pilot: publicPilot,
-      start_at: new Date(t).toISOString(), nominal_end_at: new Date(t + nominalH * 3600e3).toISOString(),
+      start_at: new Date(t).toISOString(), opens_at: new Date(Math.max(now, opensAt)).toISOString(),
+      nominal_end_at: new Date(t + nominalH * 3600e3 / rate).toISOString(), rate,
       seed_hash: await sha256(seed), engine: ENGINE_HASH,
     },
     secrets: {

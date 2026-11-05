@@ -9,7 +9,7 @@ do $$ begin                                   -- rôles communs à toute l'insta
 end $$;
 create schema auth; create schema extensions;
 create extension pgcrypto with schema extensions;
-create table auth.users (id uuid primary key);
+create table auth.users (id uuid primary key, email text);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 grant usage on schema auth, extensions, public to anon, authenticated, service_role;
 grant execute on function auth.uid() to anon, authenticated, service_role;
@@ -28,3 +28,5 @@ end $$;
 grant execute on function t.expect(text, text) to anon, authenticated;
 create function t.ok(c boolean, m text) returns void language plpgsql as $$ begin if not coalesce(c, false) then raise exception 'ÉCHEC : %', m; end if; raise notice 'ok — %', m; end $$;
 grant execute on function t.ok(boolean, text) to anon, authenticated;
+-- mondes des joueurs (seul le nom de commandant sert ici)
+create table if not exists public.worlds (user_id uuid primary key references auth.users (id), pseudo text);

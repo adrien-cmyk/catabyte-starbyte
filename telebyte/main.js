@@ -2,7 +2,7 @@
 // Phase 2, étape 4 : vue univers (parcours, racers, classement en direct, horloge de course et curseur).
 // Le flux de course est ici le flux de démonstration ; en Phase 3, le flux serveur aura la même interface.
 import { feedFromUrl } from '../sandbox/race/DemoFeed.js';
-import { loadEdition, liveFeed, rpc } from '../sandbox/race/live.js';
+import { loadEdition, liveFeed, rpc, tick } from '../sandbox/race/live.js';
 import { UniverseView } from './UniverseView.js';
 
 // flux : ?feed=live → l'édition du serveur (Phase 3) ; ?feed=mock → publication simulée ; sinon la démo hors ligne.
@@ -176,7 +176,7 @@ function renderClock() {
   const done = t >= E.t1;
   if (LIVE) {
     const nowR = liveNow(), st = LIVE.snap.state;
-    $('state').textContent = st === 'reglee' ? 'arrivée' : nowR < 0 ? 'départ dans ' + countdown(-nowR) : following ? 'en direct' : 'revoir · ' + dur(nowR - t) + ' avant';
+    $('state').textContent = st === 'reglee' ? 'arrivée' : nowR < 0 ? 'départ · ' + countdown(-nowR) : following ? 'en direct' : 'revoir · ' + dur(nowR - t) + ' avant';
     if (nowR < 0) { $('next').textContent = 'Départ ' + startLabel; $('time').textContent = ''; }
   } else $('state').textContent = done ? 'arrivée' : t <= 0 ? 'départ' : 'en direct';
   if (view.sel) {
@@ -205,7 +205,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // accès de test (captures)
-import('./bets.js').then((m) => m.mountBets({ feed, LIVE, GAME, rpc, racer, E })).catch((e) => console.warn('[fronde] paris', e));
+import('./bets.js').then((m) => m.mountBets({ feed, LIVE, GAME, rpc, tick, racer, E })).catch((e) => console.warn('[fronde] paris', e));
 // la vue système suit les nouveaux instantanés pendant qu'on y est
 if (LIVE) feed.onSnap((snap) => { if (sysFrame && frameOk) sysFrame.contentWindow.postMessage({ fronde: 1, type: 'snap', snap }, '*'); });
 

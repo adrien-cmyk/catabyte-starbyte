@@ -117,6 +117,19 @@
   #bt-go:disabled { background: rgba(255, 210, 122, .3); color: rgba(5, 8, 12, .6); cursor: default; }
   #bets .bt-gain { color: #7fe08a; font-size: 12px; min-height: 1em; }
   .bt-mine { list-style: none; margin: 8px 0 4px; padding: 0; font-size: 12px; } .bt-mine li { padding: 2px 0; display: flex; gap: 6px; align-items: center; } .bt-mine li.t { color: var(--dim); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; } .bt-mine i { width: 7px; height: 7px; border-radius: 50%; background: var(--livery); }
+  .bt-tabs { display: flex; gap: 4px; margin: 0 0 8px; border-bottom: 1px solid var(--line); }
+  .bt-tabs button { flex: 1; font: 600 11px var(--f-ui); letter-spacing: .06em; color: var(--dim); background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 2px 7px; cursor: pointer; }
+  .bt-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: #ffd27a; }
+  .bt-anon { flex: 1 1 100%; display: flex !important; gap: 8px !important; align-items: flex-start !important; font-size: 12px !important; color: var(--ink) !important; cursor: pointer; } .bt-anon input { margin: 2px 0 0; width: 16px; height: 16px; } .bt-anon small { display: block; color: var(--dim); font-size: 10px; margin-top: 1px; }
+  #bets .bt-test { color: #ffb46a; font-size: 11px; } .bt-admin button { font: 600 11px var(--f-ui); color: #ffb46a; background: none; border: 1px dashed rgba(255, 180, 106, .5); border-radius: 8px; padding: 7px 10px; cursor: pointer; width: 100%; }
+  .bt-feed, .bt-rank { list-style: none; margin: 4px 0; padding: 0; font-size: 12px; }
+  .bt-feed li { display: grid; grid-template-columns: 8px 1fr auto; gap: 8px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+  .bt-feed i { width: 7px; height: 7px; border-radius: 50%; background: var(--livery); align-self: center; } .bt-feed small { color: var(--dim); font-size: 10px; white-space: nowrap; }
+  .bt-rank { counter-reset: r; } .bt-rank li { display: flex; justify-content: space-between; padding: 4px 0; counter-increment: r; } .bt-rank li span::before { content: counter(r) '. '; color: var(--dim); }
+  .bt-rank li.me span { color: #ffd27a; } .bt-rank .up { color: #7fe08a; } .bt-rank .down { color: #ff8a7a; }
+  .bt-chat { max-height: 38vh; overflow-y: auto; margin: 0 0 8px; } .bt-chat p { margin: 0 0 8px !important; font-size: 12px; } .bt-chat p.me b { color: #ffd27a; } .bt-chat small { color: var(--dim); font-size: 10px; }
+  .bt-say { display: flex; gap: 6px; } .bt-say input { flex: 1; min-width: 0; font: 14px var(--f-ui); color: var(--ink); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .bt-say button { font: 700 12px var(--f-ui); color: #05080c; background: #9fe6ff; border: 0; border-radius: 8px; padding: 0 12px; cursor: pointer; }
   #bets .bt-msg { color: #9fe6ff; } #bets .bt-pay b { color: #7fe08a; } #bets code { font: 10px var(--f-num); }
   @media (max-width: 720px) {
     #board { left: max(12px, var(--sal)); right: max(12px, var(--sar)); top: auto; bottom: calc(var(--sab) + 74px); width: auto; padding: 6px 0 2px; }

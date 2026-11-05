@@ -21,14 +21,20 @@ export async function createFakeServer({ credits = () => 0, countdown: COUNTDOWN
   const reveals = full.revealed.map((x) => ({ racer: x.racer, sys: x.sys, t: x.t, plan: planOf(x.plan) }));
   const startMs = Date.now() + COUNTDOWN * 1000;
   const { seed: _s, ...pub } = pilot;
-  const ed = { id: 'repetition', name: pilot.name, systems: RACE_SYSTEMS, racers: RACERS, pilot: pub, start_at: new Date(startMs).toISOString(),
+  const ed = { id: 'repetition', name: pilot.name, systems: RACE_SYSTEMS, racers: RACERS, pilot: pub, start_at: new Date(startMs).toISOString(), opens_at: new Date(Date.now() - 1000).toISOString(),
     nominal_end_at: new Date(startMs + 76 * 3600e3 / RATE).toISOString(), seed_hash: await sha256(seed), seed: null, result: null, house_pct: HOUSE, stake_cap: CAP };
   const bets = [], payouts = new Map();   // payouts : 'moi' → { amount, kind, claimed }
   let settled = false;
   const elapsed = () => { const d = (Date.now() - startMs) / 1000; return d < 0 ? d : d * RATE; };
   // parieurs fictifs : favoris plus joués, mises régulières jusqu'au départ
   const fav = { fulgurant: 0.36, mule: 0.24, sentinelle: 0.22, cuirasse: 0.18 };
-  const crowd = () => { let x = Math.random(), r = 'fulgurant'; for (const [k, p] of Object.entries(fav)) { if ((x -= p) <= 0) { r = k; break; } } bets.push({ id: uid(), user: 'foule-' + (1 + (bets.length % 37)), racer: r, stake: 50 * (1 + Math.floor(Math.random() * 30)), at: Date.now() }); };
+  const NAMES = ['Kovac', 'Lyra Venn', 'Okonkwo', 'Sabin', 'Mirela', 'Teodor', 'Ysolde', 'Haruki', 'Brannoc', 'Nadia K.', 'Ilian', 'Quillon'];
+  const crowd = () => { let x = Math.random(), r = 'fulgurant'; for (const [k, p] of Object.entries(fav)) { if ((x -= p) <= 0) { r = k; break; } } const n = bets.length; bets.push({ id: uid(), user: 'foule-' + (1 + (n % 37)), who: Math.random() < 0.25 ? null : NAMES[n % NAMES.length], racer: r, stake: 50 * (1 + Math.floor(Math.random() * 30)), at: Date.now() - (n < 14 ? (14 - n) * 47e3 : 0) }); };
+  // tribune : quelques commandants bavards (la répétition seulement)
+  const chat = [], LINES = ['Le Fulgurant va griller sa coque à Kerath, je le sens.', 'La Mule, régulière comme une horloge. 500 dessus.', 'Quelqu\'un a vu la cote de Kerath Lourd ? Énorme.', 'Plongée rasante ou rien.', 'Sentinelle sort toujours bien des anneaux.', 'Bonne course à tous, commandants !'];
+  const chatter = () => { const n = chat.length; if (n < 24) chat.push({ id: uid(), pseudo: NAMES[(n * 5) % NAMES.length], body: LINES[n % LINES.length], at: new Date().toISOString(), mine: false }); };
+  for (let i = 0; i < 3; i++) chatter();
+  const chatTimer = setInterval(() => { if (Math.random() < 0.5) chatter(); if (settled) clearInterval(chatTimer); }, 9000);
   for (let i = 0; i < 14; i++) crowd();
   const crowdTimer = setInterval(() => { if (elapsed() < 0) crowd(); else clearInterval(crowdTimer); }, 2500);
   const pools = () => { const by = {}; let total = 0; for (const b of bets) { by[b.racer] = (by[b.racer] || 0) + b.stake; total += b.stake; } return { total, by_racer: by, bettors: new Set(bets.map((b) => b.user)).size }; };
@@ -45,7 +51,7 @@ export async function createFakeServer({ credits = () => 0, countdown: COUNTDOWN
     mp_fronde_edition() {
       settle();
       const el = elapsed(), st = settled ? 'reglee' : el < 0 ? 'annoncee' : 'en_course', pay = payouts.get('moi');
-      return { edition: { ...ed }, state: st, elapsed: el, server_now: new Date().toISOString(), rate: RATE, next_needed: false,
+      return { edition: { ...ed }, state: st, elapsed: el, server_now: new Date().toISOString(), rate: RATE, next_needed: false, is_admin: false, bets_open: el < 0,
         reveals: reveals.filter((x) => settled || x.t <= el), pools: pools(),
         my_bets: bets.filter((b) => b.user === 'moi').map((b) => ({ id: b.id, racer: b.racer, stake: b.stake, at: new Date(b.at).toISOString() })),
         my_payout: pay ? { amount: pay.amount, kind: pay.kind, claimed: pay.claimed } : null };
@@ -59,13 +65,30 @@ export async function createFakeServer({ credits = () => 0, countdown: COUNTDOWN
       const mine = bets.filter((b) => b.user === 'moi').reduce((a, b) => a + b.stake, 0);
       if (mine + p_stake > CAP) fail('over_cap');
       if (credits() < p_stake) fail('not_enough_credits');
-      const b = { id: uid(), user: 'moi', racer: p_racer, stake: p_stake, at: Date.now(), nonce: p_nonce }; bets.push(b);
+      const b = { id: uid(), user: 'moi', racer: p_racer, stake: p_stake, at: Date.now(), nonce: p_nonce, anonymous: !!arguments[0].p_anonymous }; bets.push(b);
       return { ok: true, id: b.id, my_total: mine + p_stake, pools: pools() };
     },
     mp_fronde_mine() {
       settle(); const pay = payouts.get('moi');
       return { bets: bets.filter((b) => b.user === 'moi').map((b) => ({ id: b.id, edition: ed.id, racer: b.racer, stake: b.stake })),
         payouts: pay ? [{ edition: ed.id, amount: pay.amount, kind: pay.kind, claimed: pay.claimed }] : [] };
+    },
+    mp_fronde_feed() {
+      return bets.slice().sort((a, b) => b.at - a.at).slice(0, 40).map((b) => ({ at: new Date(b.at).toISOString(), racer: b.racer, stake: b.stake, mine: b.user === 'moi', who: b.user === 'moi' ? (b.anonymous ? null : 'Toi') : b.who }));
+    },
+    mp_fronde_chat() { return chat.slice(-80); },
+    mp_fronde_chat_post({ p_body }) {
+      const b = String(p_body || '').trim().slice(0, 280); if (!b) fail('empty');
+      const last = chat.filter((c) => c.mine).pop(); if (last && Date.now() - Date.parse(last.at) < 8000) fail('too_fast');
+      const m = { id: uid(), pseudo: 'Toi', body: b, at: new Date().toISOString(), mine: true }; chat.push(m); return m;
+    },
+    mp_fronde_ranking() {
+      settle();
+      const per = {}; for (const b of bets) { const p = per[b.user] || (per[b.user] = { who: b.user === 'moi' ? 'Toi' : b.who, staked: 0, anon: true, mine: b.user === 'moi' }); p.staked += b.stake; p.anon = p.anon && (b.user === 'moi' ? !!b.anonymous : !b.who); }
+      let rows = [];
+      if (settled) { const P = pools(), pool = Math.floor(P.total * (100 - HOUSE) / 100), win = P.by_racer[winner] || 0; for (const [u, p] of Object.entries(per)) { const s = bets.filter((b) => b.user === u && b.racer === winner).reduce((a, b) => a + b.stake, 0); const won = win ? Math.floor(s * pool / win) : 0; if (won > 0) rows.push({ who: p.anon ? null : p.who, won, net: won - p.staked, mine: p.mine }); } }
+      rows.sort((a, b) => b.net - a.net);
+      return { edition: rows.slice(0, 10), season: rows.slice(0, 10).map((r) => ({ ...r, editions: 1 })) };
     },
     mp_fronde_claim() {
       settle(); const pay = payouts.get('moi');

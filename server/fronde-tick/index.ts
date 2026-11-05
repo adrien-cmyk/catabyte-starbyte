@@ -2,7 +2,8 @@
 // Crée l'édition suivante quand il n'y en a plus à venir : appelée par le jeu quand mp_fronde_edition répond
 // next_needed = true. N'importe quel appel d'un joueur connecté suffit ; personne ne choisit la graine ni le résultat.
 // Tout le reste (plans publiés au fil de la course, règlement des paris) se fait en SQL (schema_mp_v41_grande_fronde.sql).
-//   POST {}                    → { created: id | null, edition: id }
+//   POST {}                    → { created: id | null, edition: id }   (une course tous les 21 jours, dimanche 20 h)
+//   POST { action: 'test' }     → course d'essai de 30 min pour un administrateur (table fronde_admins), visible par lui seul
 //   POST { action: 'selftest' } → le moteur de cette fonction calcule-t-il les mêmes courses que le jeu ? (5 graines ;
 //                                 sans session de joueur : bouton « Test » du tableau de bord)
 // Fichiers à déployer ensemble : index.ts, edition.ts, engine.ts (copies générées par tools/fronde/sync_engine.mjs).
@@ -46,8 +47,23 @@ Deno.serve(async (req) => {
   const { data: who, error: authErr } = await admin.auth.getUser(jwt);
   if (authErr || !who?.user) return json({ error: 'not_signed_in' }, 401);
 
-  // une édition est-elle déjà annoncée (ou en cours) ? alors rien à faire
-  const { data: open, error: e0 } = await admin.from('fronde_editions').select('id').eq('status', 'annoncee').limit(1);
+  // course d'essai accélérée (30 min), visible par l'administrateur seul : pour valider avant une vraie édition
+  if (body?.action === 'test') {
+    const { data: adm } = await admin.from('fronde_admins').select('user_id').eq('user_id', who.user.id).maybeSingle();
+    if (!adm) return json({ error: 'not_admin' }, 403);
+    const { data: mine } = await admin.from('fronde_editions').select('id').eq('test_user', who.user.id).eq('status', 'annoncee').limit(1);
+    if (mine && mine.length) return json({ created: null, edition: mine[0].id, test: true });
+    let tp;
+    try { tp = await prepareEdition(Date.now(), null, { test: true, minutes: 30, leadMin: 8 }); } catch (e) { return json({ error: String((e as Error).message || e) }, 500); }
+    const { error: t1 } = await admin.from('fronde_editions').insert({ ...tp.edition, test_user: who.user.id });
+    if (t1) return json({ error: t1.message }, 500);
+    const { error: t2 } = await admin.from('fronde_secrets').insert(tp.secrets);
+    if (t2) { await admin.from('fronde_editions').delete().eq('id', tp.edition.id); return json({ error: t2.message }, 500); }
+    return json({ created: tp.edition.id, edition: tp.edition.id, start_at: tp.edition.start_at, test: true });
+  }
+
+  // une édition publique est-elle déjà annoncée (ou en cours) ? alors rien à faire
+  const { data: open, error: e0 } = await admin.from('fronde_editions').select('id').eq('status', 'annoncee').is('test_user', null).limit(1);
   if (e0) return json({ error: e0.message }, 500);
   if (open && open.length) return json({ created: null, edition: open[0].id });
 

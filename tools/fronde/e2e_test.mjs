@@ -5,7 +5,7 @@
 // Usage : PGHOST=… PGPORT=… node tools/fronde/e2e_test.mjs
 import { execFileSync } from 'node:child_process';
 const root = new URL('../../', import.meta.url).pathname;
-const { prepareEdition, firstSaturday20, nextStart, sha256 } = await import(root + 'server/fronde-tick/edition.js');
+const { prepareEdition, nextStart, sha256 } = await import(root + 'server/fronde-tick/edition.js');
 const { ServerFeed, RaceFeed } = await import(root + 'sandbox/race/DemoFeed.js');
 const { runRace, digest } = await import(root + 'sandbox/race/engine.js');
 let fail = 0; const ok = (c, m) => { console.log((c ? 'ok — ' : 'ÉCHEC — ') + m); if (!c) fail++; };
@@ -14,14 +14,14 @@ const file = (f, db = 'fronde_e2e') => execFileSync('psql', ['-U', 'postgres', '
 
 // ── calendrier ──
 const iso = (t) => new Date(t).toISOString().slice(0, 16);
-ok(iso(firstSaturday20(2026, 11)) === '2026-12-05T19:00', 'décembre 2026 : samedi 5, 20 h à Zurich (19 h UTC, heure d\'hiver)');
-ok(iso(firstSaturday20(2027, 6)) === '2027-07-03T18:00', 'juillet 2027 : samedi 3, 20 h à Zurich (18 h UTC, heure d\'été)');
-ok(nextStart(Date.UTC(2026, 11, 2)).m === 0, 'créée le 2 décembre : départ en janvier (moins de 5 jours avant le 5 décembre)');
+ok(iso(nextStart(Date.UTC(2026, 10, 5, 21)).t) === '2026-11-08T19:00', 'première édition : dimanche 8 novembre 2026, 20 h à Zurich (19 h UTC)');
+ok(iso(nextStart(Date.UTC(2026, 10, 8, 19, 30)).t) === '2026-11-29T19:00', 'puis tous les 21 jours : dimanche 29 novembre');
+ok(iso(nextStart(Date.UTC(2027, 2, 20)).t) === '2027-04-04T18:00', 'heure d\'été : 4 avril 2027, 20 h à Zurich (18 h UTC)');
 
 // ── préparation ──
-const now = Date.UTC(2026, 10, 5, 12);
+const now = Date.UTC(2026, 10, 5, 12);   // jeudi 5 novembre, midi : les paris ouvrent le soir même (3 jours avant)
 const { edition, secrets } = await prepareEdition(now);
-ok(edition.id === '2026-12' && edition.start_at === '2026-12-05T19:00:00.000Z', `édition ${edition.id}, départ ${edition.start_at}`);
+ok(edition.id === '2026-11-08' && edition.start_at === '2026-11-08T19:00:00.000Z' && edition.opens_at === '2026-11-05T19:00:00.000Z', `édition ${edition.id}, paris dès ${edition.opens_at}, départ ${edition.start_at}`);
 ok(await sha256(secrets.seed) === edition.seed_hash && secrets.seed.length === 64, 'graine de 256 bits, empreinte sha-256 publiée');
 ok(!('seed' in edition.pilot), 'la graine n\'apparaît pas dans les données publiques');
 const full = runRace({ systems: edition.systems, racers: edition.racers, pilot: { ...edition.pilot, seed: secrets.seed } });
@@ -30,9 +30,9 @@ console.log(`   parcours ${edition.systems.map((s) => s.name).join(' → ')} · 
 
 // ── base locale : schéma v41, écriture comme le ferait fronde-tick (clé de service) ──
 psql('drop database if exists fronde_e2e', 'postgres'); psql('create database fronde_e2e', 'postgres');
-file('tools/fronde/sql/supabase_fake.sql'); file('server/schema_mp_v41_grande_fronde.sql');
+file('tools/fronde/sql/supabase_fake.sql'); file('server/schema_mp_v41_grande_fronde.sql'); file('server/schema_mp_v42_fronde_social.sql');
 const q = (v) => `'${JSON.stringify(v).replace(/'/g, "''")}'::jsonb`;
-psql(`insert into public.fronde_editions (id, name, systems, racers, pilot, start_at, nominal_end_at, seed_hash, engine) values ('${edition.id}', '${edition.name}', ${q(edition.systems)}, ${q(edition.racers)}, ${q(edition.pilot)}, '${edition.start_at}', '${edition.nominal_end_at}', '${edition.seed_hash}', '${edition.engine}')`);
+psql(`insert into public.fronde_editions (id, name, systems, racers, pilot, start_at, opens_at, nominal_end_at, seed_hash, engine, rate) values ('${edition.id}', '${edition.name}', ${q(edition.systems)}, ${q(edition.racers)}, ${q(edition.pilot)}, '${edition.start_at}', '${edition.opens_at}', '${edition.nominal_end_at}', '${edition.seed_hash}', '${edition.engine}', ${edition.rate})`);
 psql(`insert into public.fronde_secrets values ('${edition.id}', '${secrets.seed}', ${q(secrets.reveals)}, ${q(secrets.result)})`);
 psql(`insert into auth.users values ('00000000-0000-0000-0000-0000000000a1')`);
 const asPlayer = (sql) => psql(`set role authenticated; select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', false); ${sql}`).split('\n').pop();

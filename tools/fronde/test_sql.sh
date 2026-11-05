@@ -8,7 +8,10 @@ for r in anon authenticated service_role; do psql -U postgres -q -c "drop role i
 psql -U postgres -d fronde_test -q -v ON_ERROR_STOP=1 -f tools/fronde/sql/supabase_fake.sql
 psql -U postgres -d fronde_test -q -v ON_ERROR_STOP=1 -f server/schema_mp_v41_grande_fronde.sql
 psql -U postgres -d fronde_test -q -v ON_ERROR_STOP=1 -f server/schema_mp_v41_grande_fronde.sql   # relançable sans risque
+psql -U postgres -d fronde_test -q -v ON_ERROR_STOP=1 -f server/schema_mp_v42_fronde_social.sql
+psql -U postgres -d fronde_test -q -v ON_ERROR_STOP=1 -f server/schema_mp_v42_fronde_social.sql   # relançable sans risque
 out=$(mktemp); st=0
 psql -U postgres -d fronde_test -v ON_ERROR_STOP=1 -f tools/fronde/sql/test_v41.sql > "$out" 2>&1 || st=$?
+[ $st = 0 ] && { psql -U postgres -d fronde_test -v ON_ERROR_STOP=1 -f tools/fronde/sql/test_v42.sql >> "$out" 2>&1 || st=$?; }
 grep -E 'ok —|ERROR|ÉCHEC|TOUS' "$out" | sed 's/^psql:[^:]*:[0-9]*: //; s/^NOTICE:  //'; rm -f "$out"
 exit $st

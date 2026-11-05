@@ -29,7 +29,7 @@ async function post(path, body) {
   return j;
 }
 export const rpc = (fn, args = {}) => post('/rest/v1/rpc/' + fn, args);
-export const tick = () => post('/functions/v1/fronde-tick', {});
+export const tick = (body = {}) => post('/functions/v1/fronde-tick', body);
 
 // source de plans pour ServerFeed : le dernier instantané du serveur (il ne contient que des plans déjà publiés)
 export class LiveSource {
@@ -65,8 +65,8 @@ export function liveFeed(snap) {
     try { feed.setSnap(await rpc('mp_fronde_edition', { p_id: E.id })); } catch (e) { console.warn('[fronde] lecture', e); }
     const now = src.now(), waiting = Object.values(feed.tracks).some((tr) => tr.cps.some((c) => c.provisional && c.t <= now));
     const fast = (src.snap.rate || 1) > 1;
-    timer = setTimeout(feed.refresh, fast ? 1500 : waiting ? 10e3 : 60e3);
+    timer = setTimeout(feed.refresh, fast ? 3000 : waiting ? 10e3 : 60e3);
   };
-  timer = setTimeout(feed.refresh, (snap.rate || 1) > 1 ? 1500 : 60e3);
+  timer = setTimeout(feed.refresh, (snap.rate || 1) > 1 ? 3000 : 60e3);
   return feed;
 }

@@ -10,8 +10,9 @@
        (G.fronde.applied / G.fronde.paid, sauvegardés avec la partie). Si la page se ferme au mauvais
        moment, la synchronisation suivante rattrape : ni pari gratuit, ni gain perdu.
    Intégration (index.html) : <script src="assets/fronde-bridge.js"></script> AVANT le chargement de
-   la partie, ajouter 'fronde' à EXTRA_SAVE_KEYS (ou laisser ce fichier l'ajouter), et un bouton qui
-   appelle SBFronde.open().
+   la partie, ajouter 'fronde' à EXTRA_SAVE_KEYS (indispensable : la trace des paris appliqués doit être restaurée
+   avec la partie, sinon une synchronisation retirerait une seconde fois les mises), et un bouton qui appelle
+   SBFronde.open() — en attendant, l'adresse ?telebyte l'ouvre.
    Dépend des globals du jeu : G, saveGame. Supabase : mêmes adresse, clé et session que le Blackmarket.
    ═══════════════════════════════════════════════════════════════════════ */
 (function () {
@@ -78,6 +79,8 @@
   function close() { if (!overlay) return; overlay.remove(); overlay = null; sync().catch(() => {}); }
 
   window.SBFronde = { credits, sync, open, close };
+  // entrée sans bouton (avant le choix de son emplacement) : play.starbyte.online/?telebyte ouvre le Télébyte
+  if (/[?&]telebyte\b/.test(location.search)) setTimeout(open, 2500);
   // au lancement (après la connexion) puis toutes les 10 minutes : gains versés, paris appliqués
   setTimeout(() => sync().catch(() => {}), 8000);
   setInterval(() => sync().catch(() => {}), 10 * 60e3);
