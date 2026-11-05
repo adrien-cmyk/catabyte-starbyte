@@ -667,6 +667,9 @@ if (EMBED) {
     } else if (m.type === 'pause') renderer.setAnimationLoop(null);
   });
   parent.postMessage({ fronde: 1, type: 'loaded' }, '*');
+  // préchauffage en arrière-plan : une image de course rendue tout de suite compile les shaders (géante, anneaux,
+  // tracés, racers) ; l'entrée réelle n'aura plus ce coût, qui figeait l'éclair sur téléphone
+  setTimeout(() => { try { courseView({}); step(1 / 60); render(); } catch (e) { console.warn('[embed] préchauffage', e); } }, 300);
 }
 
 // accès de test (tools/fronde/shots.js) : rendu image par image, sans boucle

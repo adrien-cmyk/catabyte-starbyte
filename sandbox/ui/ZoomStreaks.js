@@ -23,14 +23,15 @@ export class ZoomStreaks {
   clear() { this.anim = null; this.ctx.clearRect(0, 0, this.cv.width, this.cv.height); }
   // dir : 'in' (on plonge) ou 'out' (on remonte) ; x, y : point visé (px CSS)
   play(dir, x, y, { dur = 0.95, onMid = null, from = 0, hold = false } = {}) {
-    this.anim = { dir, x, y, dur, onMid, t: from, hold, last: performance.now(), midDone: from >= 0.5 };
+    // temps réel (pas image par image) : l'effet dure ce qu'il doit même quand l'appareil rend peu d'images (entrée dans un système)
+    this.anim = { dir, x, y, dur, onMid, t: from, hold, t0: performance.now() - from * dur * 1000, midDone: from >= 0.5 };
     if (!this._raf) this._raf = requestAnimationFrame(this._tick.bind(this));
   }
   // avant de changer de page : la page suivante jouera la retombée
   handoff(dir) { try { sessionStorage.setItem('fronde.fx', JSON.stringify({ dir, at: Date.now() })); } catch (e) {} }
   _tick(now) {
     this._raf = null; const a = this.anim; if (!a) return;
-    a.t += Math.min(0.05, (now - a.last) / 1000) / a.dur; a.last = now;
+    a.t = (performance.now() - a.t0) / (a.dur * 1000);
     if (!a.midDone && a.t >= 0.5) { a.midDone = true; if (a.onMid) a.onMid(); if (a.hold) { a.t = 0.5; this._draw(1, a); return; } }   // hold : on reste au sommet (changement de page)
     if (a.t >= 1) { this.anim = null; this._draw(0, a); return; }
     const k = a.t < 0.5 ? (a.t / 0.5) ** 2 : 1 - (a.t - 0.5) / 0.5;

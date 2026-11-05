@@ -44,7 +44,7 @@ setTimeout(loadFrame, 800);                                          // après l
 addEventListener('message', (e) => {
   const m = e.data; if (!sysFrame || e.source !== sysFrame.contentWindow || !m || !m.fronde) return;
   if (m.type === 'loaded') { frameOk = true; if (pending) { const p = pending; pending = null; p(); } }
-  else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); inSystem = true; sysFrame.classList.add('on'); streaks.play('in', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 1.1 }); }
+  else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); inSystem = true; sysFrame.classList.add('on'); streaks.play('in', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 0.9 }); }
   else if (m.type === 'surface') {
     t = Math.min(E.t1, m.t); if (m.sel !== view.sel) { view.sel = m.sel || null; view.onSelect(view.sel); }
     inSystem = false; sysFrame.classList.remove('on'); view.surfaceFrom(m.sys || curSysId); renderStandings(true);
