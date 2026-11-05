@@ -91,7 +91,7 @@ export class TrajectoryHolo {
     this.pts = []; this.markData = [];
   }
   // samples : sortie de Gravity.propagate ; ringPlane : { center, normal, inner, outer } (m) pour repérer les traversées
-  setPath(samples, { tickEvery = 600, ringPlane = null } = {}) {
+  setPath(samples, { tickEvery = 600, ringPlane = null, raw = false } = {}) {
     // sous-échantillonnage : on garde les points là où la direction tourne (périapse dense, croisière clairsemée)
     const S = samples, keep = [S[0]];
     let last = S[0];
@@ -101,8 +101,8 @@ export class TrajectoryHolo {
       if (dv > 0.012 || dt > 900) { keep.push(s); last = s; }
     }
     keep.push(S[S.length - 1]);
-    const step = Math.ceil(keep.length / this.M);
-    this.pts = keep.filter((_, i) => i % step === 0).slice(0, this.M);
+    const src = raw ? S : keep, step = Math.ceil(src.length / this.M);           // raw : points déjà répartis par l'appelant
+    this.pts = src.filter((_, i) => i % step === 0 || i === src.length - 1).slice(0, this.M);
     this.u.uSpan.value = Math.max(3600, (S[S.length - 1].t - S[0].t) * 0.25);
     // repères : graduations, périapse, traversées du plan des anneaux (dans l'anneau = carré orange)
     const M = []; let next = Math.ceil(S[0].t / tickEvery) * tickEvery, rmin = Infinity, ip = 0;

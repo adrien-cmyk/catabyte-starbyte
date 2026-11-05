@@ -9,6 +9,21 @@
 import { THREE } from '../lib/sb3d-shim.js';
 import { TrajectoryHolo } from '../scene/TrajectoryHolo.js';
 import { OrbitalWindows, BANDS } from './OrbitalWindows.js';
+import { sampleAt } from '../core/Gravity.js';
+
+// rééchantillonnage d'une trajectoire : un point tous les ~0,5° vus depuis la géante (pas de temps ∝ r / v), par
+// interpolation d'Hermite sur l'intégration — une vraie courbe de fronde, sans segments droits ni coins
+function resample(S, gp, R) {
+  const out = [], P = [0, 0, 0], V = [0, 0, 0];
+  let t = S[0].t; const t1 = S[S.length - 1].t;
+  while (t < t1 && out.length < 3000) {
+    sampleAt(S, t, P, V); out.push({ t, p: P.slice(), v: V.slice() });
+    const r = Math.hypot(...P), v = Math.hypot(...V) || 1;
+    t += Math.max(5, Math.min(1800, 0.009 * r / v));
+  }
+  sampleAt(S, t1, P, V); out.push({ t: t1, p: P.slice(), v: V.slice() });
+  return out;
+}
 
 const hh = (s) => { s = Math.max(0, s); const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return (d ? `J+${d} ` : '') + `${String(h).padStart(2, '0')} h ${String(m).padStart(2, '0')}`; };
 const dur = (s) => { s = Math.abs(s); if (s < 60) return `${Math.round(s)} s`; const h = Math.floor(s / 3600), m = Math.round(s % 3600 / 60); return h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`; };
@@ -20,6 +35,7 @@ export class RaceLayer {
     this.c = ctx; this.on = false; this.sel = null; this.holos = {}; this._q = new THREE.Quaternion(); this._v = new THREE.Vector3();
     this.speeds = [1, 20, 200, 2000]; this.speedI = 2;
     this.windows = new OrbitalWindows(); this.gateEls = {};
+    this.pack = new Float64Array(3); this.packSpread = 0;            // peloton présent : centre et écartement (vue Ensemble)
   }
   get feed() { return this.c.feed; }
   enter({ t = null, sel = null } = {}) {
@@ -33,9 +49,11 @@ export class RaceLayer {
     this.c.setTime(t); this.c.setSpeed(this.speeds[this.speedI]);
     this.rebuild(); this._hud(true);
     this.c.hud.hidden = false; this.c.labels.hidden = false; document.body.classList.add('race');
+    for (const rc of this.c.fleet()) rc.setPiste(true);              // piste lumineuse en course
   }
   exit() {
     this.on = false; this.c.hud.hidden = true; this.c.labels.hidden = true; document.body.classList.remove('race');
+    for (const rc of this.c.fleet()) rc.setPiste(false);
     for (const h of Object.values(this.holos)) h.group.visible = false;
     this.windows.group.visible = false; for (const e of Object.values(this.gateEls)) e.hidden = true;
   }
@@ -45,13 +63,14 @@ export class RaceLayer {
     const axis = new THREE.Vector3(0, 1, 0).applyQuaternion(q).toArray();
     for (const r of this.feed.racers) {
       let h = this.holos[r.id];
-      if (!h) { h = this.holos[r.id] = new TrajectoryHolo({ color: r.livery, past: r.livery, maxPoints: 700 }); this.c.scene.add(h.group); }
-      const S = this.feed.plannedPath(r.id, sys.id).map((s) => {
+      if (!h) { h = this.holos[r.id] = new TrajectoryHolo({ color: r.livery, past: r.livery, maxPoints: 1400 }); this.c.scene.add(h.group); }
+      const P0 = this.feed.plannedPath(r.id, sys.id);
+      const S = (P0.length > 1 ? resample(P0) : P0).map((s) => {
         v.set(...s.p).applyQuaternion(q); const p = [gp[0] + v.x, gp[1] + v.y, gp[2] + v.z];
         v.set(...s.v).applyQuaternion(q); return { t: s.t, p, v: [v.x, v.y, v.z] };
       });
       h.ok = S.length > 1;
-      if (h.ok) h.setPath(S, { tickEvery: 3600, ringPlane: g.ring ? { center: gp, normal: axis, inner: g.ring.inner * g.R, outer: g.ring.outer * g.R } : null });
+      if (h.ok) h.setPath(S, { raw: true, tickEvery: 3600, ringPlane: g.ring ? { center: gp, normal: axis, inner: g.ring.inner * g.R, outer: g.ring.outer * g.R } : null });
     }
     // fenêtres orbitales du système (portes de périapse et des anneaux)
     this.windows.build(this.feed, sys, g); this.windows.group.visible = true;
@@ -71,6 +90,12 @@ export class RaceLayer {
       if (rc._lastT != null && Math.abs(t - rc._lastT) > 600) rc.trail.reset();   // saut dans le temps : traînée remise à zéro
       rc._lastT = t;
     }
+    // peloton : centre des racers présents (sinon la géante), écartement = plus grande distance au centre
+    const here = this.c.fleet().filter((r) => r.inSys);
+    if (here.length) {
+      for (let i = 0; i < 3; i++) this.pack[i] = here.reduce((a, r) => a + r.pos[i], 0) / here.length;
+      this.packSpread = Math.max(...here.map((r) => Math.hypot(r.pos[0] - this.pack[0], r.pos[1] - this.pack[1], r.pos[2] - this.pack[2])));
+    } else { this.pack.set(gp); this.packSpread = g.R * 2; }
   }
   // sujet de la vue : le racer suivi s'il est dans le système, sinon le premier présent
   focusPos() {
@@ -90,21 +115,26 @@ export class RaceLayer {
     // étiquettes : rang, écart au précédent, vitesse
     const rows = this.feed.standingsAt(t), byId = Object.fromEntries(rows.map((r) => [r.id, r]));
     const W = this.c.labels.clientWidth, H = this.c.labels.clientHeight, v = this._v, placed = [];
-    for (const rc of this.c.fleet()) {
-      const el = this._label(rc), row = byId[rc.def.id];
-      if (!rc.inSys) { el.hidden = true; continue; }
+    // étiquettes empilées dans l'ordre du classement (ordre stable : plus de clignotement), position amortie
+    const fleet = this.c.fleet(), byRc = Object.fromEntries(fleet.map((rc) => [rc.def.id, rc]));
+    for (const row of rows) {
+      const rc = byRc[row.id]; if (!rc) continue;
+      const el = this._label(rc);
+      if (!rc.inSys) { el.hidden = true; el._y = null; continue; }
       v.set(rc.pos[0] - frame.cam[0], rc.pos[1] - frame.cam[1], rc.pos[2] - frame.cam[2]).project(camera);
-      if (v.z > 1 || Math.abs(v.x) > 1.2 || Math.abs(v.y) > 1.2) { el.hidden = true; continue; }
+      if (v.z > 1 || Math.abs(v.x) > 1.2 || Math.abs(v.y) > 1.2) { el.hidden = true; el._y = null; continue; }
       el.hidden = false;
-      const prev = rows[row.rank - 2], gap = prev ? row.gap - prev.gap : 0, st = this.feed.stateAt(rc.def.id, t);
-      el.querySelector('b').textContent = `${row.rank}. ${rc.def.name}`;
-      el.querySelector('small').textContent = `${prev ? (gap < 1 ? 'à égalité' : '+' + dur(gap)) + ' · ' : ''}${(st.speed / 1e3).toFixed(1)} km/s`;
-      // étiquettes proches : on les décale vers le bas pour qu'elles restent lisibles
+      const prev = rows[row.rank - 2], gap = prev ? row.gap - prev.gap : 0, me = this.sel === rc.def.id;
+      const txt = `${row.rank} ${rc.def.name}${prev ? ' · ' + (gap < 1 ? 'à égalité' : '+' + dur(gap)) : ''}`;
+      const b = el.querySelector('b'); if (b.textContent !== txt) b.textContent = txt;
+      const sub = me ? `${(this.feed.stateAt(rc.def.id, t).speed / 1e3).toFixed(1).replace('.', ',')} km/s` : '';
+      const sm = el.querySelector('small'); if (sm.textContent !== sub) sm.textContent = sub;
       const x = (v.x * 0.5 + 0.5) * W; let y = (-v.y * 0.5 + 0.5) * H;
-      for (let k = 0; k < 4; k++) { const hit = placed.find((q) => Math.abs(q[0] - x) < 130 && Math.abs(q[1] - y) < 30); if (!hit) break; y = hit[1] + 30; }
+      for (let k = 0; k < 6; k++) { const hit = placed.find((q) => Math.abs(q[0] - x) < 150 && Math.abs(q[1] - y) < 22); if (!hit) break; y = hit[1] + 22; }
       placed.push([x, y]);
-      el.style.transform = `translate(${x | 0}px, ${y | 0}px)`;
-      el.classList.toggle('on', this.sel === rc.def.id); el.classList.toggle('dim', !!this.sel && this.sel !== rc.def.id);
+      el._y = el._y == null ? y : el._y + (y - el._y) * 0.25;            // amorti : l'étiquette glisse au lieu de sauter
+      el.style.transform = `translate(${x | 0}px, ${el._y | 0}px)`;
+      el.classList.toggle('on', me); el.classList.toggle('dim', !!this.sel && !me);
     }
     // étiquettes des portes
     for (const a of this.windows.anchors()) {
@@ -121,6 +151,34 @@ export class RaceLayer {
       el.style.transform = `translate(${((v.x * 0.5 + 0.5) * W) | 0}px, ${((-v.y * 0.5 + 0.5) * H) | 0}px)`;
     }
     this._hud();
+  }
+  _tele(el, t) {
+    const F = this.feed, id = this.sel, st = F.stateAt(id, t), R = F.racers.find((r) => r.id === id);
+    const row = F.standingsAt(t).find((r) => r.id === id);
+    if (!el.dataset.built) {
+      el.dataset.built = 1;
+      el.innerHTML = `<div class="tl-head"><b class="tl-rank"></b><span class="tl-name"></span><span class="tl-gap"></span></div>
+        <div class="tl-speed"><b></b><span>km/s</span></div>
+        <div class="tl-grid">
+          <span>Accélération</span><b class="tl-acc"></b>
+          <span>Poussée</span><b class="tl-thr"></b>
+          <span>Température</span><b class="tl-temp"></b>
+          <span>Carburant</span><i class="tl-bar"><u class="tl-fuel"></u></i>
+          <span>Intégrité</span><i class="tl-bar"><u class="tl-int"></u></i>
+        </div>
+        <div class="tl-next"></div>`;
+    }
+    el.style.setProperty('--livery', R.livery);
+    const set = (q, v) => { const n = el.querySelector(q); if (n.textContent !== v) n.textContent = v; };
+    const fr = (x, d = 1) => x.toFixed(d).replace('.', ',');
+    set('.tl-rank', 'P' + row.rank); set('.tl-name', R.name); set('.tl-gap', row.rank === 1 ? 'en tête' : row.gap < 1 ? 'à égalité' : '+' + dur(row.gap));
+    if (st.phase === 'system') {
+      set('.tl-speed b', fr(st.speed / 1e3)); set('.tl-acc', fr(st.accel, 2) + ' m/s²'); set('.tl-thr', st.thrust > 0.5 ? 'pleine · périapse' : 'croisière');
+      set('.tl-temp', Math.round(st.temp) + ' K');
+    }
+    el.querySelector('.tl-fuel').style.width = Math.round(st.fuel * 100) + '%';
+    el.querySelector('.tl-int').style.width = Math.round(st.integrity * 100) + '%';
+    set('.tl-next', st.next ? `Prochain : ${st.next.label} · dans ${dur(st.next.t - t)}` : 'Arrivé');
   }
   _label(rc) {
     if (rc._el) return rc._el;
@@ -148,6 +206,7 @@ export class RaceLayer {
       el.innerHTML = `<div class="rh-top"><a id="rh-back" href="#">← Télébyte</a><span class="rh-live">en direct</span></div>
         <b id="rh-sys"></b><span id="rh-time" class="rh-time"></span>
         <ol id="rh-list"></ol>
+        <div id="rh-tele" hidden></div>
         <div id="rh-win" hidden></div>
         <div id="rh-wait" hidden><span></span><button type="button">Aller à son arrivée</button></div>
         <div class="rh-clock"><input id="rh-clock" type="range" min="0" step="1" aria-label="Temps de course"><button id="rh-speed" type="button">×200</button></div>
@@ -166,24 +225,44 @@ export class RaceLayer {
     }
     el.querySelector('#rh-sys').textContent = `${sys.name} · ${sys.address}`;
     for (const b of el.querySelectorAll('.rh-views button')) b.classList.toggle('on', b.dataset.v === (this._view || 'overview'));
+    // télémétrie du racer suivi (vue Suivre) : le classement se replie pour dégager l'écran
+    const follow = this._view === 'follow' && this.sel, tele = el.querySelector('#rh-tele');
+    el.classList.toggle('follow', !!follow); tele.hidden = !follow;
+    if (follow) this._tele(tele, t);
     el.querySelector('#rh-time').textContent = hh(t);
     // le racer suivi n'est pas encore là : on l'annonce, avec un raccourci vers son arrivée
     const arr = this._arrival(t), w = el.querySelector('#rh-wait');
     w.hidden = !arr;
     if (arr) w.querySelector('span').textContent = `${F.racers.find((r) => r.id === this.sel).name} arrive dans ${dur(arr - t)}`;
     const ck = el.querySelector('#rh-clock'); if (document.activeElement !== ck) ck.value = String(Math.round(t));
-    const rows = F.standingsAt(t), sig = rows.map((r) => r.id + r.cp).join('|') + this.sel + sys.id + Math.floor(t / 60);
-    if (!force && sig === this._sig) return; this._sig = sig;
-    // fenêtres du racer suivi dans ce système
-    const win = el.querySelector('#rh-win'), lines = this.sel ? this.windows.describe(this.sel) : [];
-    win.hidden = !lines.length; win.innerHTML = lines.map((l) => `<span>${l}</span>`).join('');
-    el.querySelector('#rh-list').innerHTML = rows.map((r) => {
-      const R = F.racers.find((x) => x.id === r.id), st = F.stateAt(r.id, t);
-      const where = st.phase === 'system' ? (st.system === sys.id ? 'ici' : 'à ' + F.edition.systems.find((s) => s.id === st.system).name)
-        : st.phase === 'leg' ? 'en voyage → ' + F.edition.systems.find((s) => s.id === st.legTo).name : 'arrivé';
-      return `<li data-id="${r.id}" class="${this.sel === r.id ? 'on' : ''}${st.phase === 'system' && st.system === sys.id ? '' : ' away'}" style="--livery:${R.livery}">
-        <span class="rk">${r.rank}</span><i></i><span class="nm">${R.name}<small>${where}</small></span><span class="gp">${r.rank === 1 ? 'en tête' : r.gap < 1 ? 'à égalité' : '+' + dur(r.gap)}</span></li>`;
-    }).join('');
-    for (const li of el.querySelectorAll('#rh-list li')) li.onclick = () => this.select(li.dataset.id);
+    // fenêtres du racer suivi (seulement quand la sélection ou le système change)
+    const wsig = this.sel + sys.id;
+    if (force || wsig !== this._wsig) {
+      this._wsig = wsig;
+      const win = el.querySelector('#rh-win'), lines = this.sel ? this.windows.describe(this.sel) : [];
+      win.hidden = !lines.length; win.innerHTML = lines.map((l) => `<span>${l}</span>`).join('');
+    }
+    // classement : une ligne par racer, créée une fois ; on ne change que les textes, et l'ordre quand il change
+    // (reconstruire la liste à chaque image empêchait de la toucher aux vitesses rapides)
+    const list = el.querySelector('#rh-list'), rows = F.standingsAt(t);
+    this._rows = this._rows || {};
+    for (const r of rows) {
+      let li = this._rows[r.id];
+      if (!li) {
+        const R = F.racers.find((x) => x.id === r.id);
+        li = this._rows[r.id] = document.createElement('li'); li.dataset.id = r.id; li.style.setProperty('--livery', R.livery);
+        li.innerHTML = `<span class="rk"></span><i></i><span class="nm">${R.name}<small></small></span><span class="gp"></span>`;
+        li.onclick = () => this.select(r.id);
+      }
+      const st = F.stateAt(r.id, t), here = st.phase === 'system' && st.system === sys.id;
+      const where = st.phase === 'system' ? (here ? 'ici' : 'à ' + F.edition.systems.find((x) => x.id === st.system).name)
+        : st.phase === 'leg' ? 'en voyage → ' + F.edition.systems.find((x) => x.id === st.legTo).name : 'arrivé';
+      const set = (q, v) => { const n = li.querySelector(q); if (n.textContent !== v) n.textContent = v; };
+      set('.rk', String(r.rank)); set('small', where);
+      set('.gp', r.rank === 1 ? 'en tête' : r.gap < 1 ? 'à égalité' : '+' + dur(r.gap));
+      li.classList.toggle('on', this.sel === r.id); li.classList.toggle('away', !here);
+    }
+    const order = rows.map((r) => r.id).join('|');
+    if (order !== this._order) { this._order = order; for (const r of rows) list.appendChild(this._rows[r.id]); }
   }
 }

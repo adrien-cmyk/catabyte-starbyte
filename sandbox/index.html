@@ -59,6 +59,21 @@
   #race .rh-clock button { background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; font: 600 11px -apple-system, system-ui, sans-serif; padding: 4px 7px; cursor: pointer; }
   /* mode course : seul le panneau de course reste à l'écran (les outils de mise au point de la sandbox sont masqués) */
   body.race #panel, body.race #readout, body.race #title { display: none; }
+  #race.follow #rh-list, #race.follow #rh-win { display: none; }
+  #rh-tele { margin-top: 6px; } #rh-tele[hidden] { display: none; }
+  #rh-tele .tl-head { display: flex; gap: 8px; align-items: baseline; }
+  #rh-tele .tl-rank { font: 800 13px ui-monospace, monospace; color: var(--livery); }
+  #rh-tele .tl-name { font-weight: 700; flex: 1; }
+  #rh-tele .tl-gap { font: 12px ui-monospace, monospace; color: var(--dim); }
+  #rh-tele .tl-speed { display: flex; align-items: baseline; gap: 6px; margin: 2px 0 6px; }
+  #rh-tele .tl-speed b { font: 700 34px/1 ui-monospace, 'SF Mono', monospace; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  #rh-tele .tl-speed span { color: var(--dim); font-size: 12px; }
+  #rh-tele .tl-grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; align-items: center; font-size: 11px; }
+  #rh-tele .tl-grid span { color: var(--dim); }
+  #rh-tele .tl-grid b { font: 600 11px ui-monospace, monospace; font-variant-numeric: tabular-nums; text-align: right; }
+  #rh-tele .tl-bar { display: block; height: 5px; border-radius: 3px; background: rgba(150, 200, 240, .15); overflow: hidden; }
+  #rh-tele .tl-bar u { display: block; height: 100%; background: var(--livery); }
+  #rh-tele .tl-next { margin-top: 6px; font-size: 11px; color: #9fd4ec; }
   #race .rh-views { display: flex; gap: 6px; margin-top: 8px; }
   #race .rh-views button { flex: 1; background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; font: 600 11px -apple-system, system-ui, sans-serif; padding: 5px 0; cursor: pointer; }
   #race .rh-views button.on { border-color: #9fd4ec; color: #9fd4ec; }

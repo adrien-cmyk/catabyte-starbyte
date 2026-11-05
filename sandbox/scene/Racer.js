@@ -65,8 +65,8 @@ export function createPlume(R, colors) {
   }
   return {
     group: g,
-    update(t, throttle) {
-      g.scale.set(1, 1, 0.45 + 0.55 * throttle);                // le panache s'allonge avec la poussée
+    update(t, throttle, boost = 1) {
+      g.scale.set(1, 1, (0.45 + 0.55 * throttle) * boost);                // le panache s'allonge avec la poussée
       for (const m of mats) { m.uniforms.uTime.value = t; m.uniforms.uThrottle.value = throttle; }
     },
   };
@@ -87,7 +87,7 @@ export class Trail {
     g.setAttribute('aSide', new THREE.BufferAttribute(this.side, 1));
     this.mesh = new THREE.Mesh(g, new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-      uniforms: { uColor: { value: new THREE.Color(color) } },
+      uniforms: { uColor: { value: new THREE.Color(color) }, uGain: { value: 0.9 } },
       vertexShader: /* glsl */`
         #include <common>
         #include <logdepthbuf_pars_vertex>
@@ -98,11 +98,11 @@ export class Trail {
       fragmentShader: /* glsl */`
         #include <common>
         #include <logdepthbuf_pars_fragment>
-        uniform vec3 uColor; varying float vAge, vSide;
+        uniform vec3 uColor; uniform float uGain; varying float vAge, vSide;
         void main(){
           #include <logdepthbuf_fragment>
           float a = pow(1.0 - clamp(vAge, 0.0, 1.0), 2.2) * (1.0 - vSide * vSide) * smoothstep(0.0, 0.03, vAge);
-          gl_FragColor = vec4(uColor * a * 0.9, 1.0);
+          gl_FragColor = vec4(uColor * a * uGain, 1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,
@@ -190,10 +190,22 @@ export class Racer {
     this._q.setFromRotationMatrix(this._m);
     this.group.quaternion.copy(this._q);
   }
+  // mode piste (course) : la traînée vit en temps d'écran (quelques secondes, quelle que soit l'accélération du temps),
+  // plus large et plus vive, et le panache s'allonge ; hors course, traînée en temps simulé comme avant
+  setPiste(on, { life = 7, width = null, gain = 1.6, boost = 2.2 } = {}) {
+    if (!!on === !!this.piste) return;
+    this.piste = on ? { life, boost } : null;
+    const T = this.trail;
+    if (!this._trail0) this._trail0 = { life: T.life, width: T.width };
+    T.life = on ? life : this._trail0.life; T.width = on ? (width || Math.max(this._trail0.width * 2, this.P.length * 0.12)) : this._trail0.width;
+    T.mesh.material.uniforms.uGain.value = on ? gain : 0.9; T.reset();
+  }
   update(frame, timeS, realT) {
     this.orient();
-    for (const p of this.plumes) p.update(realT, this.throttle);
-    this.trail.push(this.pos, timeS);
-    this.trail.update(frame.cam, timeS);
+    const boost = this.piste ? this.piste.boost : 1;
+    for (const p of this.plumes) p.update(realT, this.throttle, boost);
+    const clock = this.piste ? realT : timeS;
+    this.trail.push(this.pos, clock);
+    this.trail.update(frame.cam, clock);
   }
 }

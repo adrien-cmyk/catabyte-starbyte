@@ -17,6 +17,7 @@ import { RACE_SYSTEMS, RACERS, gmOfGiant } from './race/raceData.js';
 import { RACER_PROFILES } from './scene/racerProfiles.js';
 import { DemoFeed } from './race/DemoFeed.js';
 import { RaceLayer } from './race/RaceLayer.js';
+import { SpeedLines } from './scene/SpeedLines.js';
 import { AsteroidField } from './bodies/AsteroidField.js';
 import { RingDebris } from './bodies/RingDebris.js';
 import { Racer } from './scene/Racer.js';
@@ -315,13 +316,42 @@ raceLayer = new RaceLayer({
   hud: document.getElementById('race'), labels: document.getElementById('race-labels'),
   setTime: (t) => { simT = t; }, getTime: () => simT, setSpeed: (x) => { timeScale = x; },
   follow: (id) => { const P = RACER_PROFILES[RACERS.find((r) => r.id === id).ship]; cam.setTarget(targets['racer:' + id], { dur: 2.2, dist: Math.max(P.length * 3, 400) }); },
-  views: { overview: () => cam.setTarget(targets.giant, { dur: 2, dist: giant.R * 7, yaw: sunYaw + 0.6, pitch: 0.55 }), gates: () => VIEWS['course-portes']() },
+  views: { overview: () => trackPack(2), gates: () => VIEWS['course-portes']() },
   back: () => {
     try { sessionStorage.setItem('fronde.t', String(simT)); sessionStorage.setItem('fronde.sel', raceLayer.sel || ''); } catch (e) {}
     let url = '../telebyte/index.html'; try { url = sessionStorage.getItem('fronde.back') || url; } catch (e) {}
     location.href = url;
   },
 });
+// vue Ensemble : la caméra suit le peloton présent dans le système et s'ajuste à son écartement
+targets.pack = { pos: null, minDist: 2000, label: 'Le peloton' };
+const speedLines = new SpeedLines(); scene.add(speedLines.mesh);
+let sportFov = false;
+// caméra de course (vue Suivre) : basse, derrière le racer, qui traîne un peu ; focale qui s'ouvre avec la vitesse,
+// légère vibration pendant la poussée de périapse ; stries de poussière à la vitesse perçue
+function sportCam(dt) {
+  const on = raceLayer.on && raceLayer._view === 'follow';
+  const rc = on && fleet && fleet.find((r) => r.def.id === raceLayer.sel && r.inSys);
+  if (!rc) { if (sportFov) { fovOv = null; sportFov = false; } speedLines.update(false); return null; }
+  const P = RACER_PROFILES[rc.def.ship], L = P.length;
+  const v = new THREE.Vector3(...rc.vel), sp = v.length(); v.normalize();
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(giant.group.quaternion);
+  const side = new THREE.Vector3().crossVectors(v, up).normalize();
+  const dir = v.clone().multiplyScalar(-Math.cos(0.2)).addScaledVector(up, Math.sin(0.2)).addScaledVector(side, 0.1).normalize();
+  let yaw = Math.atan2(dir.x, dir.z); const pitch = Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
+  while (yaw - cam.goal.yaw > Math.PI) yaw -= 2 * Math.PI; while (yaw - cam.goal.yaw < -Math.PI) yaw += 2 * Math.PI;
+  if (!cam.tr) { cam.goal.yaw = yaw; cam.goal.pitch = pitch; cam.goal.logD += (Math.log(L * 2.2 + 25) - cam.goal.logD) * Math.min(1, dt * 1.5); }
+  const k = THREE.MathUtils.clamp((sp - 20000) / 40000, 0, 1);
+  fovOv = 50 + 12 * k + 6 * rc.throttle; sportFov = true;
+  speedLines.update(true, rc.vel, L, rc.throttle > 0.5 ? 1 : 0, dt);
+  return rc;
+}
+const packDist = () => Math.max(raceLayer.packSpread * 3.2, giant.R * 0.35);
+function trackPack(dur = 0) {
+  targets.pack.pos = raceLayer.pack; raceLayer.position(simT);
+  cam.setTarget(targets.pack, { dur, dist: packDist(), yaw: sunYaw + 0.6, pitch: 0.5 });
+  raceLayer._view = 'overview';
+}
 // vue d'ensemble du système en course ; la sélection d'un racer passe en poursuite
 function courseView(opts = {}) {
   ensureFleet(); fleetOn = true; racerOn = false; graze = null;
@@ -329,7 +359,7 @@ function courseView(opts = {}) {
   raceLayer.position(simT);
   const s = raceLayer.sel && fleet.find((r) => r.def.id === raceLayer.sel);
   if (s && s.inSys) { raceLayer.c.follow(raceLayer.sel); raceLayer._view = 'follow'; }        // le racer suivi est ici : poursuite
-  else { cam.setTarget(targets.giant, { dist: giant.R * 7, yaw: sunYaw + 0.6, pitch: 0.55 }); raceLayer._view = 'overview'; }   // sinon : vue d'ensemble
+  else trackPack();                                                                 // sinon : vue Ensemble (le peloton)
   raceLayer._hud(true);
 }
 VIEWS.course = () => { fovOv = null; courseView(); };
@@ -439,7 +469,9 @@ function step(dt) {
   }
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
   if (raceLayer && raceLayer.on) raceLayer.position(simT);
+  const sportRc = raceLayer ? sportCam(dt) : null;
   cam.update(dt);
+  if (sportRc && sportRc.throttle > 0.5) { const tt = performance.now() / 1000; camera.rotateX(Math.sin(tt * 37) * 0.0012); camera.rotateY(Math.sin(tt * 29 + 1) * 0.0012); }   // vibration de poussée
   if (director.apply()) frame.cam.set(director.pos); else frame.cam.set(cam.pos);
   { const f = (director.active ? director.fov : fovOv) || baseFov; if (camera.fov !== f) { camera.fov = f; camera.updateProjectionMatrix(); } }
   frame.update();
@@ -472,6 +504,8 @@ function step(dt) {
   racer.update(frame, simT, performance.now() / 1000);
   const raceOn = raceLayer && raceLayer.on;
   if (fleet) for (const rc of fleet) { const vis = fleetOn && (!raceOn || rc.inSys); rc.group.visible = rc.trail.mesh.visible = vis; if (vis) rc.update(frame, simT, performance.now() / 1000); }
+  // vue Ensemble : le cadrage suit l'écartement du peloton (en douceur : l'utilisateur peut encore zoomer)
+  if (raceOn && raceLayer._view === 'overview' && !cam.tr) cam.goal.logD += (Math.log(packDist()) - cam.goal.logD) * Math.min(1, dt * 0.8);
   if (raceOn) raceLayer.update(simT, camera, pix, [renderer.domElement.width, renderer.domElement.height, renderer.getPixelRatio()]);
   holo.group.visible = racerOn;
   // lisibilité en vue système : balise du racer, lunes agrandies (jamais en vue rapprochée : échelle réelle)
