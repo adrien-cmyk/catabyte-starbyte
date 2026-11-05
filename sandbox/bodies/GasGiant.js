@@ -227,7 +227,7 @@ export class GasGiant {
       uAurora: { value: preset.aurora || 0 }, uLightning: { value: preset.lightning || 0 }, uFlashT: { value: 0 },
       uOct: { value: 5 }, uStorms: { value: storms }, uStormCount: { value: (preset.storms || []).length },
     };
-    this.quality = quality;
+    this.quality = quality; this.octCap = quality >= 2 ? 6 : 10;
     this.surface = new THREE.Mesh(geo, new THREE.ShaderMaterial({
       uniforms: u, vertexShader: SURFACE_VERT, fragmentShader: SURFACE_FRAG,
       defines: quality <= 1 ? { CROSSFADE: 1 } : {},
@@ -252,6 +252,12 @@ export class GasGiant {
     if (ring) { ring.attach(this); }
   }
   get radius() { return this.R; }
+  // niveau de détail (LodManager) : plafond d'octaves, fondu des deux phases de rotation (recompile le shader)
+  setLod(b) {
+    this.octCap = b.giantOct;
+    const m = this.surface.material, has = !!m.defines.CROSSFADE;
+    if (has !== b.crossfade) { if (b.crossfade) m.defines.CROSSFADE = 1; else delete m.defines.CROSSFADE; m.needsUpdate = true; }
+  }
   // camRel : vecteur caméra → centre (mètres, float64) ; sunDirW : direction monde vers l'étoile depuis la planète
   update(frame, timeS, sunDirW, sunColor, sunI) {
     const rel = frame.rel(this.pos);
@@ -268,7 +274,7 @@ export class GasGiant {
     // détail : plus on s'approche, plus il y a d'octaves (limité par le niveau de qualité)
     const alt = Math.max(camL.length() - 1, 1e-6);
     const oct = Math.round(5.5 + Math.log2(1 / alt) * 1.25);
-    this.uniforms.uOct.value = Math.max(4, Math.min(this.quality >= 2 ? 6 : 10, oct));
+    this.uniforms.uOct.value = Math.max(4, Math.min(this.octCap, oct));
     // atmosphère : faces avant de l'extérieur, faces arrière de l'intérieur
     this.atmo.material.side = camL.length() < this.Ra ? THREE.BackSide : THREE.FrontSide;
     if (this.ring) this.ring.update(camL, this.uniforms.uSunL.value, sunColor, sunI, timeS);

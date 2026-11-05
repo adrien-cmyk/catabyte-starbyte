@@ -173,6 +173,7 @@ export class Moon {
     this.roots = [0, 1, 2, 3, 4, 5].map((f) => this._node(f, -1, -1, 1, 1, 0));
     this.shown = []; this.frameNo = 0; this.camL = new THREE.Vector3();
   }
+  setLod(b) { this.split = b.moonSplit; }
   _node(f, s0, t0, s1, t1, depth) {
     const c = faceDir(f, (s0 + s1) / 2, (t0 + t1) / 2);
     return { f, s0, t0, s1, t1, depth, c, L: this.R * (s1 - s0) * 0.785, state: 0, mesh: null, kids: null, used: 0 };

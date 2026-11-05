@@ -80,7 +80,7 @@ void main(){
   #include <colorspace_fragment>
 }`;
 
-const LOD_SUB = [3, 2, 1];
+const LOD_SUB = [3, 2, 0];                  // 1 280 / 320 / 20 triangles (le dernier : rochers de quelques pixels)
 const PX = [42, 11, 2.6, 0.45];             // seuils de taille à l'écran (px) : LOD0, LOD1, LOD2, imposteur
 
 class Bucket {
@@ -125,6 +125,8 @@ export class AsteroidField {
     this.group = new THREE.Group();
     this.quality = quality;
     this.nShapes = quality >= 2 ? 8 : 16;
+    this.PX = PX.slice(); this.keep = 1;          // réglables à chaud (LodManager)
+    this.triCap = Infinity; this.pxScale = 1; this.keepK = 1;      // plafond de triangles : les seuils de détail se relèvent au-delà
     this.uniforms = { uSun: { value: new THREE.Vector3(1, 0, 0) }, uSunCol: { value: new THREE.Color(1, 1, 1) }, uSunI: { value: 1.7 }, uTime: { value: 0 } };
     const mat = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: ROCK_VERT, fragmentShader: ROCK_FRAG });
     this.buckets = LOD_SUB.map((sub) => Array.from({ length: this.nShapes }, (_, k) => {
@@ -140,6 +142,9 @@ export class AsteroidField {
     this.cells = new Map(); this.dirty = true; this.sinceBuild = 99; this.frameNo = 0;
     this.stats = { cells: 0, rocks: 0, dots: 0 };
   }
+  // niveau de détail (LodManager) : seuils de taille à l'écran et fraction de rochers gardés
+  setLod(b) { this.PX = b.rockPx.slice(); this.keep = b.rockKeep; this.triCap = b.tris * (b.rockShare || 0.5); this.pxScale = 1; this.keepK = 1; for (const c of this.cells.values()) c.lod = -2; this.dirty = true; }
+  _regrade() { for (const c of this.cells.values()) c.lod = -2; this.dirty = true; }
   _dotAlloc(cap) {
     this.dotCap = cap;
     this.dotGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(cap * 3), 3));   // inutilisé (three l'exige)
@@ -169,7 +174,7 @@ export class AsteroidField {
         const d = Math.max(Math.hypot(dx, dy, dz) - s * 0.87, L.r);
         if (d > L.D) continue;
         const px = (L.r * 1.6 / d) / pixAngle;
-        const lod = px > PX[0] ? 0 : px > PX[1] ? 1 : px > PX[2] ? 2 : px > PX[3] ? 3 : 4;
+        const T = this.PX, ks = this.pxScale, lod = px > T[0] * ks ? 0 : px > T[1] * ks ? 1 : px > T[2] * ks ? 2 : px > T[3] ? 3 : 4;
         if (lod === 4) continue;
         const key = k + ':' + ix + ':' + iy + ':' + iz;
         let c = this.cells.get(key);
@@ -179,7 +184,11 @@ export class AsteroidField {
       }
     });
     for (const [key, c] of this.cells) if (!seen.has(key)) { if (c.lod !== -1) { c.lod = -1; this.dirty = true; } if (this.frameNo - c.used > 300) this.cells.delete(key); }
-    if (this.dirty && this.sinceBuild >= 4) this._rebuild();
+    // le détail est choisi rocher par rocher dans les cellules proches : on reconstruit quand la caméra a bougé
+    this._pc = pc; this._pix = pixAngle;
+    const lp = this._lastPc, minR = this.data.levels[this.data.levels.length - 1].r;
+    if (!lp || Math.hypot(pc[0] - lp[0], pc[1] - lp[1], pc[2] - lp[2]) > minR * 25) this.dirty = true;
+    if (this.dirty && this.sinceBuild >= 4) { this._lastPc = pc.slice(); this._rebuild(); }
   }
   _rebuild() {
     this.dirty = false; this.sinceBuild = 0;
@@ -193,17 +202,38 @@ export class AsteroidField {
       if (c.lod < 0 || !c.rocks.length) continue;
       ncell++;
       if (c.lod === 3) {
-        for (const q of c.rocks) {
+        for (let qi = 0; qi < c.rocks.length; qi++) {
+          const q = c.rocks[qi]; if ((qi * 0.618034) % 1 >= this.keep * this.keepK) continue;
           if (nd >= this.dotCap) break;
           const w = W(q); P.array.set([w.x + ox, w.y + oy, w.z + oz, q.r], nd * 4); K.array.set(q.tint, nd * 3); nd++;
         }
       } else {
-        const lv = this.buckets[c.lod];
-        for (const q of c.rocks) { const w = W(q); lv[q.shape % this.nShapes].push(w.x + ox, w.y + oy, w.z + oz, q); nr++; }
+        // détail propre à chaque rocher (jamais plus fin que celui de sa cellule), d'après sa vraie distance
+        const pc = this._pc, T = this.PX, ks = this.pxScale, pix = this._pix;
+        for (let qi = 0; qi < c.rocks.length; qi++) {
+          const q = c.rocks[qi]; if ((qi * 0.618034) % 1 >= this.keep * this.keepK) continue;
+          const px = q.r * 1.6 / Math.max(Math.hypot(q.x - pc[0], q.y - pc[1], q.z - pc[2]), q.r) / pix;
+          const l = Math.max(c.lod, px > T[0] * ks ? 0 : px > T[1] * ks ? 1 : px > T[2] * ks ? 2 : 3);
+          const w = W(q);
+          if (l === 3) { if (nd < this.dotCap) { P.array.set([w.x + ox, w.y + oy, w.z + oz, q.r], nd * 4); K.array.set(q.tint, nd * 3); nd++; } continue; }
+          this.buckets[l][q.shape % this.nShapes].push(w.x + ox, w.y + oy, w.z + oz, q); nr++;
+        }
       }
     }
     for (const lv of this.buckets) for (const b of lv) b.end();
     this.dotGeo.setDrawRange(0, nd); P.needsUpdate = true; K.needsUpdate = true;
-    this.stats = { cells: ncell, rocks: nr, dots: nd };
+    if (nd >= this.dotCap && this.dotCap < 262144) { this._dotAlloc(this.dotCap * 2); this.dirty = true; }   // réserve de points saturée : on l'agrandit
+    // budget de triangles (≈ 1 280 / 320 / 20 par rocher selon le niveau) : si on dépasse, les seuils de taille à
+    // l'écran montent (moins de rochers au détail fin) ; si on est très en dessous, ils redescendent (hystérésis)
+    const tris = this.buckets.reduce((a, lv, l) => a + lv.reduce((x, bk) => x + bk.n, 0) * [1280, 320, 20][l], 0);
+    // seuils au maximum et toujours trop : on éclaircit les rochers (jusqu'à 25 %), puis on rend la densité en premier
+    if (tris > this.triCap) {
+      if (this.pxScale < 12) this.pxScale *= 1.3; else if (this.keepK > 0.25) this.keepK = Math.max(0.25, this.keepK * 0.8);
+      this._regrade();
+    } else if (tris < this.triCap * 0.4) {
+      if (this.keepK < 1) { this.keepK = Math.min(1, this.keepK * 1.1); this._regrade(); }
+      else if (this.pxScale > 1) { this.pxScale = Math.max(1, this.pxScale / 1.12); this._regrade(); }
+    }
+    this.stats = { cells: ncell, rocks: nr, dots: nd, tris, pxScale: +this.pxScale.toFixed(2), keep: +(this.keep * this.keepK).toFixed(2) };
   }
 }

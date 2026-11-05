@@ -1,4 +1,4 @@
-// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 13 du plan technique).
+// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 14 du plan technique).
 // Assemble : renderer à profondeur logarithmique, origine flottante, ciel cuit, étoile, géante gazeuse + anneaux, trois lunes,
 // caméra libre à zoom logarithmique, post-traitement (bloom), panneau de réglages, vues des tests visuels.
 import { SB3D, THREE, qualityLevel } from './lib/sb3d-shim.js';
@@ -9,6 +9,7 @@ import { Star, STAR_TYPES } from './bodies/Star.js';
 import { bakeBackdrop } from './scene/Backdrop.js';
 import { FreeCamera } from './camera/FreeCamera.js';
 import { CinematicDirector } from './camera/CinematicDirector.js';
+import { LodManager } from './core/LodManager.js';
 import { GIANTS } from './presets/giants.js';
 import { Moon, PatchPool } from './bodies/Moon.js';
 import { sandboxMoons } from './presets/moons.js';
@@ -20,6 +21,7 @@ import { RacerMarker } from './scene/RacerMarker.js';
 import { propagate, sampleAt, hyperbolicApproach, GM_GIANT, gmOfSphere } from './core/Gravity.js';
 
 const Q = qualityLevel();
+const lod = new LodManager(Q);   // suit SBPerf.level en jeu ; ?q= ou le panneau dans le labo
 const host = document.getElementById('view');
 const renderer = new THREE.WebGLRenderer({ antialias: Q < 2, logarithmicDepthBuffer: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, [2, 1.25, 1, 0.75][Q]));
@@ -65,6 +67,7 @@ function setGiant(key) {
   if (debris) debris.removeFrom(scene, frame);
   debris = ring ? new RingDebris(giant, { quality: Q }) : null;
   if (debris) debris.addTo(scene, frame);
+  if (typeof lod !== 'undefined' && lod.targets.length) { giant.setLod(lod.budget); if (debris) debris.setLod(lod.budget); }
   targets.giant = { pos: giant.pos, minDist: giant.R * 1.0015, label: p.name };
   // point d'observation dans les anneaux, sur la face éclairée, rayon 1,8 R (anneau principal)
   const a = Math.atan2(SUN_DIR.z, SUN_DIR.x) + 0.9, rr = 1.8 * giant.R, m = giant.group.matrixWorld;
@@ -273,11 +276,17 @@ const director = new CinematicDirector(camera, {
 const composer = new SB3D.EffectComposer(renderer);
 composer.addPass(new SB3D.RenderPass(scene, camera));
 const bloom = new SB3D.UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.6, 0.92);
-bloom.enabled = Q < 2;
 composer.addPass(bloom);
 composer.addPass(new SB3D.OutputPass());
 
 let baseFov = 45;
+// réglages à chaud : tout ce qui existe déjà (la géante est reconstruite à chaque changement : elle se réenregistre)
+lod.register((b) => {
+  bloom.enabled = b.bloom;
+  if (!window.SBPerf) { renderer.setPixelRatio(Math.min(devicePixelRatio, b.dpr)); if (typeof resize === 'function') resize(); }   // en jeu, perf.js s'en charge
+  giant.setLod(b); if (debris) debris.setLod(b); field.setLod(b);
+  for (const m of moons) m.setLod(b);
+});
 function resize() {
   const w = host.clientWidth, h = host.clientHeight;
   renderer.setSize(w, h, false); composer.setSize(w, h);
@@ -333,8 +342,16 @@ function step(dt) {
   }
   if (racerOn) holo.update(frame.cam, simT, pix, 1.3 * renderer.getPixelRatio(), [renderer.domElement.width, renderer.domElement.height]);
 }
-function render() { composer.render(); }
+renderer.info.autoReset = false;                 // compte toutes les passes (rendu + bloom + sortie)
+let frameStats = { calls: 0, tris: 0, points: 0, ms: 0 };
+function render() {
+  renderer.info.reset();
+  composer.render();
+  frameStats = { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, points: renderer.info.render.points };
+}
+let pollT = 0;
 function loop(now) {
+  if (now - pollT > 1000) { pollT = now; lod.poll(); }
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   step(dt); render();
   fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; hud(); }
@@ -347,7 +364,7 @@ function hud() {
   const d = cam.distance, t = cam.target;
   let alt = t === targets.giant ? ' · altitude ' + fmtDist(d - giant.R) : '';
   if (graze && t === graze.target) alt = ' · altitude ' + fmtDist(graze.moon.altitudeAt(cam.pos));
-  $('readout').textContent = `${fps.toFixed(0)} i/s · ${t ? t.label : ''} · distance ${fmtDist(d)}${alt} · ×${timeScale}`;
+  $('readout').textContent = `${fps.toFixed(0)} i/s · ${lod.budget.name} · ${frameStats.calls} appels · ${(frameStats.tris / 1e3).toFixed(0)} k tri · ${t ? t.label : ''} · distance ${fmtDist(d)}${alt} · ×${timeScale}`;
 }
 $('giant').onchange = (e) => { setGiant(e.target.value); };
 $('view-sel').onchange = (e) => { if (e.target.value === 'zoom') { cam.enabled = false; director.start(1); $('cine').textContent = 'Caméra libre'; return; } if (director.active) { director.stop(); cam.enabled = true; $('cine').textContent = 'Cinématique'; } const v = e.target.value; curTarget = v.startsWith('ring') ? 'rings' : v === 'star' ? 'star' : moonById[v] ? 'moon:' + v : 'giant'; if (!v.startsWith('graze')) graze = null; VIEWS[v](); };
@@ -355,6 +372,8 @@ $('target').onchange = (e) => { curTarget = e.target.value; graze = null;
   const m = curTarget.startsWith('moon:') ? moonById[curTarget.slice(5)] : null;
   cam.setTarget(targets[curTarget], { dur: 3.2, dist: m ? m.R * 3 : curTarget === 'racer' ? 300 : curTarget === 'field' ? 2e6 : curTarget === 'star' ? star.R * 8 : curTarget === 'rings' ? 2e7 : giant.R * 3 }); };
 $('speed').oninput = (e) => { timeScale = Math.round(Math.pow(10, +e.target.value)); hud(); };
+$('quality').value = String(lod.level);
+$('quality').onchange = (e) => lod.set(+e.target.value);
 $('cine').onclick = () => { if (director.active) { director.stop(); cam.enabled = true; $('cine').textContent = 'Cinématique'; } else { cam.enabled = false; director.start(0); $('cine').textContent = 'Caméra libre'; } };
 $('shot').onclick = () => { render(); const a = document.createElement('a'); a.download = `fronde_${giantKey}_${Date.now()}.png`; a.href = renderer.domElement.toDataURL('image/png'); a.click(); };
 
@@ -364,6 +383,14 @@ window.RW = {
   stop: () => renderer.setAnimationLoop(null),
   shots: () => director.reel.map((s) => s.title),
   cine: (i, u, hold = true) => { cam.enabled = false; director.seek(i, u); director.hold = hold; },
+  setQuality: (q) => lod.set(q),
+  bench: (n = 20) => {
+    const t0 = performance.now(); let s = 0;
+    for (let i = 0; i < n; i++) { const a = performance.now(); step(1 / 60); const b = performance.now(); render(); s += b - a; }
+    const tot = (performance.now() - t0) / n;
+    return { level: lod.budget.name, stepMs: +(s / n).toFixed(2), frameMs: +tot.toFixed(1), ...frameStats,
+      geo: renderer.info.memory.geometries, tex: renderer.info.memory.textures, budget: { calls: lod.budget.calls, tris: lod.budget.tris } };
+  },
   exag: () => ({ exag, moons: moons.map((m) => +m.group.scale.x.toFixed(1)) }),
   cineDiag: () => ({ racer: { d: Math.hypot(racer.pos[0] - frame.cam[0], racer.pos[1] - frame.cam[1], racer.pos[2] - frame.cam[2]), model: !!racer.model, gp: racer.group.position.toArray().map((x) => +x.toFixed(1)), v: Math.hypot(...racer.vel) }, title: director.title, t: director.t, simT, tc: race.tc, ring: debris && debris.stats, alt: debris && (() => { const g = giant, c = frame.cam, q = g.group.quaternion.clone().invert(); const v = new THREE.Vector3(c[0] - g.pos[0], c[1] - g.pos[1], c[2] - g.pos[2]).applyQuaternion(q); return { y: v.y, r: Math.hypot(v.x, v.z) / g.R, dens: debris.data.density(v.x, v.y, v.z) }; })() }),
   frames: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) step(dt); render(); },

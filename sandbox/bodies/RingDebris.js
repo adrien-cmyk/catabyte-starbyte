@@ -107,7 +107,7 @@ export class RingDebris {
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
     this.dustU = { uOff: { value: new THREE.Vector3() }, uB: { value: B }, uDens: { value: 0 }, uSunI: { value: 1.7 }, uSunL: { value: new THREE.Vector3() }, uCol: { value: new THREE.Color() } };
     this.dust = new THREE.Points(g, new THREE.ShaderMaterial({ uniforms: this.dustU, vertexShader: DUST_VERT, fragmentShader: DUST_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-    this.dust.frustumCulled = false;
+    this.dust.frustumCulled = false; this.dustN = N;
     this._q = new THREE.Quaternion(); this._v = new THREE.Vector3();
   }
   addTo(scene, frame) { frame.add(this.field.group, this.field.anchor); scene.add(this.field.group, this.dust); }
@@ -129,5 +129,6 @@ export class RingDebris {
     // le disque s'efface autour de la caméra quand elle est assez près du plan pour voir les fragments
     this.ring.uniforms.uNear.value = Math.abs(v.y) < this.data.levels[0].D ? this.data.levels[0].D * 0.75 : 0;
   }
+  setLod(b) { this.field.setLod(b); this.dust.geometry.setDrawRange(0, Math.round(this.dustN * b.dust)); }
   get stats() { return this.field.stats; }
 }
