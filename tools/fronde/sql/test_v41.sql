@@ -37,7 +37,9 @@ select t.ok((public.mp_fronde_edition()->'edition'->>'seed') is null, 'graine ca
 select t.ok((public.mp_fronde_edition()->'next_needed')::boolean = false, 'pas besoin d''une nouvelle édition');
 
 -- ── paris ──
-select t.ok((public.mp_fronde_bet('E1', 'fulgurant', 4000)->>'ok')::boolean, 'A mise 4 000 sur Le Fulgurant');
+select t.ok((public.mp_fronde_bet('E1', 'fulgurant', 4000, '11111111-1111-1111-1111-111111111111')->>'ok')::boolean, 'A mise 4 000 sur Le Fulgurant');
+select t.ok((public.mp_fronde_bet('E1', 'fulgurant', 4000, '11111111-1111-1111-1111-111111111111')->>'repeat')::boolean, 'renvoi du même pari (même identifiant) : pas de doublon');
+select t.ok((public.mp_fronde_mine()->'bets'->0->>'stake')::int = 4000 and jsonb_array_length(public.mp_fronde_mine()->'bets') = 1, 'mp_fronde_mine : un seul pari de 4 000');
 select t.expect('select public.mp_fronde_bet(''E1'', ''mule'', 100)', 'too_fast');
 select pg_sleep(2.1);
 select t.expect('select public.mp_fronde_bet(''E1'', ''mule'', 1001)', 'over_cap');
@@ -81,6 +83,7 @@ select t.ok(encode(extensions.digest(public.mp_fronde_edition()->'edition'->>'se
 select t.ok(jsonb_array_length(public.mp_fronde_edition()->'reveals') = 5, 'tous les plans publiés après l''arrivée');
 -- cagnotte 8 000 ; maison 5 % → 7 600 ; mises sur le vainqueur : A 4 000 (seul) → A reçoit 7 600
 select t.ok((public.mp_fronde_edition()->'my_payout'->>'amount')::int = 7600, 'A gagne 7 600 CG (8 000 − 5 %)');
+select t.ok((public.mp_fronde_mine()->'payouts'->0->>'amount')::int = 7600 and not (public.mp_fronde_mine()->'payouts'->0->>'claimed')::boolean, 'mp_fronde_mine : gain de 7 600 à encaisser');
 select t.ok((public.mp_fronde_claim('E1')->>'amount')::int = 7600, 'A encaisse 7 600');
 select t.ok((public.mp_fronde_claim('E1')->>'claimed_now')::boolean = false and (public.mp_fronde_claim('E1')->>'already')::boolean, 'double encaissement refusé');
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);

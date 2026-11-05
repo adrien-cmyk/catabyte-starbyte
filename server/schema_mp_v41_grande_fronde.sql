@@ -57,6 +57,9 @@ create table if not exists public.fronde_bets (
 );
 create index if not exists fronde_bets_edition_idx on public.fronde_bets (edition_id, racer);
 create index if not exists fronde_bets_user_idx on public.fronde_bets (user_id, placed_at desc);
+-- identifiant de pari donné par le jeu : un pari renvoyé après une coupure réseau n'est pas compté deux fois
+alter table public.fronde_bets add column if not exists client_nonce uuid;
+create unique index if not exists fronde_bets_nonce_idx on public.fronde_bets (user_id, client_nonce) where client_nonce is not null;
 
 create table if not exists public.fronde_payouts (
   edition_id text not null references public.fronde_editions (id) on delete cascade,
@@ -164,7 +167,7 @@ begin
     'state', st, 'elapsed', el, 'server_now', now(),
     'reveals', rv,
     'pools', public._fronde_pools(e.id),
-    'my_bets', coalesce((select jsonb_agg(jsonb_build_object('racer', racer, 'stake', stake, 'at', placed_at) order by placed_at)
+    'my_bets', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'racer', racer, 'stake', stake, 'at', placed_at) order by placed_at)
                           from public.fronde_bets where edition_id = e.id and user_id = me), '[]'::jsonb),
     'my_payout', (select jsonb_build_object('amount', amount, 'kind', kind, 'claimed', claimed_at is not null)
                     from public.fronde_payouts where edition_id = e.id and user_id = me),
@@ -176,7 +179,8 @@ grant execute on function public.mp_fronde_edition(text) to authenticated;
 -- ── parier : « vainqueur », jusqu'au départ ──
 -- Vraisemblance : CG de la dernière sauvegarde reçue, moins les mises posées depuis cette sauvegarde, ≥ mise.
 -- Le jeu retire la mise de sa partie quand cette fonction répond ok (et sauvegarde).
-create or replace function public.mp_fronde_bet(p_edition text, p_racer text, p_stake int)
+drop function if exists public.mp_fronde_bet(text, text, int);    -- remplacée par la version avec identifiant de pari
+create or replace function public.mp_fronde_bet(p_edition text, p_racer text, p_stake int, p_nonce uuid default null)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare me uuid := auth.uid(); e public.fronde_editions; mine bigint; cg numeric; saved timestamptz; after bigint; rid uuid;
 begin
@@ -190,6 +194,12 @@ begin
   if not exists (select 1 from jsonb_array_elements(e.racers) r where r->>'id' = p_racer) then raise exception 'bad_racer'; end if;
   -- un pari à la fois par joueur (verrou sur le joueur) : plafond et vraisemblance sans course entre deux appels
   perform pg_advisory_xact_lock(hashtext('fronde_bet:' || me::text));
+  -- même identifiant : c'est un renvoi du même pari, on rend le pari déjà enregistré
+  select id into rid from public.fronde_bets where user_id = me and client_nonce = p_nonce;
+  if rid is not null then
+    return jsonb_build_object('ok', true, 'id', rid, 'racer', p_racer, 'stake', p_stake, 'repeat', true,
+      'my_total', (select coalesce(sum(stake), 0) from public.fronde_bets where edition_id = p_edition and user_id = me), 'pools', public._fronde_pools(p_edition));
+  end if;
   if exists (select 1 from public.fronde_bets where user_id = me and placed_at > now() - interval '2 seconds') then raise exception 'too_fast'; end if;
   select coalesce(sum(stake), 0) into mine from public.fronde_bets where edition_id = p_edition and user_id = me;
   if mine + p_stake > e.stake_cap then raise exception 'over_cap'; end if;
@@ -197,11 +207,32 @@ begin
   if cg is null then raise exception 'no_save'; end if;
   select coalesce(sum(stake), 0) into after from public.fronde_bets where user_id = me and placed_at > saved;
   if cg - after < p_stake then raise exception 'not_enough_credits'; end if;
-  insert into public.fronde_bets (edition_id, user_id, racer, stake) values (p_edition, me, p_racer, p_stake) returning id into rid;
+  insert into public.fronde_bets (edition_id, user_id, racer, stake, client_nonce) values (p_edition, me, p_racer, p_stake, p_nonce) returning id into rid;
   return jsonb_build_object('ok', true, 'id', rid, 'racer', p_racer, 'stake', p_stake, 'my_total', mine + p_stake, 'pools', public._fronde_pools(p_edition));
 end $$;
-revoke all on function public.mp_fronde_bet(text, text, int) from public, anon;
-grant execute on function public.mp_fronde_bet(text, text, int) to authenticated;
+revoke all on function public.mp_fronde_bet(text, text, int, uuid) from public, anon;
+grant execute on function public.mp_fronde_bet(text, text, int, uuid) to authenticated;
+
+-- ── mes paris et mes gains récents (90 jours), toutes éditions : le jeu met sa partie en accord avec cette liste
+--    (chaque pari retiré des CG une seule fois, chaque gain ajouté une seule fois) ──
+create or replace function public.mp_fronde_mine()
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare me uuid := auth.uid(); ed text;
+begin
+  if me is null then raise exception 'not_signed_in'; end if;
+  -- règlement paresseux des éditions arrivées où j'ai parié
+  for ed in select distinct b.edition_id from public.fronde_bets b join public.fronde_editions e on e.id = b.edition_id
+             where b.user_id = me and e.status = 'annoncee' loop
+    perform public._fronde_settle(ed);
+  end loop;
+  return jsonb_build_object(
+    'bets', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'edition', edition_id, 'racer', racer, 'stake', stake, 'at', placed_at) order by placed_at)
+                        from public.fronde_bets where user_id = me and placed_at > now() - interval '90 days'), '[]'::jsonb),
+    'payouts', coalesce((select jsonb_agg(jsonb_build_object('edition', edition_id, 'amount', amount, 'kind', kind, 'claimed', claimed_at is not null) order by created_at)
+                           from public.fronde_payouts where user_id = me and created_at > now() - interval '90 days'), '[]'::jsonb));
+end $$;
+revoke all on function public.mp_fronde_mine() from public, anon;
+grant execute on function public.mp_fronde_mine() to authenticated;
 
 -- ── encaisser : une seule fois ; le jeu ajoute amount à ses CG quand claimed_now = true ──
 create or replace function public.mp_fronde_claim(p_edition text)
@@ -231,7 +262,7 @@ returns table (controle text, etat text) language sql security definer set searc
     from unnest(array['public.fronde_editions', 'public.fronde_secrets', 'public.fronde_bets', 'public.fronde_payouts']) t
   union all
   select 'fonctions publiques ouvertes aux joueurs connectés', case when bool_and(has_function_privilege('authenticated', f, 'execute')) then 'ok' else 'ÉCHEC' end
-    from unnest(array['public.mp_fronde_edition(text)', 'public.mp_fronde_bet(text,text,integer)', 'public.mp_fronde_claim(text)']) f
+    from unnest(array['public.mp_fronde_edition(text)', 'public.mp_fronde_bet(text,text,integer,uuid)', 'public.mp_fronde_claim(text)', 'public.mp_fronde_mine()']) f
   union all
   select 'fonctions internes fermées', case when bool_and(not has_function_privilege('authenticated', f, 'execute')) then 'ok' else 'ÉCHEC' end
     from unnest(array['public._fronde_settle(text)', 'public.fronde_cancel(text)', 'public._fronde_pools(text)']) f
