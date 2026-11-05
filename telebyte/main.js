@@ -116,7 +116,13 @@ if (LIVE) {
   $('speed').hidden = true;
   const setFollow = (on) => { following = on; $('play').textContent = on ? '● Direct' : 'Revenir au direct'; $('play').classList.toggle('live', on); };
   $('play').onclick = () => setFollow(true);
-  slider.addEventListener('input', () => { setFollow(false); t = Math.min(t, Math.max(0, liveNow())); });
+  // revoir : le curseur sort du direct ; le ramener au bout y revient ; avant le départ, rien à revoir (curseur inactif)
+  slider.addEventListener('input', () => {
+    const nowR = liveNow();
+    if (nowR <= 0) { slider.value = '0'; t = 0; return; }
+    t = Math.min(+slider.value, nowR);
+    setFollow(t >= nowR - Math.max(120, nowR * 0.01));
+  });
   setFollow(true); t = Math.max(0, Math.min(liveNow(), E.t1));
 }
 // démo hors ligne : un bouton pour essayer les paris (répétition accélérée, faux serveur dans la page)
@@ -197,6 +203,7 @@ function loop(now) {
     const nowR = liveNow();
     if (following) t = Math.max(0, Math.min(E.t1, nowR));
     slider.max = String(Math.max(1, Math.ceil(Math.max(0, Math.min(E.t1, nowR)))));
+    slider.disabled = nowR <= 0;
   } else if (playing) { t = Math.min(E.t1, t + dt * SPEEDS[speedI]); if (t >= E.t1) { playing = false; $('play').textContent = 'Lecture'; } }
   if (feed.sync) feed.sync(t);                                    // flux publié : plans reçus jusqu'à l'instant affiché
   renderStandings(); renderClock();

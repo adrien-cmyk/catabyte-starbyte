@@ -81,7 +81,7 @@ export function mountBets({ feed, LIVE, GAME, rpc, tick, racer }) {
     const house = +Ed.house_pct, cap = +Ed.stake_cap, winner = Ed.result && Ed.result.winner;
     const mine = (snap.my_bets || []).reduce((a, b) => a + b.stake, 0), left = Math.max(0, cap - mine);
     let h = '';
-    if (Ed.test) h += `<p class="bt-test">Course d'essai — visible par toi seul, avec tes vrais CG.</p>`;
+    if (Ed.test) h += `<p class="bt-test">Course d'essai — visible par toi seul, en CG fictifs (10 000) : ta vraie partie n'est pas touchée.</p>`;
     if (openBets) h += `<p class="bt-h">Qui gagnera ? Paris ouverts jusqu'au départ, dans <b id="bt-cd">${dur(-now)}</b>.</p>`;
     else if (before) h += `<p class="bt-h">Les paris ouvrent 3 jours avant le départ, dans <b id="bt-cd">${dur(opensIn)}</b>.</p>`;
     else if (snap.state === 'reglee') h += `<p class="bt-h">Arrivée : <b>${racer[winner] ? racer[winner].name : winner}</b> gagne.</p>`;
@@ -94,15 +94,18 @@ export function mountBets({ feed, LIVE, GAME, rpc, tick, racer }) {
     }).join('') + `</ol>`;
     h += `<p class="bt-pool">Cote = gain pour 1 CG misé si ce racer gagne (« — » : personne n'a encore misé). Cagnotte ${fmt(pools.total)} CG · ${pools.bettors || 0} parieur${(pools.bettors || 0) > 1 ? 's' : ''} · maison ${house} %</p>`;
     if (openBets) {
-      if (!GAME) h += `<p class="bt-note">Ouvre le Télébyte depuis le jeu pour parier avec tes CG.</p>`;
+      // budget : CG de la partie ; en course d'essai, 10 000 CG fictifs moins les mises déjà posées
+      const cg = Ed.test ? Math.max(0, 10000 - mine) : GAME ? GAME.credits() : 0;
+      if (!Ed.test && !GAME) h += `<p class="bt-note">Ouvre le Télébyte depuis le jeu pour parier avec tes CG.</p>`;
+      else if (cg < 1) h += `<p class="bt-note">Ta partie a 0 CG : il en faut pour parier (Comptoir, commerce entre commandants…).</p>`;
+      else if (!left) h += `<p class="bt-note">Tu as atteint le plafond de ${fmt(cap)} CG pour cette course.</p>`;
       else {
-        const cg = GAME.credits();
         h += `<div class="bt-form"><label>Mise <input id="bt-stake" type="number" inputmode="numeric" min="1" step="1" max="${Math.min(left, cg)}" value="${stakeV != null ? stakeV : Math.min(500, left, cg) || ''}"></label>
           <span class="bt-chips">${[100, 500, 1000].map((v) => `<button type="button" data-v="${v}">${fmt(v)}</button>`).join('')}<button type="button" data-v="max">max</button></span>
           <label class="bt-anon"><input id="bt-anon" type="checkbox" ${anon ? 'checked' : ''}><span>Parier anonymement<small>Dans le fil et le classement, tu apparais comme « un commandant ».</small></span></label>
           <button id="bt-go" type="button" ${!pick || sending || !left || !cg ? 'disabled' : ''}>${pick ? 'Parier sur ' + racer[pick].name : 'Choisis un racer'}</button></div>
           <p class="bt-gain" id="bt-gain"></p>
-          <p class="bt-sub">Solde ${fmt(cg)} CG · déjà misé ${fmt(mine)} / ${fmt(cap)} CG</p>`;
+          <p class="bt-sub">Solde ${fmt(cg)} CG${Ed.test ? ' fictifs' : ''} · déjà misé ${fmt(mine)} / ${fmt(cap)} CG</p>`;
       }
     }
     if ((snap.my_bets || []).length) {
@@ -114,7 +117,7 @@ export function mountBets({ feed, LIVE, GAME, rpc, tick, racer }) {
       }).join('') + `</ul>`;
     }
     const pay = snap.my_payout;
-    if (pay) h += `<p class="bt-pay">${pay.kind === 'remboursement' ? 'Remboursé' : 'Gain'} : <b>${fmt(pay.amount)} CG</b> · ${GAME ? (synced || pay.claimed ? 'versé dans ta partie' : 'versement…') : 'à encaisser depuis le jeu'}</p>`;
+    if (pay) h += `<p class="bt-pay">${pay.kind === 'remboursement' ? 'Remboursé' : 'Gain'} : <b>${fmt(pay.amount)} CG</b> · ${Ed.test ? 'fictifs (course d\'essai)' : GAME ? (synced || pay.claimed ? 'versé dans ta partie' : 'versement…') : 'à encaisser depuis le jeu'}</p>`;
     else if (snap.state === 'reglee' && (snap.my_bets || []).length) h += `<p class="bt-pay">Pas de gain cette fois.</p>`;
     if (snap.state === 'reglee' && Ed.seed) h += `<p class="bt-fair">Course vérifiable : graine <code>${Ed.seed.slice(0, 12)}…</code>, empreinte publiée avant les paris <code>${Ed.seed_hash.slice(0, 12)}…</code></p>`;
     if (snap.is_admin && tick) h += `<p class="bt-admin"><button id="bt-test" type="button">Lancer une course d'essai (30 min, visible par toi seul)</button></p>`;
@@ -161,13 +164,14 @@ export function mountBets({ feed, LIVE, GAME, rpc, tick, racer }) {
   async function place() {
     const Ed = LIVE.snap.edition, i = $('bt-stake'), stake = Math.floor(+i.value); stakeV = null;
     if (!pick || !(stake >= 1)) { msg = 'Choisis un racer et une mise.'; return render(); }
-    if (stake > GAME.credits()) { msg = 'Tu n\'as pas autant de CG.'; return render(); }
+    const budget = Ed.test ? 10000 - (LIVE.snap.my_bets || []).reduce((a, b) => a + b.stake, 0) : GAME ? GAME.credits() : 0;
+    if (stake > budget) { msg = 'Tu n\'as pas autant de CG.'; return render(); }
     sending = true; msg = 'Pari en cours…'; render();
     const nonce = crypto.randomUUID ? crypto.randomUUID() : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16));
     try {
       await rpc('mp_fronde_bet', { p_edition: Ed.id, p_racer: pick, p_stake: stake, p_nonce: nonce, p_anonymous: anon });
       msg = `Pari enregistré : ${fmt(stake)} CG sur ${racer[pick].name}${anon ? ' (anonyme)' : ''}.`;
-      try { await GAME.sync(); } catch (e) { console.warn('[fronde] partie', e); }   // la mise quitte les CG de la partie
+      if (!Ed.test && GAME) { try { await GAME.sync(); } catch (e) { console.warn('[fronde] partie', e); } }   // la mise quitte les CG de la partie (pas en essai)
       await feed.refresh();
     } catch (e) {
       msg = (e.message || '').includes('over_cap') ? `Plafond de ${fmt(Ed.stake_cap)} CG par édition atteint.` : errMsg(e, 'Le serveur n\'a pas pris le pari (réseau ?). Réessaie : il ne sera pas compté deux fois.');
