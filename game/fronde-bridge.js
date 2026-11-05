@@ -27,6 +27,7 @@
     try { const a = JSON.parse(localStorage.getItem('starbyte_auth') || 'null'); return a && (a.access_token || (a.currentSession && a.currentSession.access_token)); } catch (e) { return null; }
   }
   async function rpc(fn, args) {
+    if (window.FRONDE_FAKE) return window.FRONDE_FAKE.post('/rest/v1/rpc/' + fn, args || {});   // répétition hors ligne
     const tok = token(); if (!tok) throw new Error('not_signed_in');
     const c = cfg();
     const r = await fetch(c.url + '/rest/v1/rpc/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + tok }, body: JSON.stringify(args || {}) });
@@ -41,7 +42,7 @@
   function sync() {
     if (busy) return busy;
     busy = (async () => {
-      if (!token() || typeof G === 'undefined') return { credits: credits(), delta: 0, offline: true };
+      if ((!token() && !window.FRONDE_FAKE) || typeof G === 'undefined') return { credits: credits(), delta: 0, offline: true };
       const mine = await rpc('mp_fronde_mine');
       const F = state(); let delta = 0;
       for (const b of mine.bets || []) {

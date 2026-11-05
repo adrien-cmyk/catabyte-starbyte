@@ -7,15 +7,22 @@ import { UniverseView } from './UniverseView.js';
 
 // flux : ?feed=live → l'édition du serveur (Phase 3) ; ?feed=mock → publication simulée ; sinon la démo hors ligne.
 // En direct sans connexion (ou sans édition), on retombe sur la démo, avec un bandeau.
-const FEED_Q = new URLSearchParams(location.search).get('feed');
+const FEED_Q = window.FRONDE_FEED || new URLSearchParams(location.search).get('feed') || (location.hash === '#repetition' ? 'demo-live' : null);   // FRONDE_FEED : page qui fixe son mode (répétition en ligne)
 let feed = null, LIVE = null, liveErr = null;
-if (FEED_Q === 'live') {
+// répétition hors ligne (?feed=demo-live) : faux serveur dans la page, fausse partie de 10 000 CG, vraie passerelle du jeu
+if (FEED_Q === 'demo-live') {
+  window.G = window.G || { credits: 10000 }; window.saveGame = window.saveGame || (() => true);
+  const { createFakeServer } = await import('./fake_server.js');
+  window.FRONDE_FAKE = await createFakeServer({ credits: () => Math.floor(window.G.credits || 0), ...(window.FRONDE_DEMO || {}) });   // FRONDE_DEMO : essais (compte à rebours, vitesse)
+  await new Promise((ok, ko) => { const sc = document.createElement('script'); sc.src = new URL('../game/fronde-bridge.js', import.meta.url).href; sc.onload = ok; sc.onerror = ko; document.head.appendChild(sc); });
+}
+if (FEED_Q === 'live' || FEED_Q === 'demo-live') {
   try { const snap = await loadEdition(); if (snap) { feed = liveFeed(snap); LIVE = feed.live; } else liveErr = 'aucune édition'; }
   catch (e) { liveErr = e.message === 'not_signed_in' ? 'connecte-toi dans le jeu' : 'serveur injoignable'; console.warn('[fronde]', e); }
 }
-if (!feed) feed = feedFromUrl(FEED_Q === 'live' ? '' : location.search);
+if (!feed) feed = feedFromUrl(FEED_Q === 'live' || FEED_Q === 'demo-live' ? '' : location.search);
 // le jeu (même origine) ouvre le Télébyte en superposition et expose sa passerelle : CG, mise en accord avec le serveur
-const GAME = (() => { try { return window.parent !== window && window.parent.SBFronde ? window.parent.SBFronde : null; } catch (e) { return null; } })();
+const GAME = window.SBFronde || (() => { try { return window.parent !== window && window.parent.SBFronde ? window.parent.SBFronde : null; } catch (e) { return null; } })();
 const $ = (id) => document.getElementById(id);
 const E = feed.edition;
 const racer = Object.fromEntries(E.racers.map((r) => [r.id, r]));
@@ -99,7 +106,7 @@ slider.oninput = () => { t = +slider.value; renderStandings(true); };
 $('play').onclick = () => { playing = !playing; $('play').textContent = playing ? 'Pause' : 'Lecture'; $('play').setAttribute('aria-pressed', String(!playing)); };
 $('speed').onclick = () => { speedI = (speedI + 1) % SPEEDS.length; $('speed').textContent = '×' + SPEEDS[speedI]; };
 $('speed').textContent = '×' + SPEEDS[speedI];
-const countdown = (s) => { const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return d ? `${d} j ${h} h` : h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min ${String(Math.floor(s % 60)).padStart(2, '0')} s`; };
+const countdown = (s) => { const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return d ? `${d} j ${h} h` : h ? `${h} h ${String(m).padStart(2, '0')}` : `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };   // court : tient dans la pastille
 const startLabel = LIVE ? new Date(LIVE.snap.edition.start_at).toLocaleString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '';
 if (GAME) document.body.classList.add('in-game');                 // ouvert depuis le jeu : place pour son bouton « fermer »
 /* ── en direct : l'horloge est celle du serveur ; le curseur permet de revoir, jamais d'aller au-delà du présent ── */
@@ -112,6 +119,9 @@ if (LIVE) {
   slider.addEventListener('input', () => { setFollow(false); t = Math.min(t, Math.max(0, liveNow())); });
   setFollow(true); t = Math.max(0, Math.min(liveNow(), E.t1));
 }
+// démo hors ligne : un bouton pour essayer les paris (répétition accélérée, faux serveur dans la page)
+if (!FEED_Q) { const a = document.createElement('button'); a.id = 'try-bets'; a.type = 'button'; a.textContent = 'Essayer les paris'; a.onclick = () => { location.hash = 'repetition'; location.reload(); }; document.querySelector('.onair').appendChild(a); }
+if (FEED_Q === 'demo-live') { const a = document.createElement('div'); a.id = 'offline'; a.textContent = 'Répétition · partie fictive · course accélérée'; document.body.appendChild(a); }
 if (liveErr) { const b = document.createElement('div'); b.id = 'offline'; b.textContent = `Hors direct (${liveErr}) : course de démonstration`; document.body.appendChild(b); }
 $('focus-clear').onclick = () => view.overview();
 $('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); dive(s.phase === 'system' || s.phase === 'start' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id); };
@@ -167,7 +177,7 @@ function renderClock() {
   if (LIVE) {
     const nowR = liveNow(), st = LIVE.snap.state;
     $('state').textContent = st === 'reglee' ? 'arrivée' : nowR < 0 ? 'départ dans ' + countdown(-nowR) : following ? 'en direct' : 'revoir · ' + dur(nowR - t) + ' avant';
-    if (nowR < 0) $('next').textContent = 'Départ ' + startLabel;
+    if (nowR < 0) { $('next').textContent = 'Départ ' + startLabel; $('time').textContent = ''; }
   } else $('state').textContent = done ? 'arrivée' : t <= 0 ? 'départ' : 'en direct';
   if (view.sel) {
     const s = feed.stateAt(view.sel, t);

@@ -90,7 +90,8 @@
   body.in-game header { padding-right: calc(max(16px, var(--sar)) + 46px); }
   .onair .pill, .onair .t { white-space: nowrap; }
   #play.live { color: #ff6a6a; border-color: rgba(255, 106, 106, .5); }
-  #offline { position: fixed; left: 50%; top: calc(var(--sat) + 70px); translate: -50% 0; z-index: 30; font-size: 11px; color: var(--dim); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; pointer-events: none; }
+  #offline { position: fixed; left: 50%; top: calc(var(--sat) + 116px); white-space: nowrap; translate: -50% 0; z-index: 30; font-size: 11px; color: var(--dim); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; pointer-events: none; }
+  #try-bets { display: block; margin: 6px 0 0 auto; pointer-events: auto; font: 600 10px var(--f-ui); letter-spacing: .08em; color: #ffd27a; background: var(--panel); border: 1px solid rgba(255, 210, 122, .45); border-radius: 999px; padding: 4px 10px; cursor: pointer; }
   #bets-btn { color: #ffd27a; border-color: rgba(255, 210, 122, .45); }
   #bets { position: fixed; left: max(12px, var(--sal)); right: max(12px, var(--sar)); bottom: calc(var(--sab) + 74px); z-index: 46; max-width: 440px; margin: 0 auto; max-height: 70vh; overflow-y: auto; background: rgba(6, 10, 18, .96); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px 12px; backdrop-filter: blur(8px); }
   #bets[hidden] { display: none; }
@@ -114,6 +115,8 @@
   .bt-chips { display: flex; gap: 4px; } .bt-chips button { font: 11px var(--f-num); color: var(--ink); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; cursor: pointer; }
   #bt-go { flex: 1 1 100%; font: 700 13px var(--f-ui); color: #05080c; background: #ffd27a; border: 0; border-radius: 8px; padding: 10px; cursor: pointer; }
   #bt-go:disabled { background: rgba(255, 210, 122, .3); color: rgba(5, 8, 12, .6); cursor: default; }
+  #bets .bt-gain { color: #7fe08a; font-size: 12px; min-height: 1em; }
+  .bt-mine { list-style: none; margin: 8px 0 4px; padding: 0; font-size: 12px; } .bt-mine li { padding: 2px 0; display: flex; gap: 6px; align-items: center; } .bt-mine li.t { color: var(--dim); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; } .bt-mine i { width: 7px; height: 7px; border-radius: 50%; background: var(--livery); }
   #bets .bt-msg { color: #9fe6ff; } #bets .bt-pay b { color: #7fe08a; } #bets code { font: 10px var(--f-num); }
   @media (max-width: 720px) {
     #board { left: max(12px, var(--sal)); right: max(12px, var(--sar)); top: auto; bottom: calc(var(--sab) + 74px); width: auto; padding: 6px 0 2px; }

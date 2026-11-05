@@ -7,14 +7,20 @@ import { ServerFeed } from './DemoFeed.js';
 
 const DEFAULT = { url: 'https://elupnpdcblztpfywnhjl.supabase.co', key: 'sb_publishable_tXGrQIROzH2DwBrny1GcHQ_iKJKoBOQ' };
 // réglages d'essai : cette page, sinon la page du jeu qui l'a ouverte (même origine)
-const top_ = () => { try { return typeof window !== 'undefined' ? window.top : null; } catch (e) { return null; } };
-const opt = (k) => (typeof window !== 'undefined' && window[k]) || (top_() && top_()[k]) || null;
+// (on remonte les cadres de même origine : Télébyte → jeu ; une page tierce au-dessus est ignorée)
+function opt(k) {
+  if (typeof window === 'undefined') return null;
+  let w = window;
+  for (let i = 0; i < 4 && w; i++) { try { if (w[k]) return w[k]; } catch (e) { return null; } if (w === w.parent) break; w = w.parent; }
+  return null;
+}
 const cfg = () => opt('FRONDE_SB') || DEFAULT;
 export function token() {
   if (opt('FRONDE_TOKEN')) return opt('FRONDE_TOKEN');
   try { const a = JSON.parse(localStorage.getItem('starbyte_auth') || 'null'); return a && (a.access_token || (a.currentSession && a.currentSession.access_token)); } catch (e) { return null; }
 }
 async function post(path, body) {
+  const fake = opt('FRONDE_FAKE'); if (fake) return fake.post(path, body || {});   // répétition hors ligne (?feed=demo-live)
   const tok = token(); if (!tok) throw new Error('not_signed_in');
   const { url, key } = cfg();
   const r = await fetch(url + path, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: key, Authorization: 'Bearer ' + tok }, body: JSON.stringify(body || {}) });
@@ -33,8 +39,8 @@ export class LiveSource {
     const start = Date.parse(snap.edition.start_at);
     this.startMs = start; this.skew = Date.parse(snap.server_now) - Date.now();   // horloge du serveur
   }
-  // instant de course (s) selon l'horloge du serveur
-  now() { return (Date.now() + this.skew - this.startMs) / 1000; }
+  // instant de course (s) selon l'horloge du serveur ; rate > 1 : répétition accélérée (le compte à rebours reste réel)
+  now() { const d = (Date.now() + this.skew - this.startMs) / 1000, k = this.snap.rate || 1; return d < 0 ? d : d * k; }
   reveals(t, have) { return this.snap.reveals.filter((x) => x.t <= t && !have[`${x.racer}|${x.sys}`]); }
 }
 
@@ -58,8 +64,9 @@ export function liveFeed(snap) {
     clearTimeout(timer);
     try { feed.setSnap(await rpc('mp_fronde_edition', { p_id: E.id })); } catch (e) { console.warn('[fronde] lecture', e); }
     const now = src.now(), waiting = Object.values(feed.tracks).some((tr) => tr.cps.some((c) => c.provisional && c.t <= now));
-    timer = setTimeout(feed.refresh, waiting ? 10e3 : 60e3);
+    const fast = (src.snap.rate || 1) > 1;
+    timer = setTimeout(feed.refresh, fast ? 1500 : waiting ? 10e3 : 60e3);
   };
-  timer = setTimeout(feed.refresh, 60e3);
+  timer = setTimeout(feed.refresh, (snap.rate || 1) > 1 ? 1500 : 60e3);
   return feed;
 }
