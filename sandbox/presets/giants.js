@@ -1,0 +1,47 @@
+// Préréglages des géantes gazeuses. Une nouvelle géante = un nouveau jeu de paramètres, jamais une nouvelle sculpture.
+// palette : arrêts de couleur parcourus du pôle sud (0) au pôle nord (1), répétés en bandes par `bands`.
+export const GIANTS = {
+  amber: {
+    name: 'Géante ambre',
+    radius: 7.0e7, tilt: 0.05, spinPeriod: 10.2 * 3600,
+    palette: ['#5b3a24', '#c8925a', '#ecd9b6', '#b4583a', '#f1e3c4', '#a5703f', '#dcc39a', '#8a4a2c'],
+    bands: 15, bandContrast: 0.9, warp: 0.055, turbulence: 0.85, detail: 1.0,
+    jets: 1.0, jetCount: 7,
+    storms: [ // [latitude rad, longitude rad, rayon angulaire rad, force du tourbillon]
+      [-0.38, 0.6, 0.16, 3.2],
+      [0.52, 2.4, 0.05, -2.4],
+      [-0.12, 4.1, 0.035, 2.0],
+    ],
+    stormColor: '#b4402a',
+    nightTint: '#140806',
+    atmo: { rayleigh: [0.85, 0.72, 0.55], mie: [1.0, 0.8, 0.55], density: 0.7, height: 0.008 },
+    aurora: 0, lightning: 0,
+    ring: true,
+  },
+  blue: {
+    name: 'Géante bleue',
+    radius: 6.2e7, tilt: 0.42, spinPeriod: 14.5 * 3600,
+    palette: ['#0b2230', '#174a5c', '#2a7a88', '#103644', '#3f95a0', '#16404f', '#1f6474', '#0c2b3a'],
+    bands: 9, bandContrast: 0.55, warp: 0.03, turbulence: 0.45, detail: 0.7,
+    jets: 0.6, jetCount: 5,
+    storms: [[0.31, 1.2, 0.07, -2.6], [-0.55, 3.6, 0.04, 2.2]],
+    stormColor: '#bfe6ee',
+    nightTint: '#02070c',
+    atmo: { rayleigh: [0.25, 0.6, 1.0], mie: [0.75, 0.9, 1.0], density: 1.2, height: 0.011 },
+    aurora: 1, lightning: 0,
+    ring: true,
+  },
+  black: {
+    name: 'Géante noire',
+    radius: 8.1e7, tilt: 0.21, spinPeriod: 8.7 * 3600,
+    palette: ['#0a0908', '#16130f', '#221c16', '#0e0c0a', '#2b241b', '#110f0c', '#1c1813', '#080706'],
+    bands: 12, bandContrast: 0.7, warp: 0.07, turbulence: 1.0, detail: 1.0,
+    jets: 1.2, jetCount: 6,
+    storms: [[0.2, 5.0, 0.09, 3.0], [-0.45, 2.2, 0.06, -2.8]],
+    stormColor: '#3a2e22',
+    nightTint: '#000000',
+    atmo: { rayleigh: [0.7, 0.6, 0.5], mie: [1.0, 0.72, 0.45], density: 0.7, height: 0.006 },
+    aurora: 0, lightning: 1,
+    ring: true,
+  },
+};
