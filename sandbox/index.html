@@ -20,6 +20,37 @@
   #caption { position: fixed; left: 16px; top: calc(var(--sai) + 52px); font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: #cfe3f2; pointer-events: none; }
   #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .45s ease; }
   #fade.on { opacity: 1; transition: none; }
+  /* vue système de course : étiquettes des racers et panneau */
+  #race-labels { position: fixed; inset: 0; pointer-events: none; }
+  .rl-racer { position: absolute; left: 0; top: 0; display: flex; gap: 6px; align-items: center; translate: -6px -6px; background: none; border: 0; padding: 0; color: var(--fg); font: 600 11px/1.2 -apple-system, system-ui, sans-serif; pointer-events: auto; cursor: pointer; text-align: left; }
+  .rl-racer i { width: 9px; height: 9px; border-radius: 50%; background: var(--livery); box-shadow: 0 0 0 2px rgba(0, 0, 0, .8), 0 0 10px var(--livery); flex: none; }
+  .rl-racer span { padding: 2px 6px; border-radius: 4px; background: rgba(2, 4, 8, .66); }
+  .rl-racer small { display: block; font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .rl-racer.on span { outline: 1px solid var(--livery); }
+  .rl-racer.dim { opacity: .5; }
+  #race { position: fixed; right: 16px; top: calc(var(--sai) + 12px); width: 270px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 8px; }
+  #race .rh-top { display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+  #race .rh-top a { color: #9fd4ec; text-decoration: none; }
+  #race .rh-live { font-size: 9px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); }
+  #race .rh-live::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ff5a4f; margin-right: 5px; }
+  #race b#rh-sys { display: block; margin-top: 8px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
+  #race .rh-time { display: block; font: 600 18px ui-monospace, 'SF Mono', monospace; font-variant-numeric: tabular-nums; margin: 2px 0 6px; }
+  #race ol { list-style: none; margin: 0; padding: 0; }
+  #race li { display: grid; grid-template-columns: 16px 6px 1fr auto; gap: 7px; align-items: center; padding: 5px 0; border-top: 1px solid rgba(150, 200, 240, .08); cursor: pointer; }
+  #race li.on { background: rgba(159, 212, 236, .08); }
+  #race li.away { opacity: .55; }
+  #race li i { width: 6px; height: 18px; border-radius: 2px; background: var(--livery); }
+  #race li .rk { font: 700 12px ui-monospace, monospace; color: var(--dim); }
+  #race li .nm { font-size: 12px; font-weight: 600; min-width: 0; }
+  #race li small { display: block; font-weight: 400; font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #race li .gp { font: 11px ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  #race #rh-wait { margin-top: 8px; font-size: 11px; color: var(--dim); display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+  #race #rh-wait[hidden] { display: none; }
+  #race #rh-wait button { background: transparent; color: #9fd4ec; border: 1px solid var(--line); border-radius: 6px; font: 600 11px -apple-system, system-ui, sans-serif; padding: 3px 7px; cursor: pointer; }
+  #race .rh-clock { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  #race .rh-clock input { flex: 1; min-width: 0; accent-color: #9fd4ec; }
+  #race .rh-clock button { background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; font: 600 11px -apple-system, system-ui, sans-serif; padding: 4px 7px; cursor: pointer; }
+  @media (max-width: 720px) { #race { left: 12px; right: 12px; width: auto; top: auto; bottom: calc(var(--sab) + 110px); } #race li small { display: none; } }
   body.clean #caption,
   body.clean #panel, body.clean #readout, body.clean #title { display: none; }
 </style>
@@ -32,6 +63,8 @@
 <div id="readout">chargement…</div>
 <div id="caption"></div>
 <div id="fade"></div>
+<div id="race-labels" hidden></div>
+<aside id="race" hidden aria-label="Course"></aside>
 <div id="panel">
   <select id="giant" aria-label="Système">
     <option value="kerath">Kerath · géante ambre</option>
@@ -43,6 +76,7 @@
     <option value="system">Vue générale du système</option>
     <option value="trajectory">Fronde gravitationnelle · trajectoire</option>
     <option value="zoom">Zoom continu · système → racer</option>
+    <option value="course">Course · vue système</option>
     <option value="fleet">Les quatre racers · côte à côte</option>
     <option value="fleet-sentinelle">Sentinelle · SR-01</option>
     <option value="fleet-cuirasse">Kerath Lourd · KV-01</option>

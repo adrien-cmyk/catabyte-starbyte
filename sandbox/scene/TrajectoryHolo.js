@@ -30,14 +30,14 @@ void main(){ vSide = aSide; vAhead = (aT - uNow) / uSpan;
 const LINE_FRAG = /* glsl */`
 #include <common>
 #include <logdepthbuf_pars_fragment>
-uniform vec3 uCol, uPast; uniform float uNear; varying float vSide, vAhead; varying vec3 vMV;
+uniform vec3 uCol, uPast; uniform float uNear, uOpacity; varying float vSide, vAhead; varying vec3 vMV;
 void main(){
   #include <logdepthbuf_fragment>
   float edge = 1.0 - smoothstep(0.55, 1.0, abs(vSide));         // trait net, bords adoucis
   float ahead = step(0.0, vAhead);
   float a = ahead * mix(0.85, 0.25, clamp(vAhead, 0.0, 1.0)) + (1.0 - ahead) * 0.22 * exp(vAhead * 3.0);
   vec3 c = mix(uPast, uCol, ahead);
-  a *= smoothstep(0.5 * uNear, uNear, length(vMV));                  // de près, la traînée du racer prend le relais
+  a *= smoothstep(0.5 * uNear, uNear, length(vMV)) * uOpacity;                  // de près, la traînée du racer prend le relais
   gl_FragColor = vec4(c * a * edge, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -82,7 +82,7 @@ export class TrajectoryHolo {
     g.setAttribute('aT', new THREE.BufferAttribute(this.tt, 1));
     this.nxt = new Float32Array(maxPoints * 2 * 3);
     g.setAttribute('aNext', new THREE.BufferAttribute(this.nxt, 3).setUsage(THREE.DynamicDrawUsage));
-    this.u = { uCol: { value: new THREE.Color(color) }, uPast: { value: new THREE.Color(past) }, uNow: { value: 0 }, uSpan: { value: 3600 }, uWarn: { value: new THREE.Color(warn) }, uNear: { value: 3e4 }, uPx: { value: 1.3 }, uRes: { value: new THREE.Vector2(640, 360) } };
+    this.u = { uCol: { value: new THREE.Color(color) }, uPast: { value: new THREE.Color(past) }, uNow: { value: 0 }, uSpan: { value: 3600 }, uWarn: { value: new THREE.Color(warn) }, uNear: { value: 3e4 }, uOpacity: { value: 1 }, uPx: { value: 1.3 }, uRes: { value: new THREE.Vector2(640, 360) } };
     this.line = new THREE.Mesh(g, new THREE.ShaderMaterial({ uniforms: this.u, vertexShader: LINE_VERT, fragmentShader: LINE_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
     this.line.frustumCulled = false; this.line.renderOrder = 4;
     this.marks = new THREE.Points(new THREE.BufferGeometry(), new THREE.ShaderMaterial({ uniforms: this.u, vertexShader: MARK_VERT, fragmentShader: MARK_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));

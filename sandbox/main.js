@@ -1,4 +1,4 @@
-// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 14 du plan technique).
+// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 14 du plan technique, puis Phase 2 : vue système de course).
 // Assemble : renderer à profondeur logarithmique, origine flottante, ciel cuit, étoile, géante gazeuse + anneaux, trois lunes,
 // caméra libre à zoom logarithmique, post-traitement (bloom), panneau de réglages, vues des tests visuels.
 import { SB3D, THREE, qualityLevel } from './lib/sb3d-shim.js';
@@ -15,6 +15,8 @@ import { Moon, PatchPool } from './bodies/Moon.js';
 import { sandboxMoons } from './presets/moons.js';
 import { RACE_SYSTEMS, RACERS, gmOfGiant } from './race/raceData.js';
 import { RACER_PROFILES } from './scene/racerProfiles.js';
+import { DemoFeed } from './race/DemoFeed.js';
+import { RaceLayer } from './race/RaceLayer.js';
 import { AsteroidField } from './bodies/AsteroidField.js';
 import { RingDebris } from './bodies/RingDebris.js';
 import { Racer } from './scene/Racer.js';
@@ -107,7 +109,8 @@ const marker = new RacerMarker(); racer.group.add(marker.points);
 var holo = new TrajectoryHolo();   // var : setGiant (appelé plus haut) le teste avant sa création
 scene.add(holo.group);
 let racerOn = false, fovOv = null, race = null, exag = 0;
-let fleet = null, fleetOn = false;                                // flotte de la course pilote (voir plus bas)
+let fleet = null, fleetOn = false;
+var raceLayer = null;                                             // couche de course (vue système), créée plus bas                                // flotte de la course pilote (voir plus bas)
 const DENSITY = { rocky: 3300, icy: 1900, volcanic: 3500 };
 // astres pour l'intégration : positions exactes au temps t (mêmes formules que Moon.place)
 function raceBodies() {
@@ -264,7 +267,7 @@ function moonViews(defs) {
   }
 }
 moonViews(sandboxMoons(GIANTS.amber.radius));
-const wrapView = (k) => { const f = VIEWS[k]; if (f._w) return; VIEWS[k] = () => { fovOv = null; fleetOn = false; if (!['racer', 'racer-pass', 'trajectory'].includes(k)) { timeScale = 240; racerOn = false; } f(); }; VIEWS[k]._w = true; };
+const wrapView = (k) => { const f = VIEWS[k]; if (f._w) return; VIEWS[k] = () => { fovOv = null; fleetOn = false; if (raceLayer && raceLayer.on) raceLayer.exit(); if (!['racer', 'racer-pass', 'trajectory'].includes(k)) { timeScale = 240; racerOn = false; } f(); }; VIEWS[k]._w = true; };
 for (const k of Object.keys(VIEWS)) wrapView(k);
 VIEWS.giant();
 
@@ -304,6 +307,31 @@ function placeLineup() {
 VIEWS.fleet = () => { const aim = placeLineup(); targets.lineup = { pos: lineup.center, minDist: 100, label: 'La flotte' }; cam.setTarget(targets.lineup, { dist: 3600, ...aim }); };
 for (const r of RACERS) VIEWS['fleet-' + r.id] = () => { const aim = placeLineup(); cam.setTarget(targets['racer:' + r.id], { dist: RACER_PROFILES[r.ship].length * 1.9, ...aim }); };
 for (const k of ['fleet', ...RACERS.map((r) => 'fleet-' + r.id)]) { const f = VIEWS[k]; VIEWS[k] = () => { fovOv = null; timeScale = 1; f(); }; VIEWS[k]._w = true; }
+
+/* ── vue système de course : le flux de course dans le système affiché (Phase 2, étape 5) ── */
+raceLayer = new RaceLayer({
+  scene, frame, feed: new DemoFeed(),
+  giant: () => giant, sys: () => curSys, fleet: () => ensureFleet(),
+  hud: document.getElementById('race'), labels: document.getElementById('race-labels'),
+  setTime: (t) => { simT = t; }, getTime: () => simT, setSpeed: (x) => { timeScale = x; },
+  follow: (id) => { const P = RACER_PROFILES[RACERS.find((r) => r.id === id).ship]; cam.setTarget(targets['racer:' + id], { dur: 2.2, dist: Math.max(P.length * 3, 400) }); },
+  back: () => {
+    try { sessionStorage.setItem('fronde.t', String(simT)); sessionStorage.setItem('fronde.sel', raceLayer.sel || ''); } catch (e) {}
+    let url = '../telebyte/index.html'; try { url = sessionStorage.getItem('fronde.back') || url; } catch (e) {}
+    location.href = url;
+  },
+});
+// vue d'ensemble du système en course ; la sélection d'un racer passe en poursuite
+function courseView(opts = {}) {
+  ensureFleet(); fleetOn = true; racerOn = false; graze = null;
+  raceLayer.enter(opts);
+  raceLayer.position(simT);
+  const s = raceLayer.sel && fleet.find((r) => r.def.id === raceLayer.sel);
+  if (s && s.inSys) raceLayer.c.follow(raceLayer.sel);                     // le racer suivi est ici : poursuite
+  else cam.setTarget(targets.giant, { dist: giant.R * 7, yaw: sunYaw + 0.6, pitch: 0.55 });   // sinon : vue d'ensemble
+}
+VIEWS.course = () => { fovOv = null; courseView(); };
+VIEWS.course._w = true;
 
 /* ── systèmes de la course : bascule (étoile, soleil, reflets, géante, lunes, cibles, vues) ── */
 const STAR_GLOW = { amber: [0.5, 0.3, 0.16], blue: [0.12, 0.3, 0.42], black: [0.08, 0.07, 0.06] };
@@ -348,7 +376,7 @@ function setSystem(id) {
   // champ d'astéroïdes : seulement à Kerath (course pilote)
   field.group.visible = sys.id === 'kerath';
   setGiant(sys.giant);
-  VIEWS.giant();
+  if (raceLayer && raceLayer.on) { raceLayer.rebuild(); courseView({ sel: raceLayer.sel }); } else VIEWS.giant();
 }
 
 /* ── caméra cinématique : bobine en boucle (plans, temps de course, coupes et fondus) ── */
@@ -400,6 +428,7 @@ function step(dt) {
     racer.throttle = Math.abs(simT - race.tp) < 1200 ? 1 : 0.3;                // poussée maximale autour de la périapse (effet Oberth)
   }
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
+  if (raceLayer && raceLayer.on) raceLayer.position(simT);
   cam.update(dt);
   if (director.apply()) frame.cam.set(director.pos); else frame.cam.set(cam.pos);
   { const f = (director.active ? director.fov : fovOv) || baseFov; if (camera.fov !== f) { camera.fov = f; camera.updateProjectionMatrix(); } }
@@ -423,7 +452,7 @@ function step(dt) {
   {
     // lumière renvoyée par la géante : proportionnelle à sa taille apparente et à la part éclairée vue du racer
     // depuis le sujet de la vue (la flotte, sinon le racer témoin) ; garde : jamais à l'intérieur de la géante
-    const sp = fleetOn ? lineup.center : racer.pos;
+    const sp = raceLayer && raceLayer.on ? raceLayer.focusPos() : fleetOn ? lineup.center : racer.pos;
     const gx = giant.pos[0] - sp[0], gy = giant.pos[1] - sp[1], gz = giant.pos[2] - sp[2];
     const d = Math.max(Math.hypot(gx, gy, gz), giant.R * 1.001), solid = Math.min(1, (giant.R / d) ** 2);
     const lit = 0.5 - 0.5 * (gx * SUN_DIR.x + gy * SUN_DIR.y + gz * SUN_DIR.z) / d;      // 1 = on voit sa face de jour
@@ -431,7 +460,9 @@ function step(dt) {
     giantShine.position.set(gx, gy, gz).multiplyScalar(1000 / d);
   }
   racer.update(frame, simT, performance.now() / 1000);
-  if (fleet) for (const rc of fleet) { rc.group.visible = rc.trail.mesh.visible = fleetOn; if (fleetOn) rc.update(frame, simT, performance.now() / 1000); }
+  const raceOn = raceLayer && raceLayer.on;
+  if (fleet) for (const rc of fleet) { const vis = fleetOn && (!raceOn || rc.inSys); rc.group.visible = rc.trail.mesh.visible = vis; if (vis) rc.update(frame, simT, performance.now() / 1000); }
+  if (raceOn) raceLayer.update(simT, camera, pix, [renderer.domElement.width, renderer.domElement.height, renderer.getPixelRatio()]);
   holo.group.visible = racerOn;
   // lisibilité en vue système : balise du racer, lunes agrandies (jamais en vue rapprochée : échelle réelle)
   {
@@ -482,8 +513,18 @@ $('quality').onchange = (e) => lod.set(+e.target.value);
 $('cine').onclick = () => { if (director.active) { director.stop(); cam.enabled = true; $('cine').textContent = 'Cinématique'; } else { cam.enabled = false; director.start(0); $('cine').textContent = 'Caméra libre'; } };
 $('shot').onclick = () => { render(); const a = document.createElement('a'); a.download = `fronde_${giantKey}_${Date.now()}.png`; a.href = renderer.domElement.toDataURL('image/png'); a.click(); };
 
+// entrée depuis Télébyte : …/sandbox/index.html#course (système, instant et racer suivis dans sessionStorage)
+if (location.hash.startsWith('#course')) {
+  let sys = 'kerath', t = null, sel = null;
+  try { sys = sessionStorage.getItem('fronde.sys') || sys; const ts = sessionStorage.getItem('fronde.t'); t = ts ? +ts : null; sel = sessionStorage.getItem('fronde.sel') || null; } catch (e) {}
+  if (sys !== curSys.id) setSystem(sys);
+  $('giant').value = sys;
+  courseView({ t, sel });
+}
+
 // accès de test (tools/fronde/shots.js) : rendu image par image, sans boucle
 window.RW = {
+  course: (o) => courseView(o || {}), advanceRace: (dt) => { simT += dt; }, raceSelect: (id) => raceLayer.select(id),
   setSystem: (id) => setSystem(id), views: Object.keys(VIEWS), setView: (v) => { if (director.active) { director.stop(); cam.enabled = true; } VIEWS[v](); }, setGiant, setTime: (t) => { simT = t; }, setTimeScale: (s) => { timeScale = s; },
   stop: () => renderer.setAnimationLoop(null),
   shots: () => director.reel.map((s) => s.title),

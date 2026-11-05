@@ -15,7 +15,20 @@ let t = 0, speedI = 1, playing = true, last = performance.now();
 const hh = (s) => { s = Math.max(0, s); const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return (d ? `J+${d} ` : '') + `${String(h).padStart(2, '0')} h ${String(m).padStart(2, '0')}`; };
 const dur = (s) => { s = Math.abs(s); if (s < 60) return `${Math.round(s)} s`; const h = Math.floor(s / 3600), m = Math.round(s % 3600 / 60); return h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`; };
 
-const view = new UniverseView($('scene'), $('labels'), feed, { onSelect: (id) => { renderStandings(true); $('focus').hidden = !id; if (id) $('focus-name').textContent = racer[id].name; } });
+// entrer dans un système : la vue système de course (sandbox), au même instant et sur le même racer
+const SYSTEM_PAGE = window.FRONDE_SYSTEM_PAGE || '../sandbox/index.html';
+function enterSystem(sysId) {
+  try {
+    sessionStorage.setItem('fronde.sys', sysId); sessionStorage.setItem('fronde.t', String(t));
+    sessionStorage.setItem('fronde.sel', view.sel || ''); sessionStorage.setItem('fronde.back', location.href.split('#')[0]);
+  } catch (e) {}
+  location.href = SYSTEM_PAGE + '#course';
+}
+// retour depuis la vue système : on reprend l'instant et le racer suivi
+let restore = null;
+try { const ts = sessionStorage.getItem('fronde.t'); if (ts && document.referrer) restore = { t: +ts, sel: sessionStorage.getItem('fronde.sel') || null }; } catch (e) {}
+
+const view = new UniverseView($('scene'), $('labels'), feed, { onEnter: enterSystem, onSelect: (id) => { renderStandings(true); $('focus').hidden = !id; if (id) $('focus-name').textContent = racer[id].name; } });
 addEventListener('resize', () => view.resize());
 
 const slider = $('clock');
@@ -25,6 +38,7 @@ $('play').onclick = () => { playing = !playing; $('play').textContent = playing 
 $('speed').onclick = () => { speedI = (speedI + 1) % SPEEDS.length; $('speed').textContent = '×' + SPEEDS[speedI]; };
 $('speed').textContent = '×' + SPEEDS[speedI];
 $('focus-clear').onclick = () => view.select(view.sel);
+$('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); enterSystem(s.phase === 'system' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id); };
 $('edition').textContent = E.name;
 $('route').textContent = E.systems.map((s) => s.name).join(' → ');
 
@@ -42,7 +56,7 @@ function renderStandings(force = false) {
       const where = s.phase === 'system' ? `${PHASE.system} · ${E.systems.find((x) => x.id === s.system).name}` : s.phase === 'leg' ? `${PHASE.leg} → ${E.systems.find((x) => x.id === s.legTo).name}` : PHASE.done;
       return `<li class="${view.sel === r.id ? 'on' : ''}" data-id="${r.id}" style="--livery:${R.livery}">
         <span class="rk">${r.rank}</span><i></i><span class="nm">${R.name}<small data-where>${where}</small></span>
-        <span class="gp" data-gap>${r.rank === 1 ? 'en tête' : '+' + dur(r.gap)}</span></li>`;
+        <span class="gp" data-gap>${r.rank === 1 ? 'en tête' : r.gap < 1 ? 'à égalité' : '+' + dur(r.gap)}</span></li>`;
     }).join('');
     for (const li of list.children) li.onclick = () => view.select(li.dataset.id);
   }
@@ -60,6 +74,9 @@ function renderClock() {
       : s.phase === 'leg' ? `voyage interstellaire ${Math.round(s.f * 100)} % · carburant ${Math.round(s.fuel * 100)} %` : 'arrivé';
   }
 }
+
+// retour depuis la vue système : instant et racer suivi
+if (restore) { t = Math.min(restore.t, E.t1); if (restore.sel) view.select(restore.sel); }
 
 function loop(now) {
   requestAnimationFrame(loop);

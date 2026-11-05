@@ -42,8 +42,8 @@ function sprite(tex, size, color, opacity) {
 const bez = (a, b, c, t) => { const u = 1 - t; return [0, 1, 2].map((i) => u * u * a[i] + 2 * u * t * b[i] + t * t * c[i]); };
 
 export class UniverseView {
-  constructor(host, overlay, feed, { onSelect = () => {} } = {}) {
-    this.host = host; this.overlay = overlay; this.feed = feed; this.onSelect = onSelect; this.sel = null;
+  constructor(host, overlay, feed, { onSelect = () => {}, onEnter = () => {} } = {}) {
+    this.host = host; this.overlay = overlay; this.feed = feed; this.onSelect = onSelect; this.onEnter = onEnter; this.sel = null;
     GLOW.star = GLOW.star || glowTex('rgba(255,255,255,1)', 'rgba(255,230,200,.35)');
     GLOW.soft = GLOW.soft || glowTex('rgba(255,255,255,.55)', 'rgba(255,255,255,.08)');
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -128,8 +128,10 @@ export class UniverseView {
   _markers() {
     const ov = this.overlay; ov.innerHTML = '';
     this.sysLabels = this.nodes.map((n) => {
-      const el = document.createElement('div'); el.className = 'tb-sys';
-      el.innerHTML = `<b>${n.sys.name}</b><span>${n.sys.address}</span>`; ov.appendChild(el); return el;
+      const el = document.createElement('button'); el.type = 'button'; el.className = 'tb-sys';
+      el.innerHTML = `<b>${n.sys.name}</b><span>${n.sys.address}</span>`; el.setAttribute('aria-label', 'Entrer dans le système ' + n.sys.name);
+      el.onclick = (e) => { e.stopPropagation(); this.onEnter(n.sys.id); };
+      ov.appendChild(el); return el;
     });
     this.racerEls = this.feed.racers.map((r) => {
       const el = document.createElement('button'); el.className = 'tb-racer'; el.type = 'button';

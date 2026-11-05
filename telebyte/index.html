@@ -21,7 +21,9 @@
   #scene { position: fixed; inset: 0; touch-action: none; }
   #scene canvas { display: block; width: 100%; height: 100%; }
   #labels { position: fixed; inset: 0; pointer-events: none; }
-  .tb-sys { position: absolute; left: 0; top: 0; text-align: center; translate: -50% 0; pointer-events: none; }
+  .tb-sys { position: absolute; left: 0; top: 0; text-align: center; translate: -50% 0; pointer-events: auto; background: none; border: 0; color: var(--ink); font: inherit; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+  .tb-sys:hover b, .tb-sys:focus-visible b { color: var(--accent); }
+  .tb-sys:focus-visible { outline: 2px solid var(--accent); }
   .tb-sys b { display: block; font-size: 11px; letter-spacing: .26em; text-transform: uppercase; font-weight: 700; }
   .tb-sys span { font: 10px var(--f-num); color: var(--dim); letter-spacing: .08em; }
   .tb-racer { position: absolute; left: 0; top: 0; translate: -7px -7px; display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; color: var(--ink); font: 600 11px var(--f-ui); pointer-events: auto; cursor: pointer; transition: opacity .3s; }
@@ -53,7 +55,7 @@
   #standings .gp { font: 12px var(--f-num); font-variant-numeric: tabular-nums; color: var(--ink); }
   #focus { margin: 8px 14px 4px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 11px; color: var(--dim); }
   #focus b { color: var(--ink); }
-  #focus button { float: right; background: none; border: 1px solid var(--line); color: var(--dim); border-radius: 6px; font: inherit; padding: 1px 7px; cursor: pointer; }
+  #focus button { float: right; margin-left: 6px; background: none; border: 1px solid var(--line); color: var(--dim); border-radius: 6px; font: inherit; padding: 1px 7px; cursor: pointer; }
 
   footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px max(16px, var(--sar)) calc(var(--sab) + 12px) max(16px, var(--sal)); display: grid; grid-template-columns: auto auto 1fr; gap: 10px; align-items: center; background: linear-gradient(to top, rgba(2, 3, 6, .9), rgba(2, 3, 6, 0)); }
   footer button { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; font: 600 12px var(--f-ui); cursor: pointer; min-width: 64px; }
@@ -86,7 +88,7 @@
 <aside id="board" aria-label="Classement">
   <h2>Classement</h2>
   <ol id="standings"></ol>
-  <div id="focus" hidden><button id="focus-clear" type="button">Tout le parcours</button><b id="focus-name"></b><br><span id="focus-tele"></span></div>
+  <div id="focus" hidden><button id="focus-clear" type="button">Tout le parcours</button><button id="focus-enter" type="button">Vue système</button><b id="focus-name"></b><br><span id="focus-tele"></span></div>
 </aside>
 <footer>
   <button id="play" type="button" aria-pressed="false">Pause</button>

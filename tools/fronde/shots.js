@@ -28,7 +28,12 @@ const views = process.argv.slice(3);
     await p.evaluate((g) => (['kerath', 'vessa', 'nox'].includes(g) ? RW.setSystem(g) : RW.setGiant(g)), g);
     const vs = views.length ? views : await p.evaluate(() => RW.views);
     for (const v of vs) {
-      if (v.startsWith('cine:')) {           // plan de la caméra cinématique : cine:<indice>:<fraction>
+      if (v.startsWith('course')) {         // vue système de course : course[:racer[:heures après l'instant par défaut]]
+        const [, sel, dh] = v.split(':');
+        await p.evaluate(async ([sel, dh]) => { RW.course({ sel: sel || null }); if (dh) RW.advanceRace && RW.advanceRace(+dh * 3600); RW.frames(3); await RW.settle();
+          const t0 = performance.now(); while (!RW.fleetReady() && performance.now() - t0 < 60000) await new Promise((r) => setTimeout(r, 200)); RW.frames(110); }, [sel, dh]);
+        await p.waitForTimeout(300);
+      } else if (v.startsWith('cine:')) {           // plan de la caméra cinématique : cine:<indice>:<fraction>
         const [, i, u] = v.split(':');
         await p.evaluate(async ([i, u]) => { RW.cine(+i, +u); RW.frames(2); await RW.settle(); RW.frames(2); }, [i, u || 0.5]);
         await p.waitForTimeout(700);          // fin du fondu

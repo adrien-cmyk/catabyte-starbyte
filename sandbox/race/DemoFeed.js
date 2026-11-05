@@ -129,6 +129,7 @@ export class DemoFeed {
       const p = [0, 0, 0], v = [0, 0, 0]; sampleAt(s.samples, Math.min(Math.max(t, s.t0), s.t1), p, v);
       const r = Math.hypot(...p), R = s.sys.R;
       st.system = s.sys.id; st.p = p; st.v = v; st.speed = Math.hypot(...v);
+      st.thrust = Math.abs(t - s.tpPlanned) < 600 ? 1 : 0.25;                    // poussée de périapse, sinon croisière
       st.accel = gmOfGiant(R) / (r * r) + (Math.abs(t - s.tpPlanned) < 600 ? racer.dv / 1200 : 0);
       // température : chauffe radiative et frottement de la haute atmosphère près de la géante, plus la poussée
       st.temp = 290 + 1400 * Math.pow(R / r, 6) + (Math.abs(t - s.tpPlanned) < 600 ? 260 : 0);
