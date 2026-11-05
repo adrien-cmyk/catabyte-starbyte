@@ -552,7 +552,15 @@ function step(dt) {
   }
   racer.update(frame, simT, performance.now() / 1000);
   const raceOn = raceLayer && raceLayer.on;
-  if (fleet) for (const rc of fleet) { const vis = fleetOn && (!raceOn || rc.inSys); rc.group.visible = rc.trail.mesh.visible = vis; if (vis) rc.update(frame, simT, performance.now() / 1000); }
+  if (fleet) {
+    const pxPerRad = renderer.domElement.clientHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+    for (const rc of fleet) {
+      const vis = fleetOn && (!raceOn || rc.inSys); rc.group.visible = rc.trail.mesh.visible = vis; if (!vis) continue;
+      const d = Math.hypot(rc.pos[0] - frame.cam[0], rc.pos[1] - frame.cam[1], rc.pos[2] - frame.cam[2]) || 1;
+      rc.setScreenSize(rc.P.length / d * pxPerRad);
+      rc.update(frame, simT, performance.now() / 1000);
+    }
+  }
   // vue Ensemble : le cadrage suit l'écartement du peloton (en douceur : l'utilisateur peut encore zoomer)
   if (raceOn && raceLayer._view === 'overview' && !cam.tr && cam.userAt < packAt) cam.goal.logD += (Math.log(packDist()) - cam.goal.logD) * Math.min(1, dt * 0.8);
   // téléphone : le panneau de course occupe le bas ; on remonte le centre de l'image au milieu de la zone libre
@@ -588,12 +596,23 @@ function render() {
   composer.render();
   frameStats = { calls: renderer.info.render.calls, tris: renderer.info.render.triangles, points: renderer.info.render.points };
 }
+/* ── qualité automatique hors du jeu (Phase 2, étape 9) : dans Starbyte, SBPerf s'en charge ; ailleurs (labo, page
+   Claude), on part du niveau demandé (?q=, défaut Haute) et on descend d'un cran quand l'appareil peine (moins de
+   42 i/s pendant ~2,5 s), on remonte après 15 s d'aisance (57 i/s et plus). Réglages « à chaud » seulement. ── */
+const AUTO_Q = !window.SBPerf && !new URLSearchParams(location.search).has('q');
+const aq = { low: 0, high: 0, lockUntil: 0, floor: Q };
+function autoQuality(f, now) {
+  if (!AUTO_Q || director.active || streaks.busy || now < aq.lockUntil) return;
+  if (f < 42) { aq.low++; aq.high = 0; } else if (f >= 57) { aq.high++; aq.low = 0; } else { aq.low = 0; aq.high = 0; }
+  if (aq.low >= 5 && lod.level < 3) { lod.set(lod.level + 1); aq.low = 0; aq.lockUntil = now + 6000; }
+  else if (aq.high >= 30 && lod.level > aq.floor) { lod.set(lod.level - 1); aq.high = 0; aq.lockUntil = now + 20000; }
+}
 let pollT = 0;
 function loop(now) {
   if (now - pollT > 1000) { pollT = now; lod.poll(); }
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   step(dt); render();
-  fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; hud(); }
+  fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; hud(); autoQuality(fps, now); }
 }
 renderer.setAnimationLoop(loop);
 
@@ -653,6 +672,7 @@ if (EMBED) {
 window.RW = {
   camDiag: (x, y) => ({ tr: !!cam.tr, D: cam.distance, R: giant.R, view: raceLayer._view, chase: cam.chase, busy: streaks.busy, near: x != null ? (({ rc, px }) => ({ id: rc.def.id, px }))(racerNear(x, y) || { rc: { def: {} }, px: -1 }) : null, acc: pinchAcc, dir: director.active }),
   coursePortes: () => VIEWS['course-portes'](), course: (o) => courseView(o || {}), advanceRace: (dt) => { simT += dt; }, raceSelect: (id) => raceLayer.select(id),
+  leader: () => { const f = ensureFleet(), rows = raceLayer.feed.standingsAt(simT); const r = rows.find((x) => f.find((rc) => rc.def.id === x.id && rc.inSys)); return r ? r.id : null; },
   setSystem: (id) => setSystem(id), views: Object.keys(VIEWS), setView: (v) => { if (director.active) { director.stop(); cam.enabled = true; } VIEWS[v](); }, setGiant, setTime: (t) => { simT = t; }, setTimeScale: (s) => { timeScale = s; },
   stop: () => renderer.setAnimationLoop(null),
   shots: () => director.reel.map((s) => s.title),
@@ -669,6 +689,7 @@ window.RW = {
   cineDiag: () => ({ racer: { d: Math.hypot(racer.pos[0] - frame.cam[0], racer.pos[1] - frame.cam[1], racer.pos[2] - frame.cam[2]), model: !!racer.model, gp: racer.group.position.toArray().map((x) => +x.toFixed(1)), v: Math.hypot(...racer.vel) }, title: director.title, t: director.t, simT, tc: race.tc, ring: debris && debris.stats, alt: debris && (() => { const g = giant, c = frame.cam, q = g.group.quaternion.clone().invert(); const v = new THREE.Vector3(c[0] - g.pos[0], c[1] - g.pos[1], c[2] - g.pos[2]).applyQuaternion(q); return { y: v.y, r: Math.hypot(v.x, v.z) / g.R, dens: debris.data.density(v.x, v.y, v.z) }; })() }),
   frames: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) step(dt); render(); },
   fleetReady: () => !!fleet && fleet.every((r) => r.ready),
+  fleetStats: () => fleet && fleet.map((r) => ({ id: r.def.id, ...r.stats, hull: !!(r.model && r.model.visible) })),
   info: () => ({ ...renderer.info.render, race: race && { n: race.S.length, rp: race.rp / giant.R, hit: !!race.hit, alt: (race.rp - giant.R) / 1e3, vmax: Math.max(...race.S.map((x) => Math.hypot(...x.v))) / 1e3, marks: holo.markData.map((m) => m.k + ':' + (m.ring ? (m.ring / giant.R).toFixed(2) : '')).filter((x) => !x.startsWith('0:')) }, q: Q, dist: cam.distance, pending: pool.pending, field: field.stats, ring: debris ? debris.stats : null }),
   // attend que toutes les parcelles de relief demandées soient construites (captures)
   settle: async (maxMs = 60000) => {

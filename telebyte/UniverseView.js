@@ -199,6 +199,11 @@ export class UniverseView {
   }
   // centrer la vue sur un racer (sélection) ou sur tout le parcours
   update(t, dt) {
+    // définition qui s'adapte : sous ~40 i/s durables (nébuleuse plein écran sur un téléphone), on baisse la densité de pixels
+    this._fa = (this._fa || 0) + dt; this._fn = (this._fn || 0) + 1;
+    if (this._fa > 2) { const fps = this._fn / this._fa; this._fa = this._fn = 0;
+      const pr = this.renderer.getPixelRatio();
+      if (fps < 40 && pr > 1) { this.renderer.setPixelRatio(Math.max(1, pr - 0.5)); this.resize(); } }
     this.nebU.uT.value = t / 3600;
     const c = this.camera, aspect = c.aspect;
     // sur grand écran, le classement occupe la droite : on décale le parcours vers la gauche
@@ -230,6 +235,7 @@ export class UniverseView {
       let oy = 0; for (const q of placed) if (Math.abs(q[0] - x) < 90 && Math.abs(q[1] - (y + oy)) < 18) oy += 18;
       placed.push([x, y + oy]);
       el.style.transform = `translate(${x | 0}px, ${(y + oy) | 0}px)`;
+      el.classList.toggle('left', x > W - (el._w || (el._w = el.offsetWidth)) - 8);
       el.classList.toggle('on', this.sel === r.id); el.classList.toggle('dim', !!this.sel && this.sel !== r.id);
       this.racerGlows[i].position.set(p[0], 2, p[2]); this.racerGlows[i].material.opacity = this.sel && this.sel !== r.id ? 0.25 : 0.85;
     });

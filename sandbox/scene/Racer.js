@@ -168,6 +168,8 @@ export class Racer {
         else if (/GLOW/.test(mat.name)) { mat.emissiveIntensity = 1.8; }
         else { mat.envMapIntensity = 0.6; }
       });
+      let meshes = 0, tris = 0; m.traverse((o) => { if (o.isMesh) { meshes++; tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; } });
+      this.stats = { meshes, tris: Math.round(tris) };
       this.group.add(m); this.model = m; this.ready = true;
     };
     // le .glb d'abord (labo, jeu) ; à défaut, la même donnée embarquée en base64 dans un module JS (pages qui ne
@@ -200,6 +202,13 @@ export class Racer {
     if (!this._trail0) this._trail0 = { life: T.life, width: T.width };
     T.life = on ? life : this._trail0.life; T.width = on ? (width || Math.max(this._trail0.width * 2, this.P.length * 0.12)) : this._trail0.width;
     T.mesh.material.uniforms.uGain.value = on ? gain : 0.9; T.reset();
+  }
+  // détail selon la taille à l'écran (px de longueur) : en dessous de quelques pixels, la coque et les panaches ne se
+  // voient plus — le point, l'étiquette et la piste lumineuse portent le racer. Économise appels et triangles.
+  setScreenSize(px) {
+    const hull = px > 2.5, plume = px > 1.2;
+    if (this.model && this.model.visible !== hull) this.model.visible = hull;
+    for (const p of this.plumes) if (p.group.visible !== plume) p.group.visible = plume;
   }
   update(frame, timeS, realT) {
     this.orient();
