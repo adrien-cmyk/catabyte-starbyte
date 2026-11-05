@@ -4,11 +4,11 @@
 // Tout le reste (plans publiés au fil de la course, règlement des paris) se fait en SQL (schema_mp_v41_grande_fronde.sql).
 //   POST {}                    → { created: id | null, edition: id }
 //   POST { action: 'selftest' } → le moteur de cette fonction calcule-t-il les mêmes courses que le jeu ? (5 graines)
-// Fichiers à déployer ensemble : index.ts, edition.js, engine.js (copie générée par tools/fronde/sync_engine.mjs).
+// Fichiers à déployer ensemble : index.ts, edition.ts, engine.ts (copies générées par tools/fronde/sync_engine.mjs).
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { prepareEdition, sha256 } from './edition.js';
-import { runRace, digest, RACE_SYSTEMS, RACERS, PILOT, ENGINE_HASH, ENGINE_REF } from './engine.js';
+import { prepareEdition, sha256 } from './edition.ts';
+import { runRace, digest, RACE_SYSTEMS, RACERS, PILOT, ENGINE_HASH, ENGINE_REF } from './engine.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',

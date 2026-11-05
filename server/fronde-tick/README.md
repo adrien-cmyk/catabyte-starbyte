@@ -9,8 +9,11 @@ Crée l'édition mensuelle suivante quand il n'y en a plus à venir (appelée pa
 | Fichier | Rôle |
 |---|---|
 | `index.ts` | la fonction (session du joueur, écriture en base avec la clé de service, autotest) |
-| `edition.js` | préparation d'une édition : calendrier, graine, parcours, simulation, lignes à écrire |
-| `engine.js` | **copie générée** du moteur de course (`node tools/fronde/sync_engine.mjs`) — ne pas modifier à la main |
+| `edition.ts` | préparation d'une édition : calendrier, graine, parcours, simulation, lignes à écrire (copie générée de `edition.js`) |
+| `engine.ts` | **copie générée** du moteur de course (`node tools/fronde/sync_engine.mjs`) — ne pas modifier à la main |
+
+Ces trois fichiers-là, avec exactement ces noms. (`edition.js` et `engine.js` sont les mêmes contenus, utilisés par les
+essais sous Node ; ils ne se déploient pas.)
 
 ## Déployer
 

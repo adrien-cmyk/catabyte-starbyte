@@ -50,3 +50,11 @@ export const ENGINE_REF = ${JSON.stringify(REF5)};
 mkdirSync(new URL(dirname(out) + '/', root), { recursive: true });
 writeFileSync(new URL(out, root), code);
 console.log('écrit', out, (code.length / 1024).toFixed(1), 'Kio');
+// copies .ts pour le tableau de bord Supabase (il nomme les fichiers en .ts) : engine.ts, edition.ts (imports en .ts)
+if (out.endsWith('/engine.js')) {
+  const dir = out.slice(0, -'engine.js'.length);
+  writeFileSync(new URL(dir + 'engine.ts', root), code);
+  const ed = readFileSync(new URL(dir + 'edition.js', root), 'utf8').replace("from './engine.js'", "from './engine.ts'");
+  writeFileSync(new URL(dir + 'edition.ts', root), '// @ts-nocheck\n// COPIE GÉNÉRÉE de edition.js par tools/fronde/sync_engine.mjs (import en .ts pour Supabase) — ne pas modifier ici.\n' + ed);
+  console.log('écrit', dir + 'engine.ts', dir + 'edition.ts');
+}
