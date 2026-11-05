@@ -175,6 +175,7 @@ export class RaceLayer {
           <span>Carburant</span><i class="tl-bar"><u class="tl-fuel"></u></i>
           <span>Intégrité</span><i class="tl-bar"><u class="tl-int"></u></i>
         </div>
+        <div class="tl-plan"></div>
         <div class="tl-next"></div>`;
     }
     el.style.setProperty('--livery', R.livery);
@@ -187,6 +188,7 @@ export class RaceLayer {
     }
     el.querySelector('.tl-fuel').style.width = Math.round(st.fuel * 100) + '%';
     el.querySelector('.tl-int').style.width = Math.round(st.integrity * 100) + '%';
+    set('.tl-plan', st.phase === 'system' && st.planLabel ? 'Choix du pilote : ' + st.planLabel : '');   // la trajectoire choisie à l'entrée (visible : elle se voit déjà)
     set('.tl-next', st.next ? `Prochain : ${st.next.label} · dans ${dur(st.next.t - t)}` : 'Arrivé');
   }
   _label(rc) {

@@ -42,17 +42,20 @@ export const RACE_SYSTEMS = [
 ];
 
 // profils : rp = périapse visée (rayons de géante), dv = poussée à la périapse (m/s, effet Oberth),
-// warp = facteur de vitesse interstellaire (1 = référence), risk = goût du risque (fenêtres plus rasantes)
+// warp = facteur de vitesse interstellaire (1 = référence), vInf = vitesse d'arrivée de croisière (m/s),
+// risk = caractère du pilote (0 prudent … 1 casse-cou) : il pèse sur le choix de trajectoire à chaque système (DemoFeed.choosePlan)
+// tough = fragilité de la coque (< 1 : encaisse la chauffe et rate moins ses plongées ; > 1 : fragile).
+// Équilibre vérifié sur 40 éditions : chacun gagne (Fulgurant favori ~40 %), écart médian 1er–2e ≈ 16 min.
 export const RACERS = [
-  { id: 'sentinelle', name: 'Sentinelle', ship: 'sr01', livery: '#e8394a', rp: 1.12, dv: 900, warp: 1.00, vInf: 1.20e4 },
-  { id: 'cuirasse', name: 'Kerath Lourd', ship: 'kv01', livery: '#5b86ff', rp: 1.30, dv: 1300, warp: 0.96, vInf: 1.15e4 },
-  { id: 'mule', name: 'La Mule', ship: 'tk07', livery: '#56c878', rp: 1.20, dv: 650, warp: 1.05, vInf: 1.18e4 },
-  { id: 'fulgurant', name: 'Le Fulgurant', ship: 'sport', livery: '#f2c230', rp: 1.06, dv: 1000, warp: 1.02, vInf: 1.25e4 },
+  { id: 'sentinelle', name: 'Sentinelle', ship: 'sr01', livery: '#e8394a', rp: 1.12, dv: 900, warp: 1.00, vInf: 1.20e4, risk: 0.45, tough: 1 },
+  { id: 'cuirasse', name: 'Kerath Lourd', ship: 'kv01', livery: '#5b86ff', rp: 1.30, dv: 1300, warp: 0.96, vInf: 1.15e4, risk: 0.15, tough: 0.6 },
+  { id: 'mule', name: 'La Mule', ship: 'tk07', livery: '#56c878', rp: 1.20, dv: 650, warp: 1.05, vInf: 1.18e4, risk: 0.3, tough: 0.8 },
+  { id: 'fulgurant', name: 'Le Fulgurant', ship: 'sport', livery: '#f2c230', rp: 1.06, dv: 950, warp: 1.0, vInf: 1.2e4, risk: 0.65, tough: 1.25 },
 ];
 
 // format de la course pilote (brief §5) : 72 h simulées, 3 systèmes, étapes interstellaires entre eux
 export const PILOT = {
-  id: 'pilote-1', name: 'Grande Fronde · course pilote', seed: 'fronde-pilote-1',
+  id: 'pilote-1', name: 'Grande Fronde · course pilote', seed: 'fronde-222',   // édition choisie : remontée par une plongée, une surchauffe, arrivée serrée
   legHours: 20.5,                              // durée de référence d'une étape interstellaire
   entryR: 9,                                   // entrée et sortie d'un système à 9 rayons de géante
 };

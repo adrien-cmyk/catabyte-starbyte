@@ -9,8 +9,14 @@
 //   feed.nextEvent(t)                  → { t, racer, label } (prochain point de contrôle, tous racers confondus)
 //
 // Chaque passage dans un système est une vraie fronde gravitationnelle (Velocity Verlet sur la géante et ses lunes,
-// core/Gravity.js), avec une poussée autour de la périapse ; les étapes interstellaires sont fictives (brief §7) :
-// une durée propre à chaque racer. Positions en repère local du système (géante au centre, plan équatorial XZ).
+// core/Gravity.js), avec une poussée autour de la périapse. Les racers ne suivent pas une piste : à l'entrée de
+// chaque système, leur PILOTE choisit sa trajectoire (choosePlan) d'après son caractère, sa place, son retard, son
+// carburant et son état — prudente (large, peu de poussée), classique, ou plongée (arrivée lente sur un grand arc,
+// passage rasant, forte poussée à la périapse : effet Oberth, sortie bien plus rapide). La vitesse de sortie fixe la
+// durée de l'étape interstellaire suivante (fictive, brief §7) : celui qui semblait en retard peut ressortir devant.
+// Le risque se paie : un passage rasant chauffe et abîme la coque, une coque abîmée ralentit les étapes suivantes,
+// une grosse poussée vide le réservoir. Tout est déterministe (graine de l'édition) : le serveur rejouera la même course.
+// Positions en repère local du système (géante au centre, plan équatorial XZ).
 import { propagate, sampleAt, hyperbolicApproach } from '../core/Gravity.js';
 import { RACE_SYSTEMS, RACERS, PILOT, gmOfGiant, sphereGM } from './raceData.js';
 
@@ -36,25 +42,56 @@ function bodiesOf(sys) {
   return { list, GM };
 }
 
-// une fronde : arrivée hyperbolique, périapse placée côté jour (azimut du soleil + 0,9 rad), plan incliné de 4°
-// avec une ligne des nœuds qui fait traverser l'anneau principal à l'aller ; poussée de dv autour de la périapse
-function slingshot(sys, racer, tStart) {
-  const { list, GM } = bodiesOf(sys), R = sys.R, rp = racer.rp * R, r0 = PILOT.entryR * R;
-  const s0 = hyperbolicApproach(GM, racer.vInf, rp, r0, [0, 0, 1], [1, 0, 0]);
+// hasard déterministe : une graine (texte) → générateur dans [0, 1)
+function rngOf(str) {
+  let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const FUEL_PER_DV = 1 / 9000, FUEL_PER_LEG = 0.12;            // part du réservoir par m/s de poussée, par étape
+
+// le pilote choisit sa trajectoire à l'entrée d'un système. ctx : { gap (s de retard sur le premier entré), rank, n,
+// fuel, integrity, last (dernier système : l'arrivée est à la périapse), legsLeft }
+export function choosePlan(racer, sys, ctx, R) {
+  const behind = clamp(ctx.gap / 5400, 0, 1);
+  let ag = racer.risk * 0.7 + behind * 0.55 + (ctx.n > 1 ? (ctx.rank - 1) / (ctx.n - 1) : 0) * 0.15 + (R() - 0.5) * 0.25;
+  if (ctx.integrity < 0.85) ag -= 0.35;                       // coque abîmée : on lève le pied
+  if (ctx.fuel - ctx.legsLeft * FUEL_PER_LEG < 0.25) ag -= 0.4; // réservoir juste : pas de grosse poussée
+  ag = clamp(ag, 0, 1);
+  const kind = !ctx.last && ag > 0.62 ? 'plongée' : ag < 0.3 ? 'prudente' : 'classique';
+  const P = {
+    plongée: { vInfK: 0.68 + R() * 0.08, rp: 1.035 + R() * 0.03, dvK: 1.7, az: 0.45 },
+    classique: { vInfK: 0.95 + R() * 0.1, rp: 1.12 + R() * 0.08, dvK: 1.0, az: 0 },
+    prudente: { vInfK: 0.98 + R() * 0.08, rp: 1.24 + R() * 0.08, dvK: 0.85, az: -0.2 },
+  }[kind];
+  // carburant : on garde de quoi finir (étapes restantes + réserve)
+  const dvMax = Math.max(0, (ctx.fuel - ctx.legsLeft * FUEL_PER_LEG - 0.05) / FUEL_PER_DV);
+  const dv = ctx.last ? Math.min(racer.dv * 0.5, dvMax) : Math.min(racer.dv * P.dvK, dvMax);
+  const inc = (R() < 0.5 ? -1 : 1) * (3 + R() * 9) * Math.PI / 180;   // chacun son plan d'approche
+  return { kind, ag, vInf: racer.vInf * P.vInfK, rp: P.rp + (ctx.last ? -0.03 * ag : 0), dv, azOff: P.az + (R() - 0.5) * 0.6, inc };
+}
+export const PLAN_LABEL = { plongée: 'plongée rasante', classique: 'passage classique', prudente: 'passage prudent' };
+
+// une fronde selon le plan du pilote : arrivée hyperbolique (vitesse à l'infini choisie), périapse côté jour (azimut du
+// soleil + 0,9 rad, décalé selon le plan), plan incliné propre au pilote, ligne des nœuds qui fait traverser l'anneau
+// principal à l'aller ; poussée de dv autour de la périapse
+function slingshot(sys, plan, tStart) {
+  const { list, GM } = bodiesOf(sys), R = sys.R, rp = plan.rp * R, r0 = PILOT.entryR * R;
+  const s0 = hyperbolicApproach(GM, plan.vInf, rp, r0, [0, 0, 1], [1, 0, 0]);
   // orientation : périapse à l'azimut voulu, puis inclinaison autour de la ligne des nœuds
   const single = [{ GM, R, pos: (t, o) => { o[0] = o[1] = o[2] = 0; return o; } }];
   const S1 = propagate(single, { t: 0, p: s0.p, v: s0.v }, 2 * 86400, { dtMax: 300 });
   let ip = 0, rmin = Infinity; S1.forEach((x, i) => { const r = Math.hypot(...x.p); if (r < rmin) { rmin = r; ip = i; } });
   const Pp = norm(S1[ip].p), tpRel = S1[ip].t;
-  const want = sys.sunAz + 0.9, have = Math.atan2(Pp[2], Pp[0]);
+  const want = sys.sunAz + 0.9 + plan.azOff, have = Math.atan2(Pp[2], Pp[0]);
   const spinA = have - want, Y = [0, 1, 0];
   const P2 = rot(Pp, Y, spinA);
   const n = norm([s0.p[1] * s0.v[2] - s0.p[2] * s0.v[1], s0.p[2] * s0.v[0] - s0.p[0] * s0.v[2], s0.p[0] * s0.v[1] - s0.p[1] * s0.v[0]]);
   const node = norm(rot(P2, n, -74 * Math.PI / 180));
-  const tf = (q) => rot(rot(q, Y, spinA), node, 4 * Math.PI / 180);
+  const tf = (q) => rot(rot(q, Y, spinA), node, plan.inc);
   const p0 = tf(s0.p), v0 = tf(s0.v);
   // poussée prograde de dv répartie sur ±600 s autour de la périapse (instant prévu par la conique)
-  const tp = tStart + tpRel, burn = 1200, acc = racer.dv / burn;
+  const tp = tStart + tpRel, burn = 1200, acc = plan.dv / burn;
   const thrust = (t, p, v, out) => {
     const on = Math.abs(t - tp) < burn / 2, l = Math.hypot(v[0], v[1], v[2]) || 1;
     out[0] = on ? acc * v[0] / l : 0; out[1] = on ? acc * v[1] / l : 0; out[2] = on ? acc * v[2] / l : 0;
@@ -81,26 +118,54 @@ function slingshot(sys, racer, tStart) {
   cps.push({ kind: 'periapsis', t: tPer, r: rm / R });
   cps.push({ kind: 'exit', t: samples[samples.length - 1].t });
   cps.sort((a, b) => a.t - b.t);
-  return { samples, cps, tp: tPer, rp: rm, hit: S.hit || null, tpPlanned: tp };
+  // vitesse de sortie « à l'infini » (énergie de la branche sortante) : c'est elle qui lance l'étape suivante
+  const e = samples[samples.length - 1], ve = Math.hypot(...e.v), re = Math.hypot(...e.p);
+  const vOut = Math.sqrt(Math.max(1, ve * ve - 2 * GM / re));
+  return { samples, cps, tp: tPer, rp: rm, hit: S.hit || null, tpPlanned: tp, vOut, plan };
 }
+const V_REF = 1.55e4;                                          // vitesse de sortie de référence (étape de legHours)
 
 export class DemoFeed {
   constructor({ systems = RACE_SYSTEMS, racers = RACERS, pilot = PILOT } = {}) {
     this.systems = systems; this.racers = racers; this.pilot = pilot;
     this.tracks = {};                                   // racerId → [{ kind:'system', sys, ...slingshot } | { kind:'leg', from, to, t0, t1 }]
     const labels = { entry: 'entrée', ring: 'plan des anneaux', periapsis: 'périapse', exit: 'sortie' };
-    for (const r of racers) {
-      let t = 0; const segs = [];
-      systems.forEach((sys, k) => {
-        const sl = slingshot(sys, r, t);
-        segs.push({ kind: 'system', sys, ...sl, t0: sl.samples[0].t, t1: sl.samples[sl.samples.length - 1].t });
-        t = segs[segs.length - 1].t1;
-        if (k < systems.length - 1) {
-          const dur = pilot.legHours * H / r.warp;
-          segs.push({ kind: 'leg', from: sys, to: systems[k + 1], t0: t, t1: t + dur });
-          t += dur;
+    // simulation système par système, tous les racers ensemble : à chaque entrée, les pilotes voient la course
+    const st = Object.fromEntries(racers.map((r) => [r.id, { t: 0, segs: [], fuel: 1, integrity: 1, warpK: 1, events: [{ t: 0, fuel: 1, integrity: 1 }] }]));
+    systems.forEach((sys, k) => {
+      const last = k === systems.length - 1, order = [...racers].sort((a, b) => st[a.id].t - st[b.id].t), t0 = st[order[0].id].t;
+      order.forEach((r, rank) => {
+        const S = st[r.id], R = rngOf(`${pilot.seed}|${r.id}|${sys.id}`);
+        const plan = choosePlan(r, sys, { gap: S.t - t0, rank: rank + 1, n: racers.length, fuel: S.fuel, integrity: S.integrity, last, legsLeft: systems.length - 1 - k }, R);
+        // une plongée peut mal tourner : surchauffe → la poussée est coupée à mi-course, la coque prend cher. Plus le
+        // passage est rasant et la coque déjà abîmée, plus c'est probable (tirage déterministe de l'édition)
+        if (plan.kind === 'plongée') {
+          const pFail = (0.15 + Math.max(0, 1.06 - plan.rp) * 4 + (1 - S.integrity) * 0.6) * (r.tough || 1);
+          if (R() < pFail) { plan.failed = true; plan.dv *= 0.65; }
+        }
+        const sl = slingshot(sys, plan, S.t);
+        const seg = { kind: 'system', sys, ...sl, t0: sl.samples[0].t, t1: sl.samples[sl.samples.length - 1].t };
+        S.segs.push(seg);
+        // coût du passage : carburant de la poussée ; chauffe d'un passage rasant ; traversée de l'anneau
+        S.fuel -= plan.dv * FUEL_PER_DV;
+        const rpR = sl.rp / sys.R, ring = sl.cps.find((c) => c.kind === 'ring');
+        let dmg = Math.max(0, 1.08 - rpR) * 2.6 + (ring && ring.inRing ? 0.03 + 0.04 * plan.ag : 0) + (plan.failed ? 0.07 : 0);
+        dmg *= r.tough || 1;                                    // robustesse de la coque (lourd : encaisse ; sport : fragile)
+        S.integrity = Math.max(0.3, S.integrity - dmg); seg.damage = dmg;
+        S.events.push({ t: sl.tpPlanned, fuel: S.fuel, integrity: S.integrity });
+        S.t = seg.t1;
+        if (!last) {
+          // étape interstellaire : plus on sort vite, plus elle est courte ; une coque abîmée freine
+          S.warpK = 0.8 + 0.2 * S.integrity;
+          const dur = pilot.legHours * H * Math.pow(V_REF / sl.vOut, 0.65) / (r.warp * S.warpK);
+          S.segs.push({ kind: 'leg', from: sys, to: systems[k + 1], t0: S.t, t1: S.t + dur, vOut: sl.vOut });
+          S.fuel -= FUEL_PER_LEG; S.events.push({ t: S.t + dur, fuel: S.fuel, integrity: S.integrity });
+          S.t += dur;
         }
       });
+    });
+    for (const r of racers) {
+      const { segs, events } = st[r.id];
       // l'arrivée est la périapse du dernier système (« une seule trajectoire parfaite »)
       const last = segs[segs.length - 1];
       const cps = [];
@@ -110,7 +175,7 @@ export class DemoFeed {
         cps.push({ ...c, sys: s.sys.id, label: finish ? 'arrivée · ' + s.sys.name : labels[c.kind] + ' · ' + s.sys.name, finish });
         if (finish) break;
       }
-      this.tracks[r.id] = { segs, cps, finish: cps[cps.length - 1].t };
+      this.tracks[r.id] = { segs, cps, finish: cps[cps.length - 1].t, events };
     }
     const t1 = Math.max(...racers.map((r) => this.tracks[r.id].finish));
     this.edition = { id: pilot.id, name: pilot.name, seed: pilot.seed, systems, racers, t0: 0, t1, checkpoints: this.tracks[racers[0].id].cps.map((c) => c.label) };
@@ -121,24 +186,23 @@ export class DemoFeed {
     const done = t >= tr.finish;
     const passed = tr.cps.filter((c) => c.t <= t), next = tr.cps.find((c) => c.t > t) || null;
     const st = { id, phase: done ? 'done' : s.kind, lastCp: passed.length ? passed[passed.length - 1] : null, next, cpCount: passed.length };
-    // carburant : 1 au départ ; chaque poussée de périapse et chaque étape interstellaire en consomment
-    const burns = tr.segs.filter((x) => x.kind === 'system' && x.tp < t).length, legs = tr.segs.filter((x) => x.kind === 'leg');
-    const legUsed = legs.reduce((a, l) => a + Math.min(1, Math.max(0, (t - l.t0) / (l.t1 - l.t0))), 0);
-    st.fuel = Math.max(0, 1 - burns * racer.dv / 9000 - legUsed * 0.12);
+    // carburant et intégrité : états annoncés par le moteur (poussées, chauffe, étapes), le carburant d'étape s'écoule
+    const ev = tr.events; let e = ev[0]; for (const x of ev) if (x.t <= t) e = x;
+    st.fuel = e.fuel; st.integrity = e.integrity;
+    if (s.kind === 'leg') { const f = clamp((t - s.t0) / (s.t1 - s.t0), 0, 1); st.fuel = e.fuel - f * FUEL_PER_LEG; }
+    st.fuel = Math.max(0, st.fuel);
     if (s.kind === 'system') {
       const p = [0, 0, 0], v = [0, 0, 0]; sampleAt(s.samples, Math.min(Math.max(t, s.t0), s.t1), p, v);
       const r = Math.hypot(...p), R = s.sys.R;
       st.system = s.sys.id; st.p = p; st.v = v; st.speed = Math.hypot(...v);
       st.thrust = Math.abs(t - s.tpPlanned) < 600 ? 1 : 0.25;                    // poussée de périapse, sinon croisière
-      st.accel = gmOfGiant(R) / (r * r) + (Math.abs(t - s.tpPlanned) < 600 ? racer.dv / 1200 : 0);
+      st.accel = gmOfGiant(R) / (r * r) + (Math.abs(t - s.tpPlanned) < 600 ? s.plan.dv / 1200 : 0);
+      st.plan = s.plan.kind; st.planLabel = PLAN_LABEL[s.plan.kind] + (s.plan.failed && t > s.tpPlanned - 600 ? ' · surchauffe, poussée coupée' : '');
       // température : chauffe radiative et frottement de la haute atmosphère près de la géante, plus la poussée
       st.temp = 290 + 1400 * Math.pow(R / r, 6) + (Math.abs(t - s.tpPlanned) < 600 ? 260 : 0);
-      // intégrité : chaque traversée d'anneau déjà faite coûte selon le risque pris (déterministe)
-      st.integrity = 1 - tr.cps.filter((c) => c.inRing && c.t <= t).length * 0.04 * (1.5 - racer.rp);
     } else {
       const f = Math.min(1, Math.max(0, (t - s.t0) / (s.t1 - s.t0)));
       st.legFrom = s.from.id; st.legTo = s.to.id; st.f = f; st.speed = null; st.accel = 0; st.temp = 260;
-      st.integrity = 1 - tr.cps.filter((c) => c.inRing && c.t <= t).length * 0.04 * (1.5 - racer.rp);
     }
     return st;
   }

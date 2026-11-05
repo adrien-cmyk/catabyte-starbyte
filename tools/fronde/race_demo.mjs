@@ -3,12 +3,15 @@
 import { DemoFeed } from '../../sandbox/race/DemoFeed.js';
 const t0 = performance.now();
 const feed = new DemoFeed();
-const hh = (s) => { const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60); return `${h} h ${String(m).padStart(2, '0')}`; };
+const hh = (s) => { const m0 = Math.round(s / 60), h = Math.floor(m0 / 60), m = m0 % 60; return `${h} h ${String(m).padStart(2, '0')}`; };
 console.log(`construite en ${(performance.now() - t0).toFixed(0)} ms — durée ${hh(feed.edition.t1)}`);
 for (const r of feed.racers) {
   const tr = feed.tracks[r.id];
-  const sys = tr.segs.filter((s) => s.kind === 'system').map((s) => `${s.sys.name} rp ${(s.rp / s.sys.R).toFixed(3)} R${s.hit ? ' IMPACT' : ''}`);
-  console.log(`· ${r.name.padEnd(13)} arrivée ${hh(tr.finish)} | ${tr.cps.length} pts de contrôle | ${sys.join(' · ')}`);
+  console.log(`· ${r.name.padEnd(13)} arrivée ${hh(tr.finish)} | ${tr.cps.length} pts de contrôle`);
+  for (const s of tr.segs) {
+    if (s.kind === 'system') console.log(`    ${s.sys.name.padEnd(7)} ${s.plan.kind.padEnd(10)} agressivité ${s.plan.ag.toFixed(2)} | arrivée ${(s.plan.vInf / 1e3).toFixed(1)} km/s · périapse ${(s.rp / s.sys.R).toFixed(3)} R à ${hh(s.tp)} · poussée ${s.plan.dv.toFixed(0)} m/s · sortie ${(s.vOut / 1e3).toFixed(1)} km/s · dégâts ${(s.damage * 100).toFixed(0)} %${s.hit ? ' IMPACT' : ''}`);
+    else console.log(`    étape ${s.from.name}→${s.to.name} ${hh(s.t1 - s.t0)}`);
+  }
 }
 console.log('\npoints de contrôle :', feed.tracks.sentinelle.cps.map((c) => c.label).join(' → '));
 for (const t of [3 * 3600, 6 * 3600, 20 * 3600, 36 * 3600, 50 * 3600, 60 * 3600, feed.edition.t1 + 60]) {
