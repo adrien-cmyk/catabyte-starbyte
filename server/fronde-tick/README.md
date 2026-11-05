@@ -23,15 +23,17 @@ Prérequis : `schema_mp_v41_grande_fronde.sql` exécuté (vérification : `selec
 
 ## Vérifier après déploiement
 
-Dans la console du navigateur, sur le jeu (joueur connecté) :
+Dans la console du navigateur, sur play.starbyte.online (joueur connecté) — même appel que le Blackmarket :
 
 ```js
-await sb.functions.invoke('fronde-tick', { body: { action: 'selftest' } })
+const a = JSON.parse(localStorage.getItem('starbyte_auth')), tok = a.access_token || a.currentSession.access_token;
+await (await fetch('https://elupnpdcblztpfywnhjl.supabase.co/functions/v1/fronde-tick', { method: 'POST',
+  headers: { 'Content-Type': 'application/json', apikey: 'sb_publishable_tXGrQIROzH2DwBrny1GcHQ_iKJKoBOQ', Authorization: 'Bearer ' + tok },
+  body: JSON.stringify({ action: 'selftest' }) })).json()
 // → { ok: true, engine: '…', results: { 'fronde-222': true, … }, ms: … }
 ```
 
-`ok: true` : le serveur calcule exactement les mêmes courses que le jeu (5 courses de référence). Le nom `sb` est celui
-du client Supabase du jeu ; adapter s'il diffère.
+`ok: true` : le serveur calcule exactement les mêmes courses que le jeu (5 courses de référence).
 
 **Ne pas appeler sans `action`** avant que le jeu sache afficher la course : cet appel crée l'édition du mois suivant
 (départ le premier samedi à 20 h, heure de Zurich), et les paris seraient ouverts. Une édition créée par erreur se retire
