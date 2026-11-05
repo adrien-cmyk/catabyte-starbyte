@@ -21,6 +21,12 @@
   #scene { position: fixed; inset: 0; touch-action: none; }
   /* vue système intégrée (zoom continu) : préchargée, invisible, au-dessus de tout une fois entrée */
   #sysframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #000; opacity: 0; pointer-events: none; z-index: 40; }
+  /* mini barre de progression de l'entrée dans un système (animée par le compositeur : elle bouge même si le calcul occupe le fil principal) */
+  #load { position: fixed; left: 50%; top: 58%; translate: -50% 0; z-index: 60; display: grid; gap: 7px; justify-items: center; pointer-events: none; transition: opacity .25s; }
+  #load[hidden] { display: none; } #load.out { opacity: 0; }
+  #load span { font: 600 11px var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: #eaf6ff; text-shadow: 0 0 8px rgba(0, 20, 40, .9); }
+  #load i { display: block; width: 168px; height: 3px; border-radius: 2px; background: rgba(4, 12, 24, .55); overflow: hidden; box-shadow: 0 0 0 1px rgba(160, 210, 255, .25); }
+  #load b { display: block; height: 100%; width: 100%; background: #9fe6ff; transform-origin: 0 50%; transform: scaleX(0); box-shadow: 0 0 8px #9fe6ff; }
   #sysframe.on { opacity: 1; pointer-events: auto; }
   #scene canvas { display: block; width: 100%; height: 100%; }
   #labels { position: fixed; inset: 0; pointer-events: none; }
@@ -105,6 +111,7 @@
   <ol id="standings"></ol>
   <div id="focus" hidden><button id="focus-clear" type="button">Tout le parcours</button><button id="focus-enter" type="button">Vue système</button><b id="focus-name"></b><br><span id="focus-tele"></span></div>
 </aside>
+<div id="load" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Entrée dans le système"><span id="load-t">Entrée dans le système…</span><i><b id="load-b"></b></i></div>
 <footer>
   <button id="play" type="button" aria-pressed="false">Pause</button>
   <button id="speed" type="button" aria-label="Vitesse de lecture">×600</button>

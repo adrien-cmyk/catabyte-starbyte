@@ -44,7 +44,8 @@ setTimeout(loadFrame, 800);                                          // après l
 addEventListener('message', (e) => {
   const m = e.data; if (!sysFrame || e.source !== sysFrame.contentWindow || !m || !m.fronde) return;
   if (m.type === 'loaded') { frameOk = true; if (pending) { const p = pending; pending = null; p(); } }
-  else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); inSystem = true; sysFrame.classList.add('on'); streaks.play('in', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 0.9 }); }
+  else if (m.type === 'progress') { loadSet(m.p); clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(curSysId); }, 7000); }   // chaque étape relance la garde
+  else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); loadHide(); inSystem = true; sysFrame.classList.add('on'); streaks.play('in', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 0.9 }); }
   else if (m.type === 'surface') {
     t = Math.min(E.t1, m.t); if (m.sel !== view.sel) { view.sel = m.sel || null; view.onSelect(view.sel); }
     inSystem = false; sysFrame.classList.remove('on'); view.surfaceFrom(m.sys || curSysId); renderStandings(true);
@@ -53,17 +54,31 @@ addEventListener('message', (e) => {
 });
 // repli : changement de page classique (le cadre n'a pas répondu)
 function fallbackEnter(sysId) {
-  pending = null; clearTimeout(watch); view.diving = null; inSystem = false;
+  pending = null; clearTimeout(watch); view.diving = null; inSystem = false; loadSet(0.95, false);
   if (sysFrame) sysFrame.classList.remove('on');
   streaks.handoff('in'); enterSystem(sysId);
 }
 let watch = 0;
+/* mini barre : avance seule (vers 90 %, en ralentissant), et saute aux étapes annoncées par la vue système */
+const loadEl = $('load'), loadBar = $('load-b'); let loadP = 0;
+function loadSet(p, creep = true) {
+  loadP = Math.max(loadP, p); loadEl.setAttribute('aria-valuenow', String(Math.round(loadP * 100)));
+  loadBar.style.transition = 'transform .25s ease-out'; loadBar.style.transform = `scaleX(${loadP})`;
+  if (creep && loadP < 0.9) setTimeout(() => { if (!loadEl.hidden && loadP < 0.9) { loadBar.style.transition = 'transform 5s cubic-bezier(.15,.6,.3,1)'; loadBar.style.transform = `scaleX(${Math.max(loadP, 0.9)})`; } }, 260);
+}
+function loadShow(sysId) {
+  const sys = E.systems.find((x) => x.id === sysId); $('load-t').textContent = `Entrée dans ${sys ? sys.name : 'le système'}…`;
+  loadP = 0; loadBar.style.transition = 'none'; loadBar.style.transform = 'scaleX(0)'; loadEl.classList.remove('out'); loadEl.hidden = false;
+  void loadBar.offsetWidth; loadSet(0.06);
+}
+function loadHide() { if (loadEl.hidden) return; loadSet(1, false); loadEl.classList.add('out'); setTimeout(() => { loadEl.hidden = true; }, 300); }
 const dive = (sysId, x, y) => {
   if (streaks.busy || inSystem) return;
   view.diveTo(sysId); curSysId = sysId;
   streaks.play('in', x, y, { hold: true, onMid: () => {
     // au sommet de l'éclair : le cadre devient visible (sous l'éclair) — iOS ralentit les cadres invisibles
     const go = () => { sysFrame.classList.add('on'); sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null }, '*'); };
+    loadShow(sysId);
     clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(sysId); }, 7000);   // jamais bloqué sur l'éclair
     if (frameOk) return go();
     loadFrame(); pending = go;

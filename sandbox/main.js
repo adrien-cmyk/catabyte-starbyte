@@ -658,12 +658,23 @@ if (EMBED) {
   addEventListener('message', (e) => {
     const m = e.data; if (!m || !m.fronde || e.source !== parent) return;
     if (m.type === 'enter') {
-      if (m.sys !== curSys.id) { setSystem(m.sys); $('giant').value = m.sys; }
-      courseView({ t: m.t, sel: m.sel || null });
-      if (cam.tr) cam.tr.logFrom += Math.log(80); else cam.logD += Math.log(80);   // on arrive de très haut
-      last = performance.now(); renderer.setAnimationLoop(loop);
-      step(1 / 60); render();                                           // une image tout de suite (sans attendre l'horloge d'affichage)
-      setTimeout(() => parent.postMessage({ fronde: 1, type: 'ready' }, '*'), 60);
+      // l'entrée par étapes, avec une pause entre chacune : le Télébyte peut redessiner sa barre de progression
+      const post = (x) => parent.postMessage({ fronde: 1, ...x }, '*'), next = (f) => setTimeout(f, 16);
+      post({ type: 'progress', p: 0.15 });
+      next(() => {
+        if (m.sys !== curSys.id) { setSystem(m.sys); $('giant').value = m.sys; }
+        post({ type: 'progress', p: 0.5 });
+        next(() => {
+          courseView({ t: m.t, sel: m.sel || null });
+          if (cam.tr) cam.tr.logFrom += Math.log(80); else cam.logD += Math.log(80);   // on arrive de très haut
+          post({ type: 'progress', p: 0.72 });
+          next(() => {
+            step(1 / 60); render();                                     // une image tout de suite (shaders, textures)
+            post({ type: 'progress', p: 0.92 });
+            next(() => { last = performance.now(); renderer.setAnimationLoop(loop); post({ type: 'ready' }); });
+          });
+        });
+      });
     } else if (m.type === 'pause') renderer.setAnimationLoop(null);
   });
   parent.postMessage({ fronde: 1, type: 'loaded' }, '*');
