@@ -2,10 +2,20 @@
 // Phase 2, étape 4 : vue univers (parcours, racers, classement en direct, horloge de course et curseur).
 // Le flux de course est ici le flux de démonstration ; en Phase 3, le flux serveur aura la même interface.
 import { feedFromUrl } from '../sandbox/race/DemoFeed.js';
+import { loadEdition, liveFeed, rpc } from '../sandbox/race/live.js';
 import { UniverseView } from './UniverseView.js';
 
-const feed = feedFromUrl();                                        // ?feed=mock : course publiée au fil de l'eau (essai hors ligne)
+// flux : ?feed=live → l'édition du serveur (Phase 3) ; ?feed=mock → publication simulée ; sinon la démo hors ligne.
+// En direct sans connexion (ou sans édition), on retombe sur la démo, avec un bandeau.
 const FEED_Q = new URLSearchParams(location.search).get('feed');
+let feed = null, LIVE = null, liveErr = null;
+if (FEED_Q === 'live') {
+  try { const snap = await loadEdition(); if (snap) { feed = liveFeed(snap); LIVE = feed.live; } else liveErr = 'aucune édition'; }
+  catch (e) { liveErr = e.message === 'not_signed_in' ? 'connecte-toi dans le jeu' : 'serveur injoignable'; console.warn('[fronde]', e); }
+}
+if (!feed) feed = feedFromUrl(FEED_Q === 'live' ? '' : location.search);
+// le jeu (même origine) ouvre le Télébyte en superposition et expose sa passerelle : CG, mise en accord avec le serveur
+const GAME = (() => { try { return window.parent !== window && window.parent.SBFronde ? window.parent.SBFronde : null; } catch (e) { return null; } })();
 const $ = (id) => document.getElementById(id);
 const E = feed.edition;
 const racer = Object.fromEntries(E.racers.map((r) => [r.id, r]));
@@ -23,7 +33,7 @@ function enterSystem(sysId) {
     sessionStorage.setItem('fronde.sys', sysId); sessionStorage.setItem('fronde.t', String(t));
     sessionStorage.setItem('fronde.sel', view.sel || ''); sessionStorage.setItem('fronde.back', location.href.split('#')[0]);
   } catch (e) {}
-  location.href = SYSTEM_PAGE + (FEED_Q ? '?feed=' + FEED_Q : '') + '#course';
+  location.href = SYSTEM_PAGE + (FEED_Q && (FEED_Q !== 'live' || LIVE) ? '?feed=' + FEED_Q : '') + '#course';
 }
 // retour depuis la vue système : on reprend l'instant et le racer suivi
 let restore = null;
@@ -36,7 +46,7 @@ let sysFrame = null, frameOk = false, inSystem = false, curSysId = null, pending
 function loadFrame() {
   if (sysFrame) return;
   sysFrame = document.createElement('iframe'); sysFrame.id = 'sysframe'; sysFrame.title = 'Vue système';
-  sysFrame.src = SYSTEM_PAGE + (SYSTEM_PAGE.includes('?') ? '&' : '?') + 'embed' + (FEED_Q ? '&feed=' + FEED_Q : '');
+  sysFrame.src = SYSTEM_PAGE + (SYSTEM_PAGE.includes('?') ? '&' : '?') + 'embed' + (FEED_Q && (FEED_Q !== 'live' || LIVE) ? '&feed=' + FEED_Q : '');
   document.body.appendChild(sysFrame);
 }
 setTimeout(loadFrame, 800);                                          // après le premier affichage du Télébyte
@@ -75,7 +85,7 @@ function loadHide() { if (loadEl.hidden) return; loadSet(1, false); loadEl.class
 const dive = (sysId) => {
   if (inSystem || !loadEl.hidden) return;
   curSysId = sysId; loadShow(sysId);
-  const go = () => { sysFrame.classList.add('on'); sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null }, '*'); };
+  const go = () => { sysFrame.classList.add('on'); sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null, snap: LIVE ? LIVE.snap : null }, '*'); };
   clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(sysId); }, 7000);   // jamais bloqué
   if (frameOk) return go();
   loadFrame(); pending = go;
@@ -89,6 +99,20 @@ slider.oninput = () => { t = +slider.value; renderStandings(true); };
 $('play').onclick = () => { playing = !playing; $('play').textContent = playing ? 'Pause' : 'Lecture'; $('play').setAttribute('aria-pressed', String(!playing)); };
 $('speed').onclick = () => { speedI = (speedI + 1) % SPEEDS.length; $('speed').textContent = '×' + SPEEDS[speedI]; };
 $('speed').textContent = '×' + SPEEDS[speedI];
+const countdown = (s) => { const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return d ? `${d} j ${h} h` : h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min ${String(Math.floor(s % 60)).padStart(2, '0')} s`; };
+const startLabel = LIVE ? new Date(LIVE.snap.edition.start_at).toLocaleString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '';
+if (GAME) document.body.classList.add('in-game');                 // ouvert depuis le jeu : place pour son bouton « fermer »
+/* ── en direct : l'horloge est celle du serveur ; le curseur permet de revoir, jamais d'aller au-delà du présent ── */
+let following = true;
+const liveNow = () => LIVE ? LIVE.source.now() : 0;
+if (LIVE) {
+  $('speed').hidden = true;
+  const setFollow = (on) => { following = on; $('play').textContent = on ? '● Direct' : 'Revenir au direct'; $('play').classList.toggle('live', on); };
+  $('play').onclick = () => setFollow(true);
+  slider.addEventListener('input', () => { setFollow(false); t = Math.min(t, Math.max(0, liveNow())); });
+  setFollow(true); t = Math.max(0, Math.min(liveNow(), E.t1));
+}
+if (liveErr) { const b = document.createElement('div'); b.id = 'offline'; b.textContent = `Hors direct (${liveErr}) : course de démonstration`; document.body.appendChild(b); }
 $('focus-clear').onclick = () => view.overview();
 $('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); dive(s.phase === 'system' || s.phase === 'start' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id); };
 $('edition').textContent = E.name;
@@ -140,7 +164,11 @@ function renderClock() {
   const ev = feed.nextEvent(t);
   $('next').textContent = ev ? `${ev.label} · ${racer[ev.racer].name} dans ${dur(ev.t - t)}` : 'course terminée';
   const done = t >= E.t1;
-  $('state').textContent = done ? 'arrivée' : t <= 0 ? 'départ' : 'en direct';
+  if (LIVE) {
+    const nowR = liveNow(), st = LIVE.snap.state;
+    $('state').textContent = st === 'reglee' ? 'arrivée' : nowR < 0 ? 'départ dans ' + countdown(-nowR) : following ? 'en direct' : 'revoir · ' + dur(nowR - t) + ' avant';
+    if (nowR < 0) $('next').textContent = 'Départ ' + startLabel;
+  } else $('state').textContent = done ? 'arrivée' : t <= 0 ? 'départ' : 'en direct';
   if (view.sel) {
     const s = feed.stateAt(view.sel, t);
     $('focus-tele').textContent = s.phase === 'system' ? `${(s.speed / 1e3).toFixed(1)} km/s · carburant ${Math.round(s.fuel * 100)} % · intégrité ${Math.round(s.integrity * 100)} %`
@@ -155,7 +183,11 @@ function loop(now) {
   requestAnimationFrame(loop);
   if (inSystem) { last = now; return; }                           // la vue système intégrée vit seule (et tient l'horloge)
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
-  if (playing) { t = Math.min(E.t1, t + dt * SPEEDS[speedI]); if (t >= E.t1) { playing = false; $('play').textContent = 'Lecture'; } }
+  if (LIVE) {
+    const nowR = liveNow();
+    if (following) t = Math.max(0, Math.min(E.t1, nowR));
+    slider.max = String(Math.max(1, Math.ceil(Math.max(0, Math.min(E.t1, nowR)))));
+  } else if (playing) { t = Math.min(E.t1, t + dt * SPEEDS[speedI]); if (t >= E.t1) { playing = false; $('play').textContent = 'Lecture'; } }
   if (feed.sync) feed.sync(t);                                    // flux publié : plans reçus jusqu'à l'instant affiché
   renderStandings(); renderClock();
   view.update(t, dt);
@@ -163,4 +195,8 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // accès de test (captures)
-window.TB = { view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
+import('./bets.js').then((m) => m.mountBets({ feed, LIVE, GAME, rpc, racer, E })).catch((e) => console.warn('[fronde] paris', e));
+// la vue système suit les nouveaux instantanés pendant qu'on y est
+if (LIVE) feed.onSnap((snap) => { if (sysFrame && frameOk) sysFrame.contentWindow.postMessage({ fronde: 1, type: 'snap', snap }, '*'); });
+
+window.TB = { live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jeu factice (essai Grande Fronde)</title>
+<style>body{margin:0;background:#0b1018;color:#cfe;font:14px system-ui;padding:16px} button{font:inherit;padding:8px 14px}</style></head>
+<body>
+<!-- Imitation minimale du jeu pour essayer la passerelle et le Télébyte en superposition (tools/fronde/ui_live_test.js) -->
+<p>Jeu factice — <b id="cg">…</b> CG</p>
+<button id="tv" type="button">Télébyte</button>
+<script>
+  window.G = { credits: 10000 };
+  window.EXTRA_SAVE_KEYS = ['explore'];
+  window.saves = 0;
+  window.saveGame = () => { window.saves++; document.getElementById('cg').textContent = Math.floor(G.credits); return true; };
+  const q = new URLSearchParams(location.search);
+  window.FRONDE_SB = { url: q.get('sb') || 'http://localhost:8767', key: 'essai' };
+  window.FRONDE_TOKEN = q.get('user') || '00000000-0000-0000-0000-0000000000a1';
+  window.FRONDE_PAGE = '../../telebyte/index.html?feed=live';
+  document.getElementById('cg').textContent = G.credits;
+</script>
+<script src="../../game/fronde-bridge.js"></script>
+<script>document.getElementById('tv').onclick = () => SBFronde.open();</script>
+</body></html>

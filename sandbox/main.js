@@ -16,6 +16,7 @@ import { sandboxMoons } from './presets/moons.js';
 import { RACE_SYSTEMS, RACERS, gmOfGiant } from './race/raceData.js';
 import { RACER_PROFILES } from './scene/racerProfiles.js';
 import { feedFromUrl } from './race/DemoFeed.js';
+import { liveFeed, loadEdition } from './race/live.js';
 import { RaceLayer } from './race/RaceLayer.js';
 import { SpeedLines } from './scene/SpeedLines.js';
 import { AsteroidField } from './bodies/AsteroidField.js';
@@ -476,7 +477,10 @@ function step(dt) {
     racer.throttle = Math.abs(simT - race.tp) < 1200 ? 1 : 0.3;                // poussée maximale autour de la périapse (effet Oberth)
   }
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
-  if (raceLayer && raceLayer.on) { if (raceLayer.feed.sync) raceLayer.feed.sync(simT); raceLayer.position(simT); }   // flux publié : on récupère les plans jusqu'à l'instant affiché
+  if (raceLayer && raceLayer.on) {
+    if (raceLayer.feed.live) simT = Math.min(simT, raceLayer.feed.live.source.now());   // en direct : jamais au-delà du présent
+    if (raceLayer.feed.sync) raceLayer.feed.sync(simT); raceLayer.position(simT);
+  }   // flux publié : on récupère les plans jusqu'à l'instant affiché
   // en course, pas de recul au-delà du système (les tracés y commencent et finissent : on ne doit pas voir leurs bouts)
   { const raceOn0 = raceLayer && raceLayer.on, m = raceOn0 ? Math.max(giant.R * 7, packDist() * 1.3) : 3e12;
     cam.maxDist = m; if (cam.goal.logD > Math.log(m)) cam.goal.logD = Math.log(m); }
@@ -606,9 +610,17 @@ if (location.hash.startsWith('#course')) {
   try { sys = sessionStorage.getItem('fronde.sys') || sys; const ts = sessionStorage.getItem('fronde.t'); t = ts ? +ts : null; sel = sessionStorage.getItem('fronde.sel') || null; } catch (e) {}
   if (sys !== curSys.id) setSystem(sys);
   $('giant').value = sys;
-  courseView({ t, sel });
+  if (new URLSearchParams(location.search).get('feed') === 'live') {   // repli par changement de page : on relit l'édition
+    loadEdition().then((snap) => { if (snap) useSnap(snap); courseView({ t, sel }); }).catch(() => courseView({ t, sel }));
+  } else courseView({ t, sel });
 }
 
+// en direct (Phase 3) : le flux de la vue est celui de l'édition du serveur, reconstruit à partir de ses instantanés
+function useSnap(snap) {
+  const f = raceLayer.c.feed;
+  if (f.live && f.live.edition.id === snap.edition.id) f.setSnap(snap);
+  else raceLayer.c.feed = liveFeed(snap);
+}
 /* ── mode intégré : le Télébyte pilote cette vue par messages (Phase 2, étape 8) ──
    enter { sys, t, sel } : on entre dans le système, caméra lancée de loin qui plonge (amortie) sur le peloton ou le racer ;
    la vue répond ready, puis vit seule ; en remontant (geste ou « ← Télébyte ») elle renvoie surface { t, sel } et se met en veille. */
@@ -621,6 +633,8 @@ if (EMBED) {
   renderer.setAnimationLoop(null);                                      // en veille tant que le Télébyte est affiché
   addEventListener('message', (e) => {
     const m = e.data; if (!m || !m.fronde || e.source !== parent) return;
+    if (m.snap) useSnap(m.snap);                                         // en direct : l'instantané du serveur, tenu par le Télébyte
+    if (m.type === 'snap') return;
     if (m.type === 'enter') {
       // l'entrée par étapes, avec une pause entre chacune : le Télébyte peut redessiner sa barre de progression
       const post = (x) => parent.postMessage({ fronde: 1, ...x }, '*'), next = (f) => setTimeout(f, 16);
