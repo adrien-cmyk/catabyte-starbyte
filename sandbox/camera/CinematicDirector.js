@@ -8,6 +8,7 @@
 //   setTime(t), setTimeScale(s), setRacer(on), view(name) → { target, yaw, pitch, dist } (cadrages de la sandbox),
 //   fade(el, on), caption(text)
 import { THREE } from '../lib/sb3d-shim.js';
+import { zoomShot } from './ScaleTransition.js';
 
 const ease = (t) => t * t * (3 - 2 * t);
 const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
@@ -67,6 +68,7 @@ export function makeReel(ctx) {
   const tp = () => ctx.race.tp, tc = () => ctx.race.tc;
   return [
     orbitShot('Vue générale du système', 'trajectory', 8, { dyaw: 0.25, dolly: 0.15, timeScale: 400 }),
+    zoomShot(ctx),
     chase('Approche des anneaux', 7, { t: () => tc() - 160, timeScale: 6, back: 2200, up: 260, side: 300, closeIn: 0.8 }),
     flyby('Traversée des anneaux', 7, { t: () => tc() - 0.08, lead: 0.087, timeScale: 0.02, offset: [90, -35, 0], fov: 50 }),   // ralenti ×0,02 : 46 km/s à l'écran deviennent 0,9 km/s
     orbitShot('Devant la géante', 'racer', 8, { dyaw: -0.35, dolly: 0.25, dpitch: -0.05 }),

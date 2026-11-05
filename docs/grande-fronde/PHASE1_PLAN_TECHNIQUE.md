@@ -419,7 +419,8 @@ Cette partie sera détaillée au début de la Phase 3 (simulation), et les paris
 | 10. Racer témoin SR-01 + panaches + traînée | fait (modèle du jeu, panaches repris de ship3d.js, traînée en float64 ; vol rectiligne en attendant la trajectoire gravitationnelle de l'étape 11) |
 | 11. Trajectoire holographique + intégration gravitationnelle | fait (Velocity Verlet à pas adaptatif, géante + 3 lunes ; fronde hyperbolique à 12 km/s, périapse 1,12 R, 58,1 km/s, traversée de l'anneau principal à 1,81 R ; erreur d'énergie 7·10⁻⁷ sur 3 jours en test) |
 | 12. Caméra cinématique + séquenceur de plans | fait (bobine de 64 s en boucle, 9 plans : vue générale, approche, traversée des anneaux au ralenti ×0,02, devant la géante, échelle planétaire, périapse, côté nuit, passage rasant, champ d'astéroïdes ; chaque plan règle le temps de course ; coupes franches et fondus au changement de lieu) |
-| 13 à 15 | à faire |
+| 13. Zoom continu système → racer | fait (plan de 12 s, 8·10⁹ m → 150 m en log, visée géante → racer, vue haute → poursuite, temps de course qui ralentit jusqu'au réel ; lunes agrandies seulement en vue système, balise holographique du racer quand il fait moins de ~5 px) |
+| 14 à 15 | à faire |
 
 Captures : `node tools/fronde/shots.js amber,blue,black` (serveur statique à la racine du dépôt sur le port 8766 ;
 `THREE_DIR` pointe vers un `node_modules/three` 0.186.0 local si le CDN n'est pas joignable).
