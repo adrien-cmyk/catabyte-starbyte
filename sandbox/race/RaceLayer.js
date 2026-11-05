@@ -216,7 +216,7 @@ export class RaceLayer {
     const t = this.c.getTime(), F = this.feed, sys = this.c.sys(), el = this.c.hud;
     if (!el.dataset.built) {
       el.dataset.built = 1;
-      el.innerHTML = `<div class="rh-top"><a id="rh-back" href="#">← Télébyte</a><span class="rh-live">en direct</span></div>
+      el.innerHTML = `<div class="rh-top"><a id="rh-back" href="#">← Télébyte</a><button type="button" class="rh-live">en direct</button></div>
         <b id="rh-sys"></b><span id="rh-time" class="rh-time"></span>
         <ol id="rh-list"></ol>
         <div id="rh-tele" hidden></div>
@@ -233,6 +233,8 @@ export class RaceLayer {
       el.querySelector('#rh-clock').max = String(Math.ceil(F.edition.t1));
       el.querySelector('#rh-clock').oninput = (e) => { this.c.setTime(+e.target.value); };
       el.querySelector('#rh-speed').onclick = (e) => { this.speedI = (this.speedI + 1) % this.speeds.length; this.c.setSpeed(this.speeds[this.speedI]); e.target.textContent = '×' + this.speeds[this.speedI]; };
+      // en direct : la pastille dit « en direct » ou « revoir · −x » ; toucher la pastille en revoir ramène au présent
+      el.querySelector('.rh-live').onclick = () => { const L = this.feed.live; if (L && !this.liveLock) { this.c.setTime(L.source.now()); this._hud(true); } };
       el.querySelector('#rh-back').onclick = (e) => { e.preventDefault(); this.c.back(); };
       el.querySelector('#rh-wait button').onclick = () => { const a = this._arrival(this.c.getTime()); if (a) { const id = this.sel; this.c.setTime(a - 300); this.position(a - 300); const rc = this.c.fleet().find((r) => r.def.id === id); if (rc && rc.inSys) this.c.follow(id); this._hud(true); } };
     }
@@ -243,6 +245,14 @@ export class RaceLayer {
     el.classList.toggle('follow', !!follow); tele.hidden = !follow;
     if (follow) this._tele(tele, t);
     el.querySelector('#rh-time').textContent = hh(t);
+    if (F.live) {
+      const lk = !!this.liveLock, now = F.live.source.now(), pill = el.querySelector('.rh-live'), sp = el.querySelector('#rh-speed');
+      const txt = now < 0 ? 'avant le départ' : lk ? 'en direct' : `revoir · −${dur(Math.max(0, now - t))} · direct ›`;
+      if (pill.textContent !== txt) pill.textContent = txt;
+      pill.classList.toggle('replay', !lk && now >= 0);
+      const stx = lk ? 'direct' : '×' + this.speeds[this.speedI]; if (sp.textContent !== stx) sp.textContent = stx;
+      sp.disabled = lk;
+    }
     // le racer suivi n'est pas encore là : on l'annonce, avec un raccourci vers son arrivée
     const arr = this._arrival(t), w = el.querySelector('#rh-wait');
     w.hidden = !arr;

@@ -92,7 +92,7 @@ function loadHide() { if (loadEl.hidden) return; loadSet(1, false); loadEl.class
 const dive = (sysId) => {
   if (inSystem || !loadEl.hidden) return;
   curSysId = sysId; loadShow(sysId);
-  const go = () => { sysFrame.classList.add('on'); sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null, snap: LIVE ? LIVE.snap : null }, '*'); };
+  const go = () => { sysFrame.classList.add('on'); sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null, snap: LIVE ? LIVE.snap : null, live: LIVE ? following : null }, '*'); };
   clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(sysId); }, 7000);   // jamais bloqué
   if (frameOk) return go();
   loadFrame(); pending = go;
@@ -112,9 +112,10 @@ if (GAME) document.body.classList.add('in-game');                 // ouvert depu
 /* ── en direct : l'horloge est celle du serveur ; le curseur permet de revoir, jamais d'aller au-delà du présent ── */
 let following = true;
 const liveNow = () => LIVE ? LIVE.source.now() : 0;
+let setFollow = () => {};
 if (LIVE) {
   $('speed').hidden = true;
-  const setFollow = (on) => { following = on; $('play').textContent = on ? '● Direct' : 'Revenir au direct'; $('play').classList.toggle('live', on); };
+  setFollow = (on) => { following = on; $('play').textContent = on ? '● Direct' : 'Revenir au direct'; $('play').classList.toggle('live', on); };
   $('play').onclick = () => setFollow(true);
   // revoir : le curseur sort du direct ; le ramener au bout y revient ; avant le départ, rien à revoir (curseur inactif)
   slider.addEventListener('input', () => {
@@ -151,7 +152,22 @@ if (feed.onUpdate) feed.onUpdate(() => {
   STAGES = stagesOf(); [...$('stages').children].forEach((b, i) => { const s = STAGES[i]; b.querySelector('span').textContent = (s.known ? '' : '≈ ') + hh(s.tp); });
   slider.max = String(Math.ceil(E.t1)); lastSig = '';
 });
-for (const b of $('stages').children) b.onclick = () => { const s = STAGES[+b.dataset.i]; t = Math.max(0, s.tp - 1800); const r = b.getBoundingClientRect(); dive(s.sys.id, r.left + r.width / 2, r.top + r.height / 2); };   // 30 min avant le passage
+// en direct : une étape que la course n'a pas encore quittée s'ouvre sur le direct ; une étape que tous les racers ont
+// quittée s'ouvre en revoir, 30 min avant le passage (hors direct : toujours le passage)
+const stageLeft = (i, at) => E.racers.every((r) => {
+  const st = feed.stateAt(r.id, at), idx = (id) => E.systems.findIndex((x) => x.id === id);
+  const k = st.phase === 'done' ? Infinity : st.phase === 'leg' ? idx(st.legTo) - 0.5 : st.phase === 'start' ? -1 : idx(st.system);
+  return k > i;
+});
+for (const b of $('stages').children) b.onclick = () => {
+  const i = +b.dataset.i, s = STAGES[i];
+  if (LIVE) {
+    const nowR = liveNow();
+    if (nowR > 0 && stageLeft(i, nowR)) { t = Math.max(0, Math.min(s.tp - 1800, nowR)); setFollow(false); }
+    else { t = Math.max(0, Math.min(E.t1, nowR)); setFollow(true); }
+  } else t = Math.max(0, s.tp - 1800);
+  const r = b.getBoundingClientRect(); dive(s.sys.id, r.left + r.width / 2, r.top + r.height / 2);
+};
 
 
 /* ── classement ── */

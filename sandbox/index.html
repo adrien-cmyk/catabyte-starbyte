@@ -33,7 +33,10 @@
   #race { position: fixed; right: 16px; top: calc(var(--sai) + 12px); width: 270px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 8px; }
   #race .rh-top { display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
   #race .rh-top a { color: #9fd4ec; text-decoration: none; }
-  #race .rh-live { font-size: 9px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); }
+  #race .rh-live { font: inherit; font-size: 9px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); background: none; border: 0; padding: 4px 0; cursor: default; }
+  #race .rh-live.replay { color: #ffd27a; cursor: pointer; }
+  #race .rh-live.replay::before { background: #ffd27a; }
+  #race #rh-speed:disabled { opacity: .55; }
   #race .rh-live::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ff5a4f; margin-right: 5px; }
   #race b#rh-sys { display: block; margin-top: 8px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
   #race .rh-time { display: block; font: 600 18px ui-monospace, 'SF Mono', monospace; font-variant-numeric: tabular-nums; margin: 2px 0 6px; }

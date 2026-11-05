@@ -317,7 +317,7 @@ raceLayer = new RaceLayer({
   scene, frame, feed: feedFromUrl(),                                // ?feed=mock : course publiée au fil de l'eau
   giant: () => giant, sys: () => curSys, fleet: () => ensureFleet(),
   hud: document.getElementById('race'), labels: document.getElementById('race-labels'),
-  setTime: (t) => { simT = t; }, getTime: () => simT, setSpeed: (x) => { timeScale = x; },
+  setTime: (t) => { simT = t; if (raceLayer && raceLayer.feed && raceLayer.feed.live) { const L = raceLayer.feed.live.source; raceLayer.liveLock = t >= L.now() - 3 * (L.snap.rate || 1) - 60; } }, getTime: () => simT, setSpeed: (x) => { timeScale = x; },
   follow: (id) => { const P = RACER_PROFILES[RACERS.find((r) => r.id === id).ship]; cam.setTarget(targets['racer:' + id], { dur: 2.2, dist: Math.max(P.length * 3, 400) }); },
   views: { overview: () => trackPack(2), gates: () => VIEWS['course-portes']() },
   back: () => {
@@ -478,7 +478,9 @@ function step(dt) {
   }
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
   if (raceLayer && raceLayer.on) {
-    if (raceLayer.feed.live) simT = Math.min(simT, raceLayer.feed.live.source.now());   // en direct : jamais au-delà du présent
+    // en direct : jamais au-delà du présent ; une fois rattrapé, la vue reste calée sur l'horloge du serveur (pas de
+    // va-et-vient entre la vitesse de revoir et le présent)
+    if (raceLayer.feed.live) { const now = raceLayer.feed.live.source.now(); if (raceLayer.liveLock || simT >= now) { simT = now; raceLayer.liveLock = true; } }
     if (raceLayer.feed.sync) raceLayer.feed.sync(simT); raceLayer.position(simT);
   }   // flux publié : on récupère les plans jusqu'à l'instant affiché
   // en course, pas de recul au-delà du système (les tracés y commencent et finissent : on ne doit pas voir leurs bouts)
@@ -577,7 +579,9 @@ function autoQuality(f, now) {
   else if (aq.high >= 30 && lod.level > aq.floor) { lod.set(lod.level - 1); aq.high = 0; aq.lockUntil = now + 20000; }
 }
 let pollT = 0;
+let frameN = 0;
 function loop(now) {
+  frameN++;
   if (now - pollT > 1000) { pollT = now; lod.poll(); }
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   step(dt); render();
@@ -644,7 +648,7 @@ if (EMBED) {
         post({ type: 'progress', p: 0.5 });
         next(() => {
           courseView({ t: m.t, sel: m.sel || null });
-          if (cam.tr) cam.tr.logFrom += Math.log(80); else cam.logD += Math.log(80);   // on arrive de très haut
+          if (raceLayer.feed.live && m.live != null) raceLayer.liveLock = !!m.live;   // le Télébyte dit s'il suit le direct
           post({ type: 'progress', p: 0.72 });
           next(() => {
             step(1 / 60); render();                                     // une image tout de suite (shaders, textures)
@@ -663,6 +667,9 @@ if (EMBED) {
 
 // accès de test (tools/fronde/shots.js) : rendu image par image, sans boucle
 window.RW = {
+  frameCount: () => frameN,
+  live: () => ({ lock: !!raceLayer.liveLock, t: simT, now: raceLayer.feed.live ? raceLayer.feed.live.source.now() : null, pill: document.querySelector('#race .rh-live')?.textContent, speed: document.querySelector('#rh-speed')?.textContent }),
+  camYaw: () => cam.goal.yaw + (cam.chase ? cam.u.yaw : 0),
   camDiag: () => ({ tr: !!cam.tr, D: cam.distance, R: giant.R, view: raceLayer._view, chase: cam.chase, maxD: cam.maxDist, dir: director.active }),
   coursePortes: () => VIEWS['course-portes'](), course: (o) => courseView(o || {}), advanceRace: (dt) => { simT += dt; }, raceSelect: (id) => raceLayer.select(id),
   leader: () => { const f = ensureFleet(), rows = raceLayer.feed.standingsAt(simT); const r = rows.find((x) => f.find((rc) => rc.def.id === x.id && rc.inSys)); return r ? r.id : null; },
