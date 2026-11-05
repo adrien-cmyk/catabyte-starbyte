@@ -1,2 +1,3 @@
 shots/
 node_modules/
+sandbox/assets/*.glb.js
