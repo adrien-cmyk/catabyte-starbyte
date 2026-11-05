@@ -20,7 +20,7 @@
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 13px/1.35 var(--f-ui); overflow: hidden; -webkit-user-select: none; user-select: none; }
   #scene { position: fixed; inset: 0; touch-action: none; }
   /* vue système intégrée (zoom continu) : préchargée, invisible, au-dessus de tout une fois entrée */
-  #sysframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #000; opacity: 0; pointer-events: none; z-index: 40; }
+  #sysframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #000; opacity: 0; pointer-events: none; z-index: 40; transition: opacity .3s; }
   /* mini barre de progression de l'entrée dans un système (animée par le compositeur : elle bouge même si le calcul occupe le fil principal) */
   #load { position: fixed; left: 50%; top: 58%; translate: -50% 0; z-index: 60; display: grid; gap: 7px; justify-items: center; pointer-events: none; transition: opacity .25s; }
   #load[hidden] { display: none; } #load.out { opacity: 0; }

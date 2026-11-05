@@ -42,17 +42,16 @@ function sprite(tex, size, color, opacity) {
 const bez = (a, b, c, t) => { const u = 1 - t; return [0, 1, 2].map((i) => u * u * a[i] + 2 * u * t * b[i] + t * t * c[i]); };
 
 export class UniverseView {
-  constructor(host, overlay, feed, { onSelect = () => {}, onEnter = () => {}, onDive = null } = {}) {
-    this.onDive = onDive;                                       // (sysId, x, y) : pincer à fond sur un système = y plonger
+  constructor(host, overlay, feed, { onSelect = () => {}, onEnter = () => {} } = {}) {
     this.host = host; this.overlay = overlay; this.feed = feed; this.onSelect = onSelect; this.onEnter = onEnter; this.sel = null;
     GLOW.star = GLOW.star || glowTex('rgba(255,255,255,1)', 'rgba(255,230,200,.35)');
     GLOW.soft = GLOW.soft || glowTex('rgba(255,255,255,.55)', 'rgba(255,255,255,.08)');
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.toneMapping = THREE.ACESFilmicToneMapping; host.appendChild(r.domElement);
     this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x020306);
-    this.camera = new THREE.PerspectiveCamera(40, 1, 10, 40000);
+    this.camera = new THREE.PerspectiveCamera(40, 1, 10, 90000);
     this.nebU = { uT: { value: 0 } };
-    const neb = new THREE.Mesh(new THREE.PlaneGeometry(30000, 30000), new THREE.ShaderMaterial({ uniforms: this.nebU, depthWrite: false,
+    const neb = new THREE.Mesh(new THREE.PlaneGeometry(120000, 120000), new THREE.ShaderMaterial({ uniforms: this.nebU, depthWrite: false,
       vertexShader: 'varying vec2 vP; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vP = w.xz; gl_Position = projectionMatrix * viewMatrix * w; }', fragmentShader: NEB_FS }));
     neb.rotation.x = -Math.PI / 2; neb.position.y = -60; this.scene.add(neb);
     this._stars();
@@ -64,12 +63,36 @@ export class UniverseView {
     this.span = Math.max(...xs) - Math.min(...xs) + 900; this.zoom = 1; this.pan = [0, 0];
     this._bind(); this.resize();
   }
+  // ciel : peu d'étoiles, presque toutes très faibles, quelques brillantes à halo doux, teintes variées, léger
+  // scintillement ; plus denses le long d'une bande galactique. Champ bien plus grand que ce que la caméra peut voir.
   _stars() {
-    const n = 7000, p = new Float32Array(n * 3), c = new Float32Array(n * 3);
+    const n = 4600, p = new Float32Array(n * 3), c = new Float32Array(n * 3), m = new Float32Array(n), sd = new Float32Array(n);
     let s = 7; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
-    for (let i = 0; i < n; i++) { p.set([(R() - 0.5) * 14000, -20 - R() * 30, (R() - 0.5) * 9000], i * 3); const w = 0.3 + R() * 0.7; c.set([w, w * 0.96, w * (R() < 0.3 ? 0.85 : 1)], i * 3); }
+    const gauss = () => (R() + R() + R() - 1.5) / 1.5;
+    const band = [Math.cos(0.5), Math.sin(0.5)];                  // direction de la bande galactique
+    const tints = [[1, 0.96, 0.9], [0.82, 0.9, 1], [1, 0.85, 0.7], [0.95, 0.97, 1], [1, 0.75, 0.62]];
+    for (let i = 0; i < n; i++) {
+      let x, z;
+      if (R() < 0.45) { const u = (R() - 0.5) * 60000, v = gauss() * 2600; x = band[0] * u - band[1] * v; z = band[1] * u + band[0] * v; }   // bande
+      else { x = (R() - 0.5) * 60000; z = (R() - 0.5) * 60000; }
+      p.set([x, -30 - R() * 40, z], i * 3);
+      const mag = Math.pow(R(), 7);                               // loi de puissance : l'immense majorité est faible
+      m[i] = mag; sd[i] = R() * 6.283;
+      const tn = tints[(R() * tints.length) | 0], w = 0.35 + 0.65 * Math.min(1, mag * 3 + R() * 0.3);
+      c.set([tn[0] * w, tn[1] * w, tn[2] * w], i * 3);
+    }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); g.setAttribute('color', new THREE.BufferAttribute(c, 3));
-    this.scene.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.3, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: 0.8, depthWrite: false })));
+    g.setAttribute('aMag', new THREE.BufferAttribute(m, 1)); g.setAttribute('aSeed', new THREE.BufferAttribute(sd, 1));
+    this.starU = { uTime: { value: 0 }, uPR: { value: this.renderer.getPixelRatio() } };
+    this.scene.add(new THREE.Points(g, new THREE.ShaderMaterial({ uniforms: this.starU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: `attribute float aMag, aSeed; attribute vec3 color; uniform float uTime, uPR; varying vec3 vC; varying float vA, vM;
+        void main(){ vC = color; vM = aMag;
+          vA = (0.35 + 0.65 * aMag) * (0.8 + 0.2 * sin(uTime * (0.6 + aSeed * 0.25) + aSeed * 9.0));   // scintillement lent
+          gl_PointSize = (1.2 + aMag * 7.0) * uPR; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `varying vec3 vC; varying float vA, vM;
+        void main(){ float d = length(gl_PointCoord - 0.5) * 2.0; if (d > 1.0) discard;
+          float a = exp(-d * d * 9.0) + exp(-d * d * 2.5) * 0.35 * vM;                                  // cœur net, halo doux pour les brillantes
+          gl_FragColor = vec4(vC * a * vA, 1.0); }` })));
   }
   // nœuds (systèmes), boucles de fronde, couloirs ; points de contrôle placés sur ces courbes
   // le parcours : une seule courbe lisse (Catmull-Rom centripète) qui arrive dans chaque système, contourne l'étoile
@@ -150,12 +173,8 @@ export class UniverseView {
     this.racerGlows = this.feed.racers.map((r) => { const s = sprite(GLOW.soft, 70, new THREE.Color(r.livery), 0.8); this.scene.add(s); return s; });
   }
   select(id) { this.sel = this.sel === id ? null : id; this.onSelect(this.sel); }
-  // zoom continu avec la vue système : plonger vers un système, ou en ressortir (la caméra repart de tout près)
-  diveTo(sysId) { const n = this.nodes.find((x) => x.sys.id === sysId); if (n) this.diving = { p: n.p.slice(), t: 0 }; }
-  surfaceFrom(sysId) {
-    this.diving = null; const n = this.nodes.find((x) => x.sys.id === sysId); if (!n) return;
-    this._f = n.p.slice(); this._d = this.span * 0.02;               // puis l'amorti normal ramène au cadrage du parcours
-  }
+  // tout le parcours : on désélectionne et on revient au cadrage d'origine (zoom 1, sans décalage)
+  overview() { if (this.sel) this.select(this.sel); this.zoom = 1; this.pan = [0, 0]; }
   _bind() {
     const d = this.renderer.domElement, pts = new Map(); let pinch0 = 0, zoom0 = 1;
     // les gestes commencés sur une étiquette de la scène comptent aussi (sinon pincer sur un vaisseau ne zoome pas)
@@ -165,33 +184,25 @@ export class UniverseView {
     addEventListener('pointerdown', (e) => { if (!pts.size) movedPx = 0; if (!ok(e)) return; if (e.target === d) d.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); zoom0 = this.zoom; } });
     addEventListener('pointermove', (e) => {
       if (!pts.has(e.pointerId)) return; { const q = pts.get(e.pointerId); movedPx += Math.abs(e.clientX - q[0]) + Math.abs(e.clientY - q[1]) + (pts.size > 1 ? 99 : 0); } const p = pts.get(e.pointerId), dx = e.clientX - p[0], dy = e.clientY - p[1]; pts.set(e.pointerId, [e.clientX, e.clientY]);
-      if (pts.size === 1) { const k = this.span * this.zoom / this.host.clientWidth; this.pan[0] -= dx * k; this.pan[1] -= dy * k * 1.4; }
+      if (pts.size === 1) { const k = this.span * this.zoom / this.host.clientWidth; this.pan[0] -= dx * k; this.pan[1] -= dy * k * 1.4; this._clampPan(); }
       else if (pts.size === 2) { const [a, b] = [...pts.values()], dd = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0) this.zoomBy(pinch0 / dd, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2); pinch0 = dd; }
     });
     const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0; }; addEventListener('pointerup', up); addEventListener('pointercancel', up);
     addEventListener('wheel', (e) => { if (!ok(e)) return; e.preventDefault(); this.zoomBy(Math.exp(e.deltaY * 0.0012), e.clientX, e.clientY); }, { passive: false });
   }
-  // zoom vers le doigt (comme la carte du jeu) ; à la butée, continuer à pincer vers un système = y plonger
+  // zoom vers le doigt, borné : pas de recul au-delà du cadrage du parcours (on ne doit jamais voir les bords de la carte)
   zoomBy(f, x, y) {
-    const now = performance.now(); if (now - (this._zl || 0) > 2500 || (f > 1 && this._acc < 1)) this._acc = 1; this._zl = now; this._acc *= f;   // pincements successifs cumulés ; reculer remet à zéro
-    const z0 = this.zoom, z1 = THREE.MathUtils.clamp(z0 * f, 0.18, 1.6), q = z1 / z0;
-    if (f < 1 && this.onDive) {
-      const n = this._nearSys(x, y);
-      if (n && n.px < 110 && (z0 <= 0.2 || this._acc < 0.3)) { this._acc = 1; this.onDive(n.id, n.x, n.y); return; }
-    }
+    const z0 = this.zoom, z1 = THREE.MathUtils.clamp(z0 * f, 0.18, 1), q = z1 / z0;
     if (q < 1 && x != null) {                                  // le point sous les doigts glisse vers le centre
       const g = this._ground(x, y); if (g) { const f0 = this._f || [this.center[0], 0, this.center[2]]; this.pan[0] += (g[0] - f0[0]) * (1 - q); this.pan[1] += (g[2] - f0[2]) * (1 - q); }
-    } else if (q > 1) { this.pan[0] /= q; this.pan[1] /= q; }
-    this.zoom = z1;
+    } else if (q > 1) { const k = (z1 - 0.18) / Math.max(z0 - 0.18, 1e-3); this.pan[0] *= Math.min(1, k); this.pan[1] *= Math.min(1, k); }   // en reculant, on revient vers le centre
+    this.zoom = z1; this._clampPan();
   }
+  // le décalage reste dans l'emprise du parcours, d'autant plus serré qu'on est loin
+  _clampPan() { const m = this.span * 0.55 * (1 - this.zoom) + this.span * 0.04; this.pan[0] = THREE.MathUtils.clamp(this.pan[0], -m, m); this.pan[1] = THREE.MathUtils.clamp(this.pan[1], -m * 0.7, m * 0.7); }
   _ground(x, y) {
     const r = this.renderer.domElement.getBoundingClientRect(), c = this.camera, v = new THREE.Vector3(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1, 0.5).unproject(c).sub(c.position).normalize();
     if (Math.abs(v.y) < 1e-6) return null; const s = -c.position.y / v.y; return s > 0 ? [c.position.x + v.x * s, 0, c.position.z + v.z * s] : null;
-  }
-  _nearSys(x, y) {
-    const r = this.renderer.domElement.getBoundingClientRect(), v = new THREE.Vector3(); let best = null;
-    for (const n of this.nodes) { v.set(n.p[0], n.p[1], n.p[2]).project(this.camera); const sx = (v.x * 0.5 + 0.5) * r.width + r.left, sy = (-v.y * 0.5 + 0.5) * r.height + r.top, px = Math.hypot(sx - x, sy - y); if (!best || px < best.px) best = { id: n.sys.id, px, x: sx, y: sy }; }
-    return best;
   }
   resize() {
     const w = this.host.clientWidth, h = this.host.clientHeight; this.renderer.setSize(w, h, false);
@@ -205,6 +216,7 @@ export class UniverseView {
       const pr = this.renderer.getPixelRatio();
       if (fps < 40 && pr > 1) { this.renderer.setPixelRatio(Math.max(1, pr - 0.5)); this.resize(); } }
     this.nebU.uT.value = t / 3600;
+    this.starU.uTime.value = performance.now() / 1000; this.starU.uPR.value = this.renderer.getPixelRatio();
     const c = this.camera, aspect = c.aspect;
     // sur grand écran, le classement occupe la droite : on décale le parcours vers la gauche
     const wide = this.host.clientWidth > 720;
@@ -213,15 +225,8 @@ export class UniverseView {
     this._f = this._f || focus.slice();
     const fit = this.span / Math.min(aspect, 1.6) * (aspect < 0.8 ? 1.25 : 1) * (aspect < 0.6 ? 1.25 : 1);   // portrait étroit : marge pour les systèmes extrêmes
     const dist = fit * (wide ? 1.5 : 1.15) * this.zoom * (this.sel ? 0.45 : 1);
-    if (this.diving) {
-      // plongée vers un système : visée qui file sur lui, distance qui fond de plus en plus vite (zoom accéléré)
-      const dv = this.diving; dv.t += dt;
-      for (let i = 0; i < 3; i++) this._f[i] += (dv.p[i] - this._f[i]) * (1 - Math.exp(-dt * 9));
-      this._d = Math.max(this._d * Math.exp(-dt * (1.5 + 14 * dv.t)), this.span * 0.004);   // plancher : pas de caméra confondue avec sa cible
-    } else {
-      for (let i = 0; i < 3; i++) this._f[i] += (focus[i] - this._f[i]) * (1 - Math.exp(-dt * 4));
-      this._d = this._d ? this._d + (dist - this._d) * (1 - Math.exp(-dt * 3)) : dist;
-    }
+    for (let i = 0; i < 3; i++) this._f[i] += (focus[i] - this._f[i]) * (1 - Math.exp(-dt * 4));
+    this._d = this._d ? this._d + (dist - this._d) * (1 - Math.exp(-dt * 3)) : dist;
     c.position.set(this._f[0], this._d * Math.sin(1.0), this._f[2] + this._d * Math.cos(1.0)); c.lookAt(this._f[0], 0, this._f[2]);
     c.updateMatrixWorld();
     // étiquettes et marqueurs HTML

@@ -3,8 +3,6 @@
 // Le flux de course est ici le flux de démonstration ; en Phase 3, le flux serveur aura la même interface.
 import { DemoFeed } from '../sandbox/race/DemoFeed.js';
 import { UniverseView } from './UniverseView.js';
-import { ZoomStreaks } from '../sandbox/ui/ZoomStreaks.js';
-const streaks = new ZoomStreaks();
 
 const feed = new DemoFeed();
 const $ = (id) => document.getElementById(id);
@@ -45,18 +43,17 @@ addEventListener('message', (e) => {
   const m = e.data; if (!sysFrame || e.source !== sysFrame.contentWindow || !m || !m.fronde) return;
   if (m.type === 'loaded') { frameOk = true; if (pending) { const p = pending; pending = null; p(); } }
   else if (m.type === 'progress') { loadSet(m.p); clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(curSysId); }, 7000); }   // chaque étape relance la garde
-  else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); loadHide(); inSystem = true; sysFrame.classList.add('on'); streaks.play('in', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 0.9 }); }
+  else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); loadHide(); inSystem = true; sysFrame.classList.add('on'); }
   else if (m.type === 'surface') {
     t = Math.min(E.t1, m.t); if (m.sel !== view.sel) { view.sel = m.sel || null; view.onSelect(view.sel); }
-    inSystem = false; sysFrame.classList.remove('on'); view.surfaceFrom(m.sys || curSysId); renderStandings(true);
-    streaks.play('out', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 1.1 });
+    inSystem = false; sysFrame.classList.remove('on'); renderStandings(true);
   }
 });
 // repli : changement de page classique (le cadre n'a pas répondu)
 function fallbackEnter(sysId) {
-  pending = null; clearTimeout(watch); view.diving = null; inSystem = false; loadSet(0.95, false);
+  pending = null; clearTimeout(watch); inSystem = false; loadSet(0.95, false);
   if (sysFrame) sysFrame.classList.remove('on');
-  streaks.handoff('in'); enterSystem(sysId);
+  enterSystem(sysId);
 }
 let watch = 0;
 /* mini barre : avance seule (vers 90 %, en ralentissant), et saute aux étapes annoncées par la vue système */
@@ -72,19 +69,17 @@ function loadShow(sysId) {
   void loadBar.offsetWidth; loadSet(0.06);
 }
 function loadHide() { if (loadEl.hidden) return; loadSet(1, false); loadEl.classList.add('out'); setTimeout(() => { loadEl.hidden = true; }, 300); }
-const dive = (sysId, x, y) => {
-  if (streaks.busy || inSystem) return;
-  view.diveTo(sysId); curSysId = sysId;
-  streaks.play('in', x, y, { hold: true, onMid: () => {
-    // au sommet de l'éclair : le cadre devient visible (sous l'éclair) — iOS ralentit les cadres invisibles
-    const go = () => { sysFrame.classList.add('on'); sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null }, '*'); };
-    loadShow(sysId);
-    clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(sysId); }, 7000);   // jamais bloqué sur l'éclair
-    if (frameOk) return go();
-    loadFrame(); pending = go;
-  } });
+// changer de vue : bouton d'étape, « voir en 3D » ou « Vue système » → la vue système (préchargée) prend l'écran
+// en fondu, avec la mini barre tant qu'elle se prépare
+const dive = (sysId) => {
+  if (inSystem || !loadEl.hidden) return;
+  curSysId = sysId; loadShow(sysId);
+  const go = () => { sysFrame.classList.add('on'); sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null }, '*'); };
+  clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(sysId); }, 7000);   // jamais bloqué
+  if (frameOk) return go();
+  loadFrame(); pending = go;
 };
-const view = new UniverseView($('scene'), $('labels'), feed, { onEnter: (id) => { const el = [...document.querySelectorAll('.tb-sys')].find((e) => e.textContent.startsWith(E.systems.find((s) => s.id === id).name)); const r = el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 2, width: 0 }; dive(id, r.left + r.width / 2, r.top); }, onDive: dive, onSelect: (id) => { renderStandings(true); $('focus').hidden = !id; if (id) $('focus-name').textContent = racer[id].name; } });
+const view = new UniverseView($('scene'), $('labels'), feed, { onEnter: (id) => dive(id), onSelect: (id) => { renderStandings(true); $('focus').hidden = !id; if (id) $('focus-name').textContent = racer[id].name; } });
 addEventListener('resize', () => view.resize());
 
 const slider = $('clock');
@@ -93,7 +88,7 @@ slider.oninput = () => { t = +slider.value; renderStandings(true); };
 $('play').onclick = () => { playing = !playing; $('play').textContent = playing ? 'Pause' : 'Lecture'; $('play').setAttribute('aria-pressed', String(!playing)); };
 $('speed').onclick = () => { speedI = (speedI + 1) % SPEEDS.length; $('speed').textContent = '×' + SPEEDS[speedI]; };
 $('speed').textContent = '×' + SPEEDS[speedI];
-$('focus-clear').onclick = () => view.select(view.sel);
+$('focus-clear').onclick = () => view.overview();
 $('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); dive(s.phase === 'system' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id, innerWidth / 2, innerHeight / 2); };
 $('edition').textContent = E.name;
 $('route').textContent = E.systems.map((s) => s.name).join(' → ');
@@ -154,7 +149,6 @@ function loop(now) {
   view.update(t, dt);
 }
 requestAnimationFrame(loop);
-requestAnimationFrame(() => streaks.arrive());                    // retour d'un système (changement de page) : fin du zoom accéléré
 
 // accès de test (captures)
-window.TB = { view, streaks, dive: (id) => dive(id, innerWidth / 2, innerHeight / 2), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
+window.TB = { view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };

@@ -9,9 +9,9 @@ const LINE_VERT = /* glsl */`
 #include <logdepthbuf_pars_vertex>
 attribute float aSide, aT; attribute vec3 aNext;
 uniform float uNow, uSpan, uPx; uniform vec2 uRes;
-varying float vSide, vAhead; varying vec3 vMV;
+varying float vSide, vAhead, vT; varying vec3 vMV;
 // ligne écran : on projette le point et son voisin, puis on décale perpendiculairement de uPx pixels
-void main(){ vSide = aSide; vAhead = (aT - uNow) / uSpan;
+void main(){ vSide = aSide; vAhead = (aT - uNow) / uSpan; vT = aT;
   vec4 mv = modelViewMatrix * vec4(position, 1.0), mn = modelViewMatrix * vec4(aNext, 1.0);
   // découpage au plan proche : un sommet derrière la caméra glisse vers son voisin (sinon la projection s'inverse)
   if (mv.z > -1.0) {
@@ -30,12 +30,16 @@ void main(){ vSide = aSide; vAhead = (aT - uNow) / uSpan;
 const LINE_FRAG = /* glsl */`
 #include <common>
 #include <logdepthbuf_pars_fragment>
-uniform vec3 uCol, uPast; uniform float uNear, uOpacity; varying float vSide, vAhead; varying vec3 vMV;
+uniform vec3 uCol, uPast; uniform float uNear, uOpacity, uAhead, uT0, uSpan; varying float vSide, vAhead, vT; varying vec3 vMV;
 void main(){
   #include <logdepthbuf_fragment>
   float edge = 1.0 - smoothstep(0.55, 1.0, abs(vSide));         // trait net, bords adoucis
   float ahead = step(0.0, vAhead);
-  float a = ahead * mix(0.85, 0.25, clamp(vAhead, 0.0, 1.0)) + (1.0 - ahead) * 0.22 * exp(vAhead * 3.0);
+  // uAhead = 1 : trajectoire prévue nette, parcours estompé (vue d'étude) ; uAhead = 0 : seulement la traînée laissée
+  // derrière le racer (course : la trajectoire à venir n'est ni montrée ni devinable), plus vive près de lui
+  float past = uAhead > 0.5 ? 0.22 * exp(vAhead * 3.0) : 0.8 * exp(vAhead * 2.2);
+  float a = ahead * uAhead * mix(0.85, 0.25, clamp(vAhead, 0.0, 1.0)) + (1.0 - ahead) * past;
+  a *= smoothstep(uT0, uT0 + 0.05 * uSpan, vT);                                // le début du tracé s'efface (pas de bout net)
   vec3 c = mix(uPast, uCol, ahead);
   a *= smoothstep(0.5 * uNear, uNear, length(vMV)) * uOpacity;                  // de près, la traînée du racer prend le relais
   gl_FragColor = vec4(c * a * edge, 1.0);
@@ -54,7 +58,7 @@ void main(){ vKind = aKind; vAhead = aT - uNow;
 const MARK_FRAG = /* glsl */`
 #include <common>
 #include <logdepthbuf_pars_fragment>
-uniform vec3 uCol, uWarn; varying float vKind, vAhead;
+uniform vec3 uCol, uWarn; uniform float uAhead; varying float vKind, vAhead;
 void main(){
   #include <logdepthbuf_fragment>
   vec2 q = abs(gl_PointCoord - 0.5) * 2.0;
@@ -62,7 +66,7 @@ void main(){
   if (vKind > 1.5) a = step(max(q.x, q.y), 1.0) * (1.0 - step(max(q.x, q.y), 0.55));     // carré creux : anneaux
   else if (vKind > 0.5) a = step(q.x + q.y, 1.0) * (1.0 - step(q.x + q.y, 0.55));       // losange creux : périapse
   else a = step(length(q), 1.0) * 0.8;                                                  // graduation
-  a *= vAhead >= 0.0 ? 1.0 : 0.3;
+  a *= vAhead >= 0.0 ? uAhead : 0.3;
   vec3 c = vKind > 1.5 ? uWarn : uCol;
   gl_FragColor = vec4(c * a, 1.0);
   #include <tonemapping_fragment>
@@ -82,7 +86,7 @@ export class TrajectoryHolo {
     g.setAttribute('aT', new THREE.BufferAttribute(this.tt, 1));
     this.nxt = new Float32Array(maxPoints * 2 * 3);
     g.setAttribute('aNext', new THREE.BufferAttribute(this.nxt, 3).setUsage(THREE.DynamicDrawUsage));
-    this.u = { uCol: { value: new THREE.Color(color) }, uPast: { value: new THREE.Color(past) }, uNow: { value: 0 }, uSpan: { value: 3600 }, uWarn: { value: new THREE.Color(warn) }, uNear: { value: 3e4 }, uOpacity: { value: 1 }, uPx: { value: 1.3 }, uRes: { value: new THREE.Vector2(640, 360) } };
+    this.u = { uCol: { value: new THREE.Color(color) }, uPast: { value: new THREE.Color(past) }, uNow: { value: 0 }, uSpan: { value: 3600 }, uWarn: { value: new THREE.Color(warn) }, uNear: { value: 3e4 }, uAhead: { value: 1 }, uT0: { value: -1e12 }, uOpacity: { value: 1 }, uPx: { value: 1.3 }, uRes: { value: new THREE.Vector2(640, 360) } };
     this.line = new THREE.Mesh(g, new THREE.ShaderMaterial({ uniforms: this.u, vertexShader: LINE_VERT, fragmentShader: LINE_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
     this.line.frustumCulled = false; this.line.renderOrder = 4;
     this.marks = new THREE.Points(new THREE.BufferGeometry(), new THREE.ShaderMaterial({ uniforms: this.u, vertexShader: MARK_VERT, fragmentShader: MARK_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
@@ -103,7 +107,7 @@ export class TrajectoryHolo {
     keep.push(S[S.length - 1]);
     const src = raw ? S : keep, step = Math.ceil(src.length / this.M);           // raw : points déjà répartis par l'appelant
     this.pts = src.filter((_, i) => i % step === 0 || i === src.length - 1).slice(0, this.M);
-    this.u.uSpan.value = Math.max(3600, (S[S.length - 1].t - S[0].t) * 0.25);
+    this.u.uSpan.value = Math.max(3600, (S[S.length - 1].t - S[0].t) * 0.25); this.u.uT0.value = S[0].t;
     // repères : graduations, périapse, traversées du plan des anneaux (dans l'anneau = carré orange)
     const M = []; let next = Math.ceil(S[0].t / tickEvery) * tickEvery, rmin = Infinity, ip = 0;
     for (let i = 1; i < S.length; i++) {

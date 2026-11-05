@@ -13,7 +13,7 @@ export class FreeCamera {
     this.target = null;                                  // { pos: Float64Array, minDist }
     this.tgt = new Float64Array(3); this.pos = new Float64Array(3);
     this.goal = { yaw: this.yaw, pitch: this.pitch, logD: this.logD };
-    this.tr = null; this.enabled = true;
+    this.tr = null; this.enabled = true; this.maxDist = 3e12;   // distance maximale (bornée en course)
     this.off = new Float64Array(3); this.offS = new Float64Array(3);                      // décalage de la visée (zoom vers le doigt), remis à zéro au changement de cible
     this.chase = false; this.u = { yaw: 0, pitch: 0, logD: 0 };   // caméra pilotée (poursuite) : les gestes s'ajoutent en décalage
     this.onZoom = null;                                  // (f, x, y) → true si le geste est pris (plongée vers un autre plan)
@@ -63,7 +63,7 @@ export class FreeCamera {
       this._capOff();
     } else if (q > 1) for (let i = 0; i < 3; i++) this.off[i] /= q;   // on recule : la visée revient sur la cible
   }
-  _clampLog(l) { const min = this.target ? Math.log(this.target.minDist) : 0; return THREE.MathUtils.clamp(l, min, Math.log(3e12)); }
+  _clampLog(l) { const min = this.target ? Math.log(this.target.minDist) : 0; return THREE.MathUtils.clamp(l, min, Math.log(this.maxDist)); }
   _capOff() { const l = Math.hypot(...this.off), m = Math.exp(this.goal.logD) * 3; if (l > m) for (let i = 0; i < 3; i++) this.off[i] *= m / l; }
   // vise une cible ; d (mètres) facultatif ; dur = durée de la transition (s)
   setTarget(target, { dist, yaw, pitch, dur = 0 } = {}) {

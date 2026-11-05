@@ -18,7 +18,6 @@ import { RACER_PROFILES } from './scene/racerProfiles.js';
 import { DemoFeed } from './race/DemoFeed.js';
 import { RaceLayer } from './race/RaceLayer.js';
 import { SpeedLines } from './scene/SpeedLines.js';
-import { ZoomStreaks } from './ui/ZoomStreaks.js';
 import { AsteroidField } from './bodies/AsteroidField.js';
 import { RingDebris } from './bodies/RingDebris.js';
 import { Racer } from './scene/Racer.js';
@@ -327,45 +326,8 @@ raceLayer = new RaceLayer({
     location.href = url;
   },
 });
-/* ── zoom accéléré (comme la carte du jeu) : pincer à fond vers un racer = plonger en poursuite ;
-   reculer depuis la poursuite = vue Ensemble ; reculer encore = retour au Télébyte. Effet de stries au passage. ── */
-const streaks = new ZoomStreaks();
-let pinchAcc = 1, pinchLast = 0;
-function racerNear(x, y) {
-  const r = renderer.domElement.getBoundingClientRect(), v = new THREE.Vector3(); let best = null;
-  for (const rc of ensureFleet()) {
-    if (!rc.inSys) continue;
-    v.set(rc.pos[0] - frame.cam[0], rc.pos[1] - frame.cam[1], rc.pos[2] - frame.cam[2]).project(camera);
-    if (v.z > 1) continue;
-    const px = Math.hypot((v.x * 0.5 + 0.5) * r.width + r.left - x, (-v.y * 0.5 + 0.5) * r.height + r.top - y);
-    if (!best || px < best.px) best = { rc, px };
-  }
-  return best;
-}
-function diveTo(rc, x, y) {
-  streaks.play('in', x, y, { onMid: () => {
-    raceLayer.sel = rc.def.id; raceLayer._view = 'follow'; cam.u.yaw = cam.u.pitch = cam.u.logD = 0;
-    const L = RACER_PROFILES[rc.def.ship].length; cam.setTarget(targets['racer:' + rc.def.id], { dist: L * 2.2 + 25 }); raceLayer._hud(true);
-  } });
-}
-cam.onZoom = (f, x, y) => {
-  if (streaks.busy) return true;
-  if (!raceLayer || !raceLayer.on || cam.tr || director.active) return false;
-  const now = performance.now(); if (now - pinchLast > 2500 || (f > 1) !== (pinchAcc > 1)) pinchAcc = 1; pinchLast = now; pinchAcc *= f;   // cumul par sens de geste
-  const v = raceLayer._view, D = cam.distance;
-  if (v === 'follow') {
-    if (f > 1 && cam.u.logD > Math.log(30)) { streaks.play('out', x, y, { onMid: () => { cam.u.logD = 0; trackPack(0); raceLayer._hud(true); } }); return true; }
-    return false;
-  }
-  if (f < 1) {
-    const n = racerNear(x, y);
-    // pincement franc vers un racer (au moins ×2,5), ou plancher atteint : on plonge sur le plus proche du doigt
-    if (n && ((n.px < 90 && pinchAcc < 0.4) || D < giant.R * 0.02)) { diveTo(n.rc, x, y); return true; }
-  } else if (v === 'overview' && D > Math.max(packDist() * 4, giant.R * 4) && pinchAcc > 2) {
-    streaks.play('out', x, y, { hold: true, onMid: () => { if (!EMBED) streaks.handoff('out'); raceLayer.c.back(); } }); return true;
-  }
-  return false;
-};
+// changement de vue par les boutons du panneau (Ensemble, Portes, Suivre) : pas de plongée au pincement ;
+// le zoom reste borné au système (au-delà, les tracés s'arrêtent : on n'y voit rien d'utile)
 // vue Ensemble : la caméra suit le peloton présent dans le système et s'ajuste à son écartement
 targets.pack = { pos: null, minDist: 2000, label: 'Le peloton' };
 const speedLines = new SpeedLines(); scene.add(speedLines.mesh);
@@ -515,6 +477,9 @@ function step(dt) {
   }
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
   if (raceLayer && raceLayer.on) raceLayer.position(simT);
+  // en course, pas de recul au-delà du système (les tracés y commencent et finissent : on ne doit pas voir leurs bouts)
+  { const raceOn0 = raceLayer && raceLayer.on, m = raceOn0 ? Math.max(giant.R * 7, packDist() * 1.3) : 3e12;
+    cam.maxDist = m; if (cam.goal.logD > Math.log(m)) cam.goal.logD = Math.log(m); }
   const sportRc = raceLayer ? sportCam(dt) : null;
   // vue de poursuite : moins d'éclat (panache du racer suivi atténué, bloom plus sélectif) pour que la coque reste lisible
   if (fleet) for (const r of fleet) r.dim = r === sportRc ? 0.45 : 1;
@@ -602,7 +567,7 @@ function render() {
 const AUTO_Q = !window.SBPerf && !new URLSearchParams(location.search).has('q');
 const aq = { low: 0, high: 0, lockUntil: 0, floor: Q };
 function autoQuality(f, now) {
-  if (!AUTO_Q || director.active || streaks.busy || now < aq.lockUntil) return;
+  if (!AUTO_Q || director.active || now < aq.lockUntil) return;
   if (f < 42) { aq.low++; aq.high = 0; } else if (f >= 57) { aq.high++; aq.low = 0; } else { aq.low = 0; aq.high = 0; }
   if (aq.low >= 5 && lod.level < 3) { lod.set(lod.level + 1); aq.low = 0; aq.lockUntil = now + 6000; }
   else if (aq.high >= 30 && lod.level > aq.floor) { lod.set(lod.level - 1); aq.high = 0; aq.lockUntil = now + 20000; }
@@ -642,7 +607,6 @@ if (location.hash.startsWith('#course')) {
   if (sys !== curSys.id) setSystem(sys);
   $('giant').value = sys;
   courseView({ t, sel });
-  requestAnimationFrame(() => requestAnimationFrame(() => streaks.arrive()));    // fin du zoom accéléré venu du Télébyte
 }
 
 /* ── mode intégré : le Télébyte pilote cette vue par messages (Phase 2, étape 8) ──
@@ -650,7 +614,7 @@ if (location.hash.startsWith('#course')) {
    la vue répond ready, puis vit seule ; en remontant (geste ou « ← Télébyte ») elle renvoie surface { t, sel } et se met en veille. */
 function embedSurface() {
   parent.postMessage({ fronde: 1, type: 'surface', t: simT, sel: raceLayer.sel || null, sys: curSys.id }, '*');
-  streaks.clear(); renderer.setAnimationLoop(null);
+  renderer.setAnimationLoop(null);
 }
 if (EMBED) {
   document.body.classList.add('embed');
@@ -685,7 +649,7 @@ if (EMBED) {
 
 // accès de test (tools/fronde/shots.js) : rendu image par image, sans boucle
 window.RW = {
-  camDiag: (x, y) => ({ tr: !!cam.tr, D: cam.distance, R: giant.R, view: raceLayer._view, chase: cam.chase, busy: streaks.busy, near: x != null ? (({ rc, px }) => ({ id: rc.def.id, px }))(racerNear(x, y) || { rc: { def: {} }, px: -1 }) : null, acc: pinchAcc, dir: director.active }),
+  camDiag: () => ({ tr: !!cam.tr, D: cam.distance, R: giant.R, view: raceLayer._view, chase: cam.chase, maxD: cam.maxDist, dir: director.active }),
   coursePortes: () => VIEWS['course-portes'](), course: (o) => courseView(o || {}), advanceRace: (dt) => { simT += dt; }, raceSelect: (id) => raceLayer.select(id),
   leader: () => { const f = ensureFleet(), rows = raceLayer.feed.standingsAt(simT); const r = rows.find((x) => f.find((rc) => rc.def.id === x.id && rc.inSys)); return r ? r.id : null; },
   setSystem: (id) => setSystem(id), views: Object.keys(VIEWS), setView: (v) => { if (director.active) { director.stop(); cam.enabled = true; } VIEWS[v](); }, setGiant, setTime: (t) => { simT = t; }, setTimeScale: (s) => { timeScale = s; },

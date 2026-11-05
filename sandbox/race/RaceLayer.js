@@ -63,7 +63,7 @@ export class RaceLayer {
     const axis = new THREE.Vector3(0, 1, 0).applyQuaternion(q).toArray();
     for (const r of this.feed.racers) {
       let h = this.holos[r.id];
-      if (!h) { h = this.holos[r.id] = new TrajectoryHolo({ color: r.livery, past: r.livery, maxPoints: 1400 }); this.c.scene.add(h.group); }
+      if (!h) { h = this.holos[r.id] = new TrajectoryHolo({ color: r.livery, past: r.livery, maxPoints: 1400 }); h.u.uAhead.value = 0; this.c.scene.add(h.group); }   // course : traînée seulement
       const P0 = this.feed.plannedPath(r.id, sys.id);
       const S = (P0.length > 1 ? resample(P0) : P0).map((s) => {
         v.set(...s.p).applyQuaternion(q); const p = [gp[0] + v.x, gp[1] + v.y, gp[2] + v.z];
