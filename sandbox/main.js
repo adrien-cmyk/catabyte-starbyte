@@ -1,4 +1,4 @@
-// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 7 du plan technique).
+// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 8 du plan technique).
 // Assemble : renderer à profondeur logarithmique, origine flottante, ciel cuit, étoile, géante gazeuse + anneaux, trois lunes,
 // caméra libre à zoom logarithmique, post-traitement (bloom), panneau de réglages, vues des tests visuels.
 import { SB3D, THREE, qualityLevel } from './lib/sb3d-shim.js';
@@ -11,6 +11,7 @@ import { FreeCamera } from './camera/FreeCamera.js';
 import { GIANTS } from './presets/giants.js';
 import { Moon, PatchPool } from './bodies/Moon.js';
 import { sandboxMoons } from './presets/moons.js';
+import { AsteroidField } from './bodies/AsteroidField.js';
 
 const Q = qualityLevel();
 const host = document.getElementById('view');
@@ -65,6 +66,23 @@ const moons = sandboxMoons(GIANTS.amber.radius).map((def) => {
   return m;
 });
 const moonById = Object.fromEntries(moons.map((m) => [m.def.id, m]));
+
+/* ── champ d'astéroïdes : un amas allongé le long de l'orbite, à 4,4 R de la géante, éclairé de côté ── */
+const field = (() => {
+  const Rg = GIANTS.amber.radius, q = giant.group.quaternion;
+  const sL = SUN_DIR.clone().applyQuaternion(q.clone().invert());
+  const a = Math.atan2(sL.z, sL.x) + 1.9;
+  const radial = new THREE.Vector3(Math.cos(a), 0, Math.sin(a)).applyQuaternion(q);
+  const normal = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
+  const tangent = new THREE.Vector3().crossVectors(normal, radial);
+  const c = radial.clone().multiplyScalar(4.4 * Rg);
+  const f = new AsteroidField({ seed: 'fronde-1', center: [c.x, c.y, c.z], axes: [tangent.toArray(), radial.toArray(), normal.toArray()],
+    extent: [3.0e7, 9e6, 2.5e6] }, { quality: Q });
+  f.radial = radial; f.normal = normal;
+  frame.add(f.group, f.anchor); scene.add(f.group);
+  return f;
+})();
+targets.field = { pos: field.center, minDist: 100, label: 'Champ d\'astéroïdes' };
 // passage rasant : point de surface fixe dans le repère de la lune, choisi avec le soleil à ~10° sur l'horizon
 let graze = null;
 function setGraze(id, sunElev = 0.17) {
@@ -95,6 +113,26 @@ const VIEWS = {
   star: () => cam.setTarget(targets.star, { dist: star.R * 6, yaw: sunYaw + Math.PI + 0.6, pitch: 0.1 }),
   // une lune devant la géante, toutes deux éclairées de trois quarts : on avance le temps jusqu'à ce que Kesh passe
   // côté soleil (décalée de 0,5 rad), puis la caméra se place au-delà de la lune, le soleil dans le dos
+  // test n° 5 : entrée dans le champ (depuis l'extérieur, la géante derrière) et cœur du champ
+  'field-entry': () => { graze = null; const r = field.radial, E = field.data.def.extent;
+    targets.fieldEdge = { pos: Float64Array.from([field.center[0] + r.x * E[1] * 0.8, field.center[1] + r.y * E[1] * 0.8, field.center[2] + r.z * E[1] * 0.8]), minDist: 100, label: 'Lisière du champ' };
+    cam.setTarget(targets.fieldEdge, { dist: 2.5e5, yaw: Math.atan2(r.x, r.z) + 0.12, pitch: 0.05 }); },
+  'field-in': () => { graze = null; const r = field.radial;
+    // point le plus dense du champ (échantillonnage déterministe), pour être au milieu d'un amas
+    const D = field.data, A = D.def.axes, E = D.def.extent; let best = [0, 0, 0], bd = -1;
+    for (let i = 0; i < 600; i++) {
+      const u = ((i * 0.618034) % 1 - 0.5) * 1.2, v = ((i * 0.754878) % 1 - 0.5) * 0.6, w = ((i * 0.569840) % 1 - 0.5) * 0.4;
+      const p = [0, 1, 2].map((c) => A[0][c] * u * E[0] + A[1][c] * v * E[1] + A[2][c] * w * E[2]);
+      const d = D.density(...p); if (d > bd) { bd = d; best = p; }
+    }
+    // un rocher de taille moyenne (niveau 2) près de ce point : premier plan du test
+    const L2 = D.levels[2], ci = best.map((c) => Math.floor(c / L2.s));
+    let rock = null;
+    for (let i = -1; i <= 1 && !rock; i++) for (let j = -1; j <= 1; j++) for (let l = -1; l <= 1; l++)
+      for (const q of D.rocksInCell(2, ci[0] + i, ci[1] + j, ci[2] + l)) if (!rock || q.r > rock.r) rock = q;
+    const p = rock ? [rock.x, rock.y, rock.z] : best;
+    targets.fieldIn = { pos: Float64Array.from([field.center[0] + p[0], field.center[1] + p[1], field.center[2] + p[2]]), minDist: 100, label: 'Cœur du champ' };
+    cam.setTarget(targets.fieldIn, { dist: rock ? rock.r * 5 : 4000, yaw: Math.atan2(r.x, r.z) + 0.9, pitch: 0.12 }); },
   moons: () => { graze = null; const m = moonById.kesh, o = m.def.orbit;
     const sL = SUN_DIR.clone().applyQuaternion(giant.group.quaternion.clone().invert());
     const aStar = Math.atan2(sL.z, sL.x) + 0.5;
@@ -144,6 +182,10 @@ function step(dt) {
     m.update(frame, camera, sd, star.color, 1.7 * star.type.intensity, pix, simT);
   }
   pool.pump();
+  {
+    const c = field.center, sd = new THREE.Vector3(star.pos[0] - c[0], star.pos[1] - c[1], star.pos[2] - c[2]).normalize();
+    field.update(frame, camera, sd, star.color, 1.7 * star.type.intensity, pix, simT);
+  }
   sunLight.position.copy(sunDirAtGiant).multiplyScalar(1000); sunLight.target.position.set(0, 0, 0);
 }
 function render() { composer.render(); }
@@ -166,7 +208,7 @@ $('giant').onchange = (e) => { setGiant(e.target.value); };
 $('view-sel').onchange = (e) => { const v = e.target.value; curTarget = v.startsWith('ring') ? 'rings' : v === 'star' ? 'star' : moonById[v] ? 'moon:' + v : 'giant'; if (!v.startsWith('graze')) graze = null; VIEWS[v](); };
 $('target').onchange = (e) => { curTarget = e.target.value; graze = null;
   const m = curTarget.startsWith('moon:') ? moonById[curTarget.slice(5)] : null;
-  cam.setTarget(targets[curTarget], { dur: 3.2, dist: m ? m.R * 3 : curTarget === 'star' ? star.R * 8 : curTarget === 'rings' ? 2e7 : giant.R * 3 }); };
+  cam.setTarget(targets[curTarget], { dur: 3.2, dist: m ? m.R * 3 : curTarget === 'field' ? 2e6 : curTarget === 'star' ? star.R * 8 : curTarget === 'rings' ? 2e7 : giant.R * 3 }); };
 $('speed').oninput = (e) => { timeScale = Math.round(Math.pow(10, +e.target.value)); hud(); };
 $('shot').onclick = () => { render(); const a = document.createElement('a'); a.download = `fronde_${giantKey}_${Date.now()}.png`; a.href = renderer.domElement.toDataURL('image/png'); a.click(); };
 
@@ -175,7 +217,7 @@ window.RW = {
   views: Object.keys(VIEWS), setView: (v) => { VIEWS[v](); }, setGiant, setTime: (t) => { simT = t; }, setTimeScale: (s) => { timeScale = s; },
   stop: () => renderer.setAnimationLoop(null),
   frames: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) step(dt); render(); },
-  info: () => ({ ...renderer.info.render, q: Q, dist: cam.distance, pending: pool.pending }),
+  info: () => ({ ...renderer.info.render, q: Q, dist: cam.distance, pending: pool.pending, field: field.stats }),
   // attend que toutes les parcelles de relief demandées soient construites (captures)
   settle: async (maxMs = 60000) => {
     const t0 = performance.now(); let calm = 0;
