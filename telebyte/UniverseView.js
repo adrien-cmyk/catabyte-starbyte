@@ -71,59 +71,65 @@ export class UniverseView {
     this.scene.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.3, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: 0.8, depthWrite: false })));
   }
   // nœuds (systèmes), boucles de fronde, couloirs ; points de contrôle placés sur ces courbes
+  // le parcours : une seule courbe lisse (Catmull-Rom centripète) qui arrive dans chaque système, contourne l'étoile
+  // au plus près (côté intérieur du virage, comme une fronde) et repart vers le suivant — sans coin ni épingle.
+  // Points de passage par système : entrée, périapse, sortie (le dernier système s'arrête à la périapse : l'arrivée).
   _route() {
     const sys = this.feed.edition.systems, S = this.scene;
     this.nodes = sys.map((s) => ({ sys: s, p: [s.galPos[0] * LY, 0, s.galPos[2] * LY] }));
-    const N = this.nodes;
+    const N = this.nodes, pts = [];
     N.forEach((n, i) => {
       const prev = N[i - 1], next = N[i + 1];
       const dirTo = (q) => { const d = [q.p[0] - n.p[0], q.p[2] - n.p[2]], l = Math.hypot(...d); return [d[0] / l, d[1] / l]; };
-      const din = prev ? dirTo(prev) : [-1, 0.25], dout = next ? dirTo(next) : [1, -0.25];
-      // entrée côté précédent, sortie côté suivant, périapse de l'autre côté de l'étoile (le crochet de la fronde)
-      const perp = [-(din[1] + dout[1]), din[0] + dout[0]], pl = Math.hypot(...perp) || 1;
-      const side = [perp[0] / pl, perp[1] / pl];
+      const din = prev ? dirTo(prev) : (() => { const d = dirTo(next); return [-d[0], -d[1]]; })();
+      const dout = next ? dirTo(next) : [-din[0], -din[1]];
+      // côté de la périapse : à l'intérieur du virage (là où la trajectoire se replie), à défaut perpendiculaire
+      let side = [-(din[0] + dout[0]), -(din[1] + dout[1])];
+      if (Math.hypot(...side) < 0.2) side = [-dout[1], dout[0]];
+      const sl = Math.hypot(...side); side = [side[0] / sl, side[1] / sl];
       n.entry = [n.p[0] + din[0] * LOOP, 0, n.p[2] + din[1] * LOOP];
+      n.peri = [n.p[0] + side[0] * LOOP * 0.42, 0, n.p[2] + side[1] * LOOP * 0.42];
       n.exit = [n.p[0] + dout[0] * LOOP, 0, n.p[2] + dout[1] * LOOP];
-      n.peri = [n.p[0] + side[0] * LOOP * 0.55, 0, n.p[2] + side[1] * LOOP * 0.55];
-      n.ctrlA = [n.p[0] + (din[0] + side[0] * 1.4) * LOOP, 0, n.p[2] + (din[1] + side[1] * 1.4) * LOOP];
-      n.ctrlB = [n.p[0] + (dout[0] + side[0] * 1.4) * LOOP, 0, n.p[2] + (dout[1] + side[1] * 1.4) * LOOP];
-      n.last = !next;
+      n.last = !next; n.side = side;
+      n.iE = pts.length; pts.push(n.entry); n.iP = pts.length; pts.push(n.peri);
+      if (!n.last) { n.iX = pts.length; pts.push(n.exit); }
       const sc = STAR_COL[n.sys.star] || 0xffffff;
       const g = new THREE.Group(); g.position.set(...n.p); S.add(g);
       g.add(sprite(GLOW.star, 60, sc, 0.95)); g.add(sprite(GLOW.soft, 260, sc, 0.35)); g.add(sprite(GLOW.soft, 900, sc, 0.08));
-      // la géante maîtresse en minuscule disque à côté de l'étoile
       const gd = new THREE.Mesh(new THREE.CircleGeometry(9, 32), new THREE.MeshBasicMaterial({ color: new THREE.Color(GIANT_COL[n.sys.giant]) }));
-      gd.rotation.x = -Math.PI / 2; gd.position.set(side[0] * 34, 1, side[1] * 34); g.add(gd);
-      // boucle de fronde : trait fin
-      const pts = [];
-      for (let k = 0; k <= 48; k++) { const t = k / 48; pts.push(new THREE.Vector3(...(t < 0.5 ? bez(n.entry, n.ctrlA, n.peri, t * 2) : bez(n.peri, n.ctrlB, n.exit, t * 2 - 1))).sub(new THREE.Vector3(...n.p))); }
-      if (n.last) pts.splice(25);
-      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x9fd4ec, transparent: true, opacity: 0.45 })));
+      gd.rotation.x = -Math.PI / 2; gd.position.set(-side[0] * 34, 1, -side[1] * 34); g.add(gd);
     });
-    // couloirs interstellaires : bande de lumière douce + trait pointillé
-    this.legs = [];
+    this.curve = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)), false, 'centripetal');
+    this.nPts = pts.length;
+    const seg = (a, b, n) => { const out = []; for (let k = 0; k <= n; k++) out.push(this.curve.getPoint((a + (b - a) * k / n) / (this.nPts - 1))); return out; };
+    // passages dans les systèmes : trait fin continu ; étapes interstellaires : pointillé et couloir de lumière douce
+    for (const n of N) {
+      const a = n.iE, b = n.last ? n.iP : n.iX;
+      S.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(seg(a, b, 60)), new THREE.LineBasicMaterial({ color: 0x9fd4ec, transparent: true, opacity: 0.55 })));
+    }
     for (let i = 0; i < N.length - 1; i++) {
-      const a = N[i].exit, b = N[i + 1].entry, m = [(a[0] + b[0]) / 2, 0, (a[2] + b[2]) / 2 - 0.12 * Math.hypot(b[0] - a[0], b[2] - a[2])];
-      const leg = { a, m, b }; this.legs.push(leg);
-      const pts = []; for (let k = 0; k <= 80; k++) pts.push(new THREE.Vector3(...bez(a, m, b, k / 80)));
-      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineDashedMaterial({ color: 0xffc9a0, dashSize: 14, gapSize: 10, transparent: true, opacity: 0.5 }));
+      const pts2 = seg(N[i].iX, N[i + 1].iE, 80);
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts2), new THREE.LineDashedMaterial({ color: 0xffc9a0, dashSize: 14, gapSize: 10, transparent: true, opacity: 0.5 }));
       line.computeLineDistances(); S.add(line);
-      for (let k = 1; k < 14; k++) { const q = bez(a, m, b, k / 14); const s = sprite(GLOW.soft, 260, 0xff9a6a, 0.07); s.position.set(q[0], -4, q[2]); S.add(s); }
+      for (let k = 1; k < 14; k++) { const q = pts2[Math.round(k / 14 * 80)]; const sp = sprite(GLOW.soft, 260, 0xff9a6a, 0.07); sp.position.set(q.x, -4, q.z); S.add(sp); }
     }
   }
-  // position (scène) d'un racer d'après son état dans le flux
+  // position (scène) d'un racer d'après son état dans le flux : abscisse sur la courbe du parcours
   _placeOf(id, t) {
-    const st = this.feed.stateAt(id, t), tr = this.feed.tracks[id];
+    const st = this.feed.stateAt(id, t), tr = this.feed.tracks[id], E = this.feed.edition;
+    let u;
     if (st.phase === 'leg') {
-      const k = this.feed.edition.systems.findIndex((s) => s.id === st.legFrom), L = this.legs[k];
-      return bez(L.a, L.m, L.b, st.f);
+      const k = E.systems.findIndex((s) => s.id === st.legFrom);
+      u = this.nodes[k].iX + (this.nodes[k + 1].iE - this.nodes[k].iX) * st.f;
+    } else {
+      const sysId = st.phase === 'done' ? E.systems[E.systems.length - 1].id : st.system;
+      const k = E.systems.findIndex((s) => s.id === sysId), n = this.nodes[k];
+      const seg = tr.segs.find((s) => s.kind === 'system' && s.sys.id === sysId), tp = seg.tp;
+      const tc = Math.min(Math.max(t, seg.t0), n.last ? tp : seg.t1);
+      u = tc < tp ? n.iE + (n.iP - n.iE) * (tc - seg.t0) / Math.max(tp - seg.t0, 1) : n.iP + ((n.last ? n.iP : n.iX) - n.iP) * (tc - tp) / Math.max(seg.t1 - tp, 1);
     }
-    const sysId = st.phase === 'done' ? this.feed.edition.systems[this.feed.edition.systems.length - 1].id : st.system;
-    const k = this.feed.edition.systems.findIndex((s) => s.id === sysId), n = this.nodes[k];
-    const seg = tr.segs.find((s) => s.kind === 'system' && s.sys.id === sysId);
-    const tp = seg.tp, tc = Math.min(Math.max(t, seg.t0), n.last ? tp : seg.t1);
-    const u = tc < tp ? 0.5 * (tc - seg.t0) / (tp - seg.t0) : 0.5 + 0.5 * (tc - tp) / Math.max(seg.t1 - tp, 1);
-    return u < 0.5 ? bez(n.entry, n.ctrlA, n.peri, u * 2) : bez(n.peri, n.ctrlB, n.exit, u * 2 - 1);
+    const v = this.curve.getPoint(Math.min(1, Math.max(0, u / (this.nPts - 1))));
+    return [v.x, v.y, v.z];
   }
   _markers() {
     const ov = this.overlay; ov.innerHTML = '';

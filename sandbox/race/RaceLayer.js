@@ -120,7 +120,7 @@ export class RaceLayer {
     for (const row of rows) {
       const rc = byRc[row.id]; if (!rc) continue;
       const el = this._label(rc);
-      if (!rc.inSys) { el.hidden = true; el._y = null; continue; }
+      if (!rc.inSys || (this._view === 'follow' && this.sel === rc.def.id)) { el.hidden = true; el._y = null; continue; }   // en poursuite, le panneau dit déjà tout
       v.set(rc.pos[0] - frame.cam[0], rc.pos[1] - frame.cam[1], rc.pos[2] - frame.cam[2]).project(camera);
       if (v.z > 1 || Math.abs(v.x) > 1.2 || Math.abs(v.y) > 1.2) { el.hidden = true; el._y = null; continue; }
       el.hidden = false;
@@ -147,7 +147,7 @@ export class RaceLayer {
         this.c.labels.appendChild(el);
       }
       v.set(a.p[0] - frame.cam[0], a.p[1] - frame.cam[1], a.p[2] - frame.cam[2]).project(camera);
-      el.hidden = v.z > 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1;
+      el.hidden = this._view === 'follow' || v.z > 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1;
       el.style.transform = `translate(${((v.x * 0.5 + 0.5) * W) | 0}px, ${((-v.y * 0.5 + 0.5) * H) | 0}px)`;
     }
     this._hud();

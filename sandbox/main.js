@@ -337,7 +337,7 @@ function sportCam(dt) {
   const v = new THREE.Vector3(...rc.vel), sp = v.length(); v.normalize();
   const up = new THREE.Vector3(0, 1, 0).applyQuaternion(giant.group.quaternion);
   const side = new THREE.Vector3().crossVectors(v, up).normalize();
-  const dir = v.clone().multiplyScalar(-Math.cos(0.2)).addScaledVector(up, Math.sin(0.2)).addScaledVector(side, 0.1).normalize();
+  const dir = v.clone().multiplyScalar(-Math.cos(0.28)).addScaledVector(up, Math.sin(0.28)).addScaledVector(side, 0.32).normalize();
   let yaw = Math.atan2(dir.x, dir.z); const pitch = Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
   while (yaw - cam.goal.yaw > Math.PI) yaw -= 2 * Math.PI; while (yaw - cam.goal.yaw < -Math.PI) yaw += 2 * Math.PI;
   if (!cam.tr) { cam.goal.yaw = yaw; cam.goal.pitch = pitch; cam.goal.logD += (Math.log(L * 2.2 + 25) - cam.goal.logD) * Math.min(1, dt * 1.5); }
@@ -506,6 +506,16 @@ function step(dt) {
   if (fleet) for (const rc of fleet) { const vis = fleetOn && (!raceOn || rc.inSys); rc.group.visible = rc.trail.mesh.visible = vis; if (vis) rc.update(frame, simT, performance.now() / 1000); }
   // vue Ensemble : le cadrage suit l'écartement du peloton (en douceur : l'utilisateur peut encore zoomer)
   if (raceOn && raceLayer._view === 'overview' && !cam.tr) cam.goal.logD += (Math.log(packDist()) - cam.goal.logD) * Math.min(1, dt * 0.8);
+  // téléphone : le panneau de course occupe le bas ; on remonte le centre de l'image au milieu de la zone libre
+  {
+    const hud = document.getElementById('race'), narrow = innerWidth <= 720;
+    const off = raceOn && narrow && !hud.hidden ? Math.round(hud.offsetHeight / 2 * renderer.getPixelRatio()) : 0;
+    if (off !== (camera._sbOff || 0)) {
+      camera._sbOff = off;
+      if (off) camera.setViewOffset(renderer.domElement.width, renderer.domElement.height, 0, off, renderer.domElement.width, renderer.domElement.height);
+      else camera.clearViewOffset();
+    }
+  }
   if (raceOn) raceLayer.update(simT, camera, pix, [renderer.domElement.width, renderer.domElement.height, renderer.getPixelRatio()]);
   holo.group.visible = racerOn;
   // lisibilité en vue système : balise du racer, lunes agrandies (jamais en vue rapprochée : échelle réelle)

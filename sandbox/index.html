@@ -82,6 +82,13 @@
     #race li { padding: 3px 0; } #race li small { display: none; } #race li .nm { font-size: 12px; }
     #race .rh-time { font-size: 15px; margin: 0 0 4px; } #race b#rh-sys { margin-top: 4px; }
     #race #rh-win { font-size: 10px; }
+    /* télémétrie compacte : deux colonnes de mesures, vitesse moins haute */
+    #race.follow b#rh-sys, #race.follow .rh-time { display: inline-block; margin: 4px 8px 2px 0; }
+    #rh-tele .tl-speed b { font-size: 26px; }
+    #rh-tele .tl-speed { margin: 0 0 4px; }
+    #rh-tele .tl-grid { grid-template-columns: auto 1fr auto 1fr; gap: 2px 8px; font-size: 10px; }
+    #rh-tele .tl-grid b { font-size: 10px; }
+    #rh-tele .tl-next { margin-top: 4px; font-size: 10px; }
   }
   body.clean #caption,
   body.clean #panel, body.clean #readout, body.clean #title { display: none; }
