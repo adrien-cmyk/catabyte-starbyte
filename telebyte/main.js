@@ -30,7 +30,37 @@ function enterSystem(sysId) {
 let restore = null;
 try { const ts = sessionStorage.getItem('fronde.t'); if (ts && document.referrer) restore = { t: +ts, sel: sessionStorage.getItem('fronde.sel') || null }; } catch (e) {}
 
-const dive = (sysId, x, y) => { if (streaks.busy) return; streaks.play('in', x, y, { hold: true, onMid: () => { streaks.handoff('in'); enterSystem(sysId); } }); };
+/* ── zoom continu univers ↔ système (Phase 2, étape 8) : la vue système est préchargée dans un cadre caché ;
+   plonger = zoom accéléré vers le système, éclair, la vue système prend le relais (sa caméra arrive de très haut) ;
+   remonter = l'inverse. Sans cadre (chargement raté), on retombe sur le changement de page. ── */
+let sysFrame = null, frameOk = false, inSystem = false, curSysId = null, pending = null;
+function loadFrame() {
+  if (sysFrame) return;
+  sysFrame = document.createElement('iframe'); sysFrame.id = 'sysframe'; sysFrame.title = 'Vue système';
+  sysFrame.src = SYSTEM_PAGE + (SYSTEM_PAGE.includes('?') ? '&' : '?') + 'embed';
+  document.body.appendChild(sysFrame);
+}
+setTimeout(loadFrame, 800);                                          // après le premier affichage du Télébyte
+addEventListener('message', (e) => {
+  const m = e.data; if (!sysFrame || e.source !== sysFrame.contentWindow || !m || !m.fronde) return;
+  if (m.type === 'loaded') { frameOk = true; if (pending) { const p = pending; pending = null; p(); } }
+  else if (m.type === 'ready') { inSystem = true; sysFrame.classList.add('on'); streaks.play('in', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 1.1 }); }
+  else if (m.type === 'surface') {
+    t = Math.min(E.t1, m.t); if (m.sel !== view.sel) { view.sel = m.sel || null; view.onSelect(view.sel); }
+    inSystem = false; sysFrame.classList.remove('on'); view.surfaceFrom(m.sys || curSysId); renderStandings(true);
+    streaks.play('out', innerWidth / 2, innerHeight / 2, { from: 0.5, dur: 1.1 });
+  }
+});
+const dive = (sysId, x, y) => {
+  if (streaks.busy || inSystem) return;
+  view.diveTo(sysId); curSysId = sysId;
+  streaks.play('in', x, y, { hold: true, onMid: () => {
+    const go = () => sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null }, '*');
+    if (frameOk) return go();
+    loadFrame(); pending = go;
+    setTimeout(() => { if (pending) { pending = null; view.diving = null; streaks.handoff('in'); enterSystem(sysId); } }, 8000);    // repli : changement de page si le cadre ne répond pas
+  } });
+};
 const view = new UniverseView($('scene'), $('labels'), feed, { onEnter: (id) => { const el = [...document.querySelectorAll('.tb-sys')].find((e) => e.textContent.startsWith(E.systems.find((s) => s.id === id).name)); const r = el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 2, width: 0 }; dive(id, r.left + r.width / 2, r.top); }, onDive: dive, onSelect: (id) => { renderStandings(true); $('focus').hidden = !id; if (id) $('focus-name').textContent = racer[id].name; } });
 addEventListener('resize', () => view.resize());
 
@@ -41,7 +71,7 @@ $('play').onclick = () => { playing = !playing; $('play').textContent = playing 
 $('speed').onclick = () => { speedI = (speedI + 1) % SPEEDS.length; $('speed').textContent = '×' + SPEEDS[speedI]; };
 $('speed').textContent = '×' + SPEEDS[speedI];
 $('focus-clear').onclick = () => view.select(view.sel);
-$('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); enterSystem(s.phase === 'system' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id); };
+$('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); dive(s.phase === 'system' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id, innerWidth / 2, innerHeight / 2); };
 $('edition').textContent = E.name;
 $('route').textContent = E.systems.map((s) => s.name).join(' → ');
 
@@ -94,13 +124,14 @@ if (restore) { t = Math.min(restore.t, E.t1); if (restore.sel) view.select(resto
 
 function loop(now) {
   requestAnimationFrame(loop);
-requestAnimationFrame(() => streaks.arrive());                    // retour d'un système : fin du zoom accéléré
+  if (inSystem) { last = now; return; }                           // la vue système intégrée vit seule (et tient l'horloge)
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   if (playing) { t = Math.min(E.t1, t + dt * SPEEDS[speedI]); if (t >= E.t1) { playing = false; $('play').textContent = 'Lecture'; } }
   renderStandings(); renderClock();
   view.update(t, dt);
 }
 requestAnimationFrame(loop);
+requestAnimationFrame(() => streaks.arrive());                    // retour d'un système (changement de page) : fin du zoom accéléré
 
 // accès de test (captures)
-window.TB = { set: (x) => { t = x; playing = false; renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
+window.TB = { view, streaks, dive: (id) => dive(id, innerWidth / 2, innerHeight / 2), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };

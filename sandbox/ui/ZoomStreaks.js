@@ -20,6 +20,7 @@ export class ZoomStreaks {
     } catch (e) {}
   }
   get busy() { return !!this.anim; }
+  clear() { this.anim = null; this.ctx.clearRect(0, 0, this.cv.width, this.cv.height); }
   // dir : 'in' (on plonge) ou 'out' (on remonte) ; x, y : point visé (px CSS)
   play(dir, x, y, { dur = 0.95, onMid = null, from = 0, hold = false } = {}) {
     this.anim = { dir, x, y, dur, onMid, t: from, hold, last: performance.now(), midDone: from >= 0.5 };

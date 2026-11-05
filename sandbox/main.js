@@ -38,6 +38,8 @@ host.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, 1, 0.5, 1e13);
 const frame = new WorldFrame();
+// intégré au Télébyte (cadre préchargé, ?embed) : zoom continu univers ↔ système sans changement de page
+const EMBED = new URLSearchParams(location.search).has('embed');
 let simT = 3 * 3600, timeScale = 240, last = performance.now(), fpsAcc = 0, fpsN = 0, fps = 0;
 scene.background = bakeBackdrop(renderer, { quality: Q });
 
@@ -319,6 +321,7 @@ raceLayer = new RaceLayer({
   follow: (id) => { const P = RACER_PROFILES[RACERS.find((r) => r.id === id).ship]; cam.setTarget(targets['racer:' + id], { dur: 2.2, dist: Math.max(P.length * 3, 400) }); },
   views: { overview: () => trackPack(2), gates: () => VIEWS['course-portes']() },
   back: () => {
+    if (EMBED) return embedSurface();                                   // intégré au Télébyte : on remonte sans changer de page
     try { sessionStorage.setItem('fronde.t', String(simT)); sessionStorage.setItem('fronde.sel', raceLayer.sel || ''); } catch (e) {}
     let url = '../telebyte/index.html'; try { url = sessionStorage.getItem('fronde.back') || url; } catch (e) {}
     location.href = url;
@@ -348,7 +351,7 @@ function diveTo(rc, x, y) {
 cam.onZoom = (f, x, y) => {
   if (streaks.busy) return true;
   if (!raceLayer || !raceLayer.on || cam.tr || director.active) return false;
-  const now = performance.now(); if (now - pinchLast > 450) pinchAcc = 1; pinchLast = now; pinchAcc *= f;
+  const now = performance.now(); if (now - pinchLast > 2500 || (f > 1) !== (pinchAcc > 1)) pinchAcc = 1; pinchLast = now; pinchAcc *= f;   // cumul par sens de geste
   const v = raceLayer._view, D = cam.distance;
   if (v === 'follow') {
     if (f > 1 && cam.u.logD > Math.log(30)) { streaks.play('out', x, y, { onMid: () => { cam.u.logD = 0; trackPack(0); raceLayer._hud(true); } }); return true; }
@@ -359,7 +362,7 @@ cam.onZoom = (f, x, y) => {
     // pincement franc vers un racer (au moins ×2,5), ou plancher atteint : on plonge sur le plus proche du doigt
     if (n && ((n.px < 90 && pinchAcc < 0.4) || D < giant.R * 0.02)) { diveTo(n.rc, x, y); return true; }
   } else if (v === 'overview' && D > Math.max(packDist() * 4, giant.R * 4) && pinchAcc > 2) {
-    streaks.play('out', x, y, { hold: true, onMid: () => { streaks.handoff('out'); raceLayer.c.back(); } }); return true;
+    streaks.play('out', x, y, { hold: true, onMid: () => { if (!EMBED) streaks.handoff('out'); raceLayer.c.back(); } }); return true;
   }
   return false;
 };
@@ -621,6 +624,29 @@ if (location.hash.startsWith('#course')) {
   $('giant').value = sys;
   courseView({ t, sel });
   requestAnimationFrame(() => requestAnimationFrame(() => streaks.arrive()));    // fin du zoom accéléré venu du Télébyte
+}
+
+/* ── mode intégré : le Télébyte pilote cette vue par messages (Phase 2, étape 8) ──
+   enter { sys, t, sel } : on entre dans le système, caméra lancée de loin qui plonge (amortie) sur le peloton ou le racer ;
+   la vue répond ready, puis vit seule ; en remontant (geste ou « ← Télébyte ») elle renvoie surface { t, sel } et se met en veille. */
+function embedSurface() {
+  parent.postMessage({ fronde: 1, type: 'surface', t: simT, sel: raceLayer.sel || null, sys: curSys.id }, '*');
+  streaks.clear(); renderer.setAnimationLoop(null);
+}
+if (EMBED) {
+  document.body.classList.add('embed');
+  renderer.setAnimationLoop(null);                                      // en veille tant que le Télébyte est affiché
+  addEventListener('message', (e) => {
+    const m = e.data; if (!m || !m.fronde || e.source !== parent) return;
+    if (m.type === 'enter') {
+      if (m.sys !== curSys.id) { setSystem(m.sys); $('giant').value = m.sys; }
+      courseView({ t: m.t, sel: m.sel || null });
+      if (cam.tr) cam.tr.logFrom += Math.log(80); else cam.logD += Math.log(80);   // on arrive de très haut
+      last = performance.now(); renderer.setAnimationLoop(loop);
+      requestAnimationFrame(() => requestAnimationFrame(() => parent.postMessage({ fronde: 1, type: 'ready' }, '*')));
+    } else if (m.type === 'pause') renderer.setAnimationLoop(null);
+  });
+  parent.postMessage({ fronde: 1, type: 'loaded' }, '*');
 }
 
 // accès de test (tools/fronde/shots.js) : rendu image par image, sans boucle

@@ -150,6 +150,12 @@ export class UniverseView {
     this.racerGlows = this.feed.racers.map((r) => { const s = sprite(GLOW.soft, 70, new THREE.Color(r.livery), 0.8); this.scene.add(s); return s; });
   }
   select(id) { this.sel = this.sel === id ? null : id; this.onSelect(this.sel); }
+  // zoom continu avec la vue système : plonger vers un système, ou en ressortir (la caméra repart de tout près)
+  diveTo(sysId) { const n = this.nodes.find((x) => x.sys.id === sysId); if (n) this.diving = { p: n.p.slice(), t: 0 }; }
+  surfaceFrom(sysId) {
+    this.diving = null; const n = this.nodes.find((x) => x.sys.id === sysId); if (!n) return;
+    this._f = n.p.slice(); this._d = this.span * 0.02;               // puis l'amorti normal ramène au cadrage du parcours
+  }
   _bind() {
     const d = this.renderer.domElement, pts = new Map(); let pinch0 = 0, zoom0 = 1;
     // les gestes commencés sur une étiquette de la scène comptent aussi (sinon pincer sur un vaisseau ne zoome pas)
@@ -167,7 +173,7 @@ export class UniverseView {
   }
   // zoom vers le doigt (comme la carte du jeu) ; à la butée, continuer à pincer vers un système = y plonger
   zoomBy(f, x, y) {
-    const now = performance.now(); if (now - (this._zl || 0) > 450) this._acc = 1; this._zl = now; this._acc *= f;
+    const now = performance.now(); if (now - (this._zl || 0) > 2500 || (f > 1 && this._acc < 1)) this._acc = 1; this._zl = now; this._acc *= f;   // pincements successifs cumulés ; reculer remet à zéro
     const z0 = this.zoom, z1 = THREE.MathUtils.clamp(z0 * f, 0.18, 1.6), q = z1 / z0;
     if (f < 1 && this.onDive) {
       const n = this._nearSys(x, y);
@@ -200,10 +206,17 @@ export class UniverseView {
     let focus = [this.center[0] + this.pan[0] + (wide ? this.span * 0.06 : 0), 0, this.center[2] + this.pan[1]];
     if (this.sel) { const p = this._placeOf(this.sel, t); focus = [p[0] + this.pan[0] * 0.2, 0, p[2] + this.pan[1] * 0.2]; }
     this._f = this._f || focus.slice();
-    for (let i = 0; i < 3; i++) this._f[i] += (focus[i] - this._f[i]) * (1 - Math.exp(-dt * 4));
     const fit = this.span / Math.min(aspect, 1.6) * (aspect < 0.8 ? 1.25 : 1) * (aspect < 0.6 ? 1.25 : 1);   // portrait étroit : marge pour les systèmes extrêmes
     const dist = fit * (wide ? 1.5 : 1.15) * this.zoom * (this.sel ? 0.45 : 1);
-    this._d = this._d ? this._d + (dist - this._d) * (1 - Math.exp(-dt * 3)) : dist;
+    if (this.diving) {
+      // plongée vers un système : visée qui file sur lui, distance qui fond de plus en plus vite (zoom accéléré)
+      const dv = this.diving; dv.t += dt;
+      for (let i = 0; i < 3; i++) this._f[i] += (dv.p[i] - this._f[i]) * (1 - Math.exp(-dt * 9));
+      this._d = Math.max(this._d * Math.exp(-dt * (1.5 + 14 * dv.t)), this.span * 0.004);   // plancher : pas de caméra confondue avec sa cible
+    } else {
+      for (let i = 0; i < 3; i++) this._f[i] += (focus[i] - this._f[i]) * (1 - Math.exp(-dt * 4));
+      this._d = this._d ? this._d + (dist - this._d) * (1 - Math.exp(-dt * 3)) : dist;
+    }
     c.position.set(this._f[0], this._d * Math.sin(1.0), this._f[2] + this._d * Math.cos(1.0)); c.lookAt(this._f[0], 0, this._f[2]);
     c.updateMatrixWorld();
     // étiquettes et marqueurs HTML
