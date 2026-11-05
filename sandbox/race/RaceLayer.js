@@ -44,7 +44,8 @@ export class RaceLayer {
     // par défaut : quelques minutes avant que le premier racer entre dans ce système
     if (t == null) {
       const firsts = F.racers.map((r) => F.tracks[r.id].segs.find((s) => s.kind === 'system' && s.sys.id === sys.id)).filter(Boolean);
-      t = Math.min(...firsts.map((s) => s.tp)) - 3 * 3600;
+      const tp = firsts.length ? Math.min(...firsts.map((s) => s.tp)) : F.etaPeriapsis ? F.etaPeriapsis(sys.id).t : 6 * 3600;   // flux publié : estimation
+      t = Math.max(0, tp - 3 * 3600);
     }
     this.c.setTime(t); this.c.setSpeed(this.speeds[this.speedI]);
     this.rebuild(); this._hud(true);
@@ -79,6 +80,7 @@ export class RaceLayer {
   // à chaque image, avant le rendu : racers à leur place du flux
   position(t) {
     if (!this.on) return;
+    if (this.feed.version !== this._ver) { this._ver = this.feed.version; if (this._ver != null) this.rebuild(); }   // un plan publié : tracés et portes refaits
     const sys = this.c.sys(), g = this.c.giant(), q = g.group.quaternion, gp = g.pos, v = this._v;
     for (const rc of this.c.fleet()) {
       const st = this.feed.stateAt(rc.def.id, t);

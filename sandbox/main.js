@@ -15,7 +15,7 @@ import { Moon, PatchPool } from './bodies/Moon.js';
 import { sandboxMoons } from './presets/moons.js';
 import { RACE_SYSTEMS, RACERS, gmOfGiant } from './race/raceData.js';
 import { RACER_PROFILES } from './scene/racerProfiles.js';
-import { DemoFeed } from './race/DemoFeed.js';
+import { feedFromUrl } from './race/DemoFeed.js';
 import { RaceLayer } from './race/RaceLayer.js';
 import { SpeedLines } from './scene/SpeedLines.js';
 import { AsteroidField } from './bodies/AsteroidField.js';
@@ -313,7 +313,7 @@ for (const k of ['fleet', ...RACERS.map((r) => 'fleet-' + r.id)]) { const f = VI
 
 /* ── vue système de course : le flux de course dans le système affiché (Phase 2, étape 5) ── */
 raceLayer = new RaceLayer({
-  scene, frame, feed: new DemoFeed(),
+  scene, frame, feed: feedFromUrl(),                                // ?feed=mock : course publiée au fil de l'eau
   giant: () => giant, sys: () => curSys, fleet: () => ensureFleet(),
   hud: document.getElementById('race'), labels: document.getElementById('race-labels'),
   setTime: (t) => { simT = t; }, getTime: () => simT, setSpeed: (x) => { timeScale = x; },
@@ -476,7 +476,7 @@ function step(dt) {
     racer.throttle = Math.abs(simT - race.tp) < 1200 ? 1 : 0.3;                // poussée maximale autour de la périapse (effet Oberth)
   }
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
-  if (raceLayer && raceLayer.on) raceLayer.position(simT);
+  if (raceLayer && raceLayer.on) { if (raceLayer.feed.sync) raceLayer.feed.sync(simT); raceLayer.position(simT); }   // flux publié : on récupère les plans jusqu'à l'instant affiché
   // en course, pas de recul au-delà du système (les tracés y commencent et finissent : on ne doit pas voir leurs bouts)
   { const raceOn0 = raceLayer && raceLayer.on, m = raceOn0 ? Math.max(giant.R * 7, packDist() * 1.3) : 3e12;
     cam.maxDist = m; if (cam.goal.logD > Math.log(m)) cam.goal.logD = Math.log(m); }

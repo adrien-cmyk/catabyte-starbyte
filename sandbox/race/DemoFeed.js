@@ -13,19 +13,21 @@
 // (le flux serveur de la Phase 3 lui passe la course rejouée à partir des plans révélés).
 import { sampleAt } from '../core/Gravity.js';
 import { RACE_SYSTEMS, RACERS, PILOT, gmOfGiant } from './raceData.js';
-import { runRace, clamp, FUEL_PER_LEG, PLAN_LABEL } from './engine.js';
+import { runRace, planOf, clamp, FUEL_PER_LEG, PLAN_LABEL } from './engine.js';
 export { choosePlan, PLAN_LABEL } from './engine.js';
 
 export class RaceFeed {
   constructor({ systems = RACE_SYSTEMS, racers = RACERS, pilot = PILOT, result }) {
     this.systems = systems; this.racers = racers; this.pilot = pilot;
     this.tracks = result.tracks;                        // racerId → { segs, cps, finish, events }
-    const ref = this.tracks[racers[0].id];
-    this.edition = { id: pilot.id, name: pilot.name, seed: pilot.seed, systems, racers, t0: 0, t1: result.t1, checkpoints: ref.cps.map((c) => c.label) };
+    this.edition = { id: pilot.id, name: pilot.name, seed: pilot.seed, systems, racers, t0: 0, t1: result.t1 };
   }
   _seg(id, t) { const tr = this.tracks[id]; return tr.segs.find((s) => t >= s.t0 && t <= s.t1) || (t < 0 ? tr.segs[0] : tr.segs[tr.segs.length - 1]); }
+  // sans aucun plan publié (avant le départ) : au départ, à l'entrée du premier système
+  _start(id) { const sys = this.systems[0]; return { id, phase: 'start', system: sys.id, legTo: sys.id, f: 0, speed: null, accel: 0, temp: 260, fuel: 1, integrity: 1, lastCp: null, next: null, cpCount: 0 }; }
   stateAt(id, t) {
-    const tr = this.tracks[id], racer = this.racers.find((r) => r.id === id), s = this._seg(id, t);
+    const tr = this.tracks[id], s = this._seg(id, t);
+    if (!s) return this._start(id);
     const done = t >= tr.finish;
     const passed = tr.cps.filter((c) => c.t <= t), next = tr.cps.find((c) => c.t > t) || null;
     const st = { id, phase: done ? 'done' : s.kind, lastCp: passed.length ? passed[passed.length - 1] : null, next, cpCount: passed.length };
@@ -74,6 +76,64 @@ export class RaceFeed {
     for (const r of this.racers) { const c = this.tracks[r.id].cps.find((x) => x.t > t); if (c && (!best || c.t < best.t)) best = { t: c.t, racer: r.id, label: c.label }; }
     return best;
   }
+}
+
+// flux d'une course publiée au fil de l'eau (Phase 3) : la source donne les plans des pilotes à mesure qu'ils entrent
+// dans les systèmes ; le flux rejoue la course avec le moteur partagé (mêmes trajectoires que le serveur) et prévient
+// les vues (onUpdate) quand un plan arrive. Rien de l'avenir n'est connu : ni les plans à venir, ni le vainqueur.
+//   source.reveals(t, déjà) → [{ racer, sys, t, plan }] publiés jusqu'à l'instant t et pas encore reçus
+export class ServerFeed extends RaceFeed {
+  constructor({ source, systems = RACE_SYSTEMS, racers = RACERS, pilot = PILOT }) {
+    const memo = new Map();
+    super({ systems, racers, pilot, result: runRace({ systems, racers, pilot, plans: {}, memo }) });
+    this.source = source; this.plans = {}; this.memo = memo; this.version = 0; this._cb = [];
+    this.nominal = (pilot.nominalHours || 76) * 3600;          // durée annoncée (le curseur s'arrête là tant que la course n'est pas finie)
+    this._apply(null);
+  }
+  onUpdate(f) { this._cb.push(f); return this; }
+  // à appeler avec l'instant affiché : récupère ce qui est publié jusque-là ; true si la course a changé
+  sync(t) {
+    const fresh = this.source.reveals(Math.max(0, t), this.plans);
+    if (!fresh.length) return false;
+    for (const x of fresh) this.plans[`${x.racer}|${x.sys}`] = x.plan;
+    this._apply(runRace({ systems: this.systems, racers: this.racers, pilot: this.pilot, plans: this.plans, memo: this.memo }));
+    this.version++; for (const f of this._cb) f(this);
+    return true;
+  }
+  _apply(res) {
+    if (!res) { this.edition.t1 = this.nominal; this.complete = false; return; }
+    this.tracks = res.tracks; this.complete = res.complete;
+    const known = Object.values(res.tracks).map((x) => x.finish).filter(Number.isFinite);
+    this.edition.t1 = res.complete ? res.t1 : Math.max(this.nominal, ...known);
+  }
+  // estimation du premier passage à la périapse d'un système (boutons d'étapes) : connu si un plan y est publié,
+  // sinon fin d'étape la plus proche + approche typique, sinon le calendrier nominal
+  etaPeriapsis(sysId) {
+    let tp = Infinity, entry = Infinity;
+    for (const tr of Object.values(this.tracks)) {
+      for (const s of tr.segs) { if (s.kind === 'system' && s.sys.id === sysId) tp = Math.min(tp, s.tp); if (s.kind === 'leg' && s.to.id === sysId) entry = Math.min(entry, s.t1); }
+    }
+    if (Number.isFinite(tp)) return { t: tp, known: true };
+    const k = this.systems.findIndex((s) => s.id === sysId);
+    if (!Number.isFinite(entry)) entry = k * (12 + this.pilot.legHours) * 3600;     // ~12 h dans un système, puis l'étape
+    return { t: entry + 6.1 * 3600, known: false };
+  }
+}
+
+// source simulée (essais hors ligne) : la course entière est calculée ici, en secret, et ses plans ne sont donnés
+// qu'une fois l'instant d'entrée atteint — exactement ce que fera le serveur
+export class MockSource {
+  constructor({ systems = RACE_SYSTEMS, racers = RACERS, pilot = PILOT } = {}) { this.full = runRace({ systems, racers, pilot }); }
+  reveals(t, have) {
+    return this.full.revealed.filter((x) => x.t <= t && !have[`${x.racer}|${x.sys}`]).map((x) => JSON.parse(JSON.stringify({ ...x, plan: planOf(x.plan) })));
+  }
+}
+
+// choix du flux d'après l'adresse : ?feed=mock (publication progressive simulée) ; défaut : démo complète
+export function feedFromUrl(search = (typeof location !== 'undefined' ? location.search : '')) {
+  const k = new URLSearchParams(search).get('feed');
+  if (k === 'mock') return new ServerFeed({ source: new MockSource() });
+  return new DemoFeed();
 }
 
 export class DemoFeed extends RaceFeed {

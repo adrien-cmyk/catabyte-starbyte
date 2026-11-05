@@ -129,7 +129,7 @@ const LABELS = { entry: 'entrée', ring: 'plan des anneaux', periapsis: 'périap
 const planKey = (racerId, sysId) => `${racerId}|${sysId}`;
 
 // plans : { 'racer|système': plan } pour rejouer ; sinon les pilotes décident (et la surchauffe est tirée)
-export function runRace({ systems, racers, pilot, plans = null }) {
+export function runRace({ systems, racers, pilot, plans = null, memo = null }) {
   const revealed = [];                                         // [{ racer, sys, t, plan }] dans l'ordre des entrées
   // simulation système par système, tous les racers ensemble : à chaque entrée, les pilotes voient la course
   const tracks = {};
@@ -141,7 +141,7 @@ export function runRace({ systems, racers, pilot, plans = null }) {
       let plan;
       if (plans) {                                              // rejeu : le plan est connu (ou pas encore révélé)
         plan = plans[planKey(r.id, sys.id)];
-        if (!plan) { S.stopped = true; return; }
+        if (!plan) { S.stopped = true; S.waiting = { sys, t: S.t }; return; }   // entrée connue (fin d'étape), plan pas encore publié
       } else {
         const R = rngOf(`${pilot.seed}|${r.id}|${sys.id}`);
         plan = choosePlan(r, sys, { gap: S.t - t0, rank: rank + 1, n: racers.length, fuel: S.fuel, integrity: S.integrity, last, legsLeft: systems.length - 1 - k }, R);
@@ -153,7 +153,9 @@ export function runRace({ systems, racers, pilot, plans = null }) {
         }
       }
       revealed.push({ racer: r.id, sys: sys.id, t: S.t, plan });
-      const sl = passSystem(sys, plan, S.t, pilot.entryR);
+      const mk = memo && `${sys.id}|${S.t}|${JSON.stringify(plan)}`;      // rejeux successifs : un passage déjà calculé est repris
+      const sl = (mk && memo.get(mk)) || passSystem(sys, plan, S.t, pilot.entryR);
+      if (mk) memo.set(mk, sl);
       const seg = { kind: 'system', sys, ...sl, t0: sl.samples[0].t, t1: sl.samples[sl.samples.length - 1].t };
       S.segs.push(seg);
       // coût du passage : carburant de la poussée ; chauffe d'un passage rasant ; traversée de l'anneau
@@ -186,6 +188,9 @@ export function runRace({ systems, racers, pilot, plans = null }) {
       cps.push({ ...c, sys: s.sys.id, label: finish ? 'arrivée · ' + s.sys.name : LABELS[c.kind] + ' · ' + s.sys.name, finish });
       if (finish) break;
     }
+    // en attente d'un plan : son entrée dans le système suivant est déjà connue (heure d'arrivée de l'étape)
+    const w = st[r.id].waiting;
+    if (!done && w) cps.push({ kind: 'entry', t: w.t, sys: w.sys.id, label: LABELS.entry + ' · ' + w.sys.name, finish: false, provisional: true });
     tracks[r.id] = { segs, cps, finish: done ? cps[cps.length - 1].t : Infinity, events, complete: done };
   }
   const fins = racers.map((r) => tracks[r.id].finish);

@@ -142,7 +142,8 @@ export class UniverseView {
   _placeOf(id, t) {
     const st = this.feed.stateAt(id, t), tr = this.feed.tracks[id], E = this.feed.edition;
     let u;
-    if (st.phase === 'leg') {
+    if (st.phase === 'start') u = this.nodes[0].iE;                // avant le départ : à l'entrée du premier système
+    else if (st.phase === 'leg') {
       const k = E.systems.findIndex((s) => s.id === st.legFrom);
       u = this.nodes[k].iX + (this.nodes[k + 1].iE - this.nodes[k].iX) * st.f;
     } else {

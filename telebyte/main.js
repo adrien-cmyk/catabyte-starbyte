@@ -1,10 +1,11 @@
 // Télébyte — la télé de la Grande Fronde. Écran dédié à la course, à part de la carte stratégique du jeu.
 // Phase 2, étape 4 : vue univers (parcours, racers, classement en direct, horloge de course et curseur).
 // Le flux de course est ici le flux de démonstration ; en Phase 3, le flux serveur aura la même interface.
-import { DemoFeed } from '../sandbox/race/DemoFeed.js';
+import { feedFromUrl } from '../sandbox/race/DemoFeed.js';
 import { UniverseView } from './UniverseView.js';
 
-const feed = new DemoFeed();
+const feed = feedFromUrl();                                        // ?feed=mock : course publiée au fil de l'eau (essai hors ligne)
+const FEED_Q = new URLSearchParams(location.search).get('feed');
 const $ = (id) => document.getElementById(id);
 const E = feed.edition;
 const racer = Object.fromEntries(E.racers.map((r) => [r.id, r]));
@@ -22,7 +23,7 @@ function enterSystem(sysId) {
     sessionStorage.setItem('fronde.sys', sysId); sessionStorage.setItem('fronde.t', String(t));
     sessionStorage.setItem('fronde.sel', view.sel || ''); sessionStorage.setItem('fronde.back', location.href.split('#')[0]);
   } catch (e) {}
-  location.href = SYSTEM_PAGE + '#course';
+  location.href = SYSTEM_PAGE + (FEED_Q ? '?feed=' + FEED_Q : '') + '#course';
 }
 // retour depuis la vue système : on reprend l'instant et le racer suivi
 let restore = null;
@@ -35,7 +36,7 @@ let sysFrame = null, frameOk = false, inSystem = false, curSysId = null, pending
 function loadFrame() {
   if (sysFrame) return;
   sysFrame = document.createElement('iframe'); sysFrame.id = 'sysframe'; sysFrame.title = 'Vue système';
-  sysFrame.src = SYSTEM_PAGE + (SYSTEM_PAGE.includes('?') ? '&' : '?') + 'embed';
+  sysFrame.src = SYSTEM_PAGE + (SYSTEM_PAGE.includes('?') ? '&' : '?') + 'embed' + (FEED_Q ? '&feed=' + FEED_Q : '');
   document.body.appendChild(sysFrame);
 }
 setTimeout(loadFrame, 800);                                          // après le premier affichage du Télébyte
@@ -89,22 +90,32 @@ $('play').onclick = () => { playing = !playing; $('play').textContent = playing 
 $('speed').onclick = () => { speedI = (speedI + 1) % SPEEDS.length; $('speed').textContent = '×' + SPEEDS[speedI]; };
 $('speed').textContent = '×' + SPEEDS[speedI];
 $('focus-clear').onclick = () => view.overview();
-$('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); dive(s.phase === 'system' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id, innerWidth / 2, innerHeight / 2); };
+$('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); dive(s.phase === 'system' || s.phase === 'start' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id); };
 $('edition').textContent = E.name;
 $('route').textContent = E.systems.map((s) => s.name).join(' → ');
 
 /* ── étapes : chaque système, à l'instant où le premier racer y passe la périapse ── */
-const STAGES = E.systems.map((sys) => {
-  let tp = Infinity, t0 = Infinity;
-  for (const r of E.racers) for (const sg of feed.tracks[r.id].segs) if (sg.kind === 'system' && sg.sys.id === sys.id) { tp = Math.min(tp, sg.tp); t0 = Math.min(t0, sg.t0); }
-  return { sys, tp, t0 };
+function stagesOf() {
+  return E.systems.map((sys) => {
+    if (feed.etaPeriapsis) { const e = feed.etaPeriapsis(sys.id); let t0 = Infinity; for (const r of E.racers) for (const sg of feed.tracks[r.id].segs) if (sg.kind === 'system' && sg.sys.id === sys.id) t0 = Math.min(t0, sg.t0); return { sys, tp: e.t, known: e.known, t0: Number.isFinite(t0) ? t0 : e.t - 6.1 * 3600 }; }
+    let tp = Infinity, t0 = Infinity;
+    for (const r of E.racers) for (const sg of feed.tracks[r.id].segs) if (sg.kind === 'system' && sg.sys.id === sys.id) { tp = Math.min(tp, sg.tp); t0 = Math.min(t0, sg.t0); }
+    return { sys, tp, t0, known: true };
+  });
+}
+let STAGES = stagesOf();
+const stageHtml = () => STAGES.map((s, i) => `<button type="button" data-i="${i}" aria-label="Voir le passage à ${s.sys.name}"><b>${s.sys.name}</b><span>${s.known ? '' : '≈ '}${hh(s.tp)}</span></button>`).join('');
+$('stages').innerHTML = stageHtml();
+// flux publié : à chaque plan reçu, étapes et durée de la course se précisent
+if (feed.onUpdate) feed.onUpdate(() => {
+  STAGES = stagesOf(); [...$('stages').children].forEach((b, i) => { const s = STAGES[i]; b.querySelector('span').textContent = (s.known ? '' : '≈ ') + hh(s.tp); });
+  slider.max = String(Math.ceil(E.t1)); lastSig = '';
 });
-$('stages').innerHTML = STAGES.map((s, i) => `<button type="button" data-i="${i}" aria-label="Voir le passage à ${s.sys.name}"><b>${s.sys.name}</b><span>${hh(s.tp)}</span></button>`).join('');
 for (const b of $('stages').children) b.onclick = () => { const s = STAGES[+b.dataset.i]; t = Math.max(0, s.tp - 1800); const r = b.getBoundingClientRect(); dive(s.sys.id, r.left + r.width / 2, r.top + r.height / 2); };   // 30 min avant le passage
 
 
 /* ── classement ── */
-const PHASE = { system: 'en passage', leg: 'en voyage', done: 'arrivé' };
+const PHASE = { system: 'en passage', leg: 'en voyage', done: 'arrivé', start: 'au départ' };
 let lastSig = '';
 function renderStandings(force = false) {
   const rows = feed.standingsAt(t);
@@ -114,7 +125,7 @@ function renderStandings(force = false) {
     lastSig = sig;
     list.innerHTML = rows.map((r) => {
       const s = feed.stateAt(r.id, t), R = racer[r.id];
-      const where = s.phase === 'system' ? `${PHASE.system} · ${E.systems.find((x) => x.id === s.system).name}` : s.phase === 'leg' ? `${PHASE.leg} → ${E.systems.find((x) => x.id === s.legTo).name}` : PHASE.done;
+      const where = s.phase === 'start' ? PHASE.start : s.phase === 'system' ? `${PHASE.system} · ${E.systems.find((x) => x.id === s.system).name}` : s.phase === 'leg' ? `${PHASE.leg} → ${E.systems.find((x) => x.id === s.legTo).name}` : PHASE.done;
       return `<li class="${view.sel === r.id ? 'on' : ''}" data-id="${r.id}" style="--livery:${R.livery}">
         <span class="rk">${r.rank}</span><i></i><span class="nm">${R.name}<small data-where>${where}</small></span>
         <span class="gp" data-gap>${r.rank === 1 ? 'en tête' : r.gap < 1 ? 'à égalité' : '+' + dur(r.gap)}</span></li>`;
@@ -145,10 +156,11 @@ function loop(now) {
   if (inSystem) { last = now; return; }                           // la vue système intégrée vit seule (et tient l'horloge)
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   if (playing) { t = Math.min(E.t1, t + dt * SPEEDS[speedI]); if (t >= E.t1) { playing = false; $('play').textContent = 'Lecture'; } }
+  if (feed.sync) feed.sync(t);                                    // flux publié : plans reçus jusqu'à l'instant affiché
   renderStandings(); renderClock();
   view.update(t, dt);
 }
 requestAnimationFrame(loop);
 
 // accès de test (captures)
-window.TB = { view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
+window.TB = { view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
