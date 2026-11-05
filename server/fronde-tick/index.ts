@@ -3,7 +3,8 @@
 // next_needed = true. N'importe quel appel d'un joueur connecté suffit ; personne ne choisit la graine ni le résultat.
 // Tout le reste (plans publiés au fil de la course, règlement des paris) se fait en SQL (schema_mp_v41_grande_fronde.sql).
 //   POST {}                    → { created: id | null, edition: id }
-//   POST { action: 'selftest' } → le moteur de cette fonction calcule-t-il les mêmes courses que le jeu ? (5 graines)
+//   POST { action: 'selftest' } → le moteur de cette fonction calcule-t-il les mêmes courses que le jeu ? (5 graines ;
+//                                 sans session de joueur : bouton « Test » du tableau de bord)
 // Fichiers à déployer ensemble : index.ts, edition.ts, engine.ts (copies générées par tools/fronde/sync_engine.mjs).
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -24,16 +25,10 @@ Deno.serve(async (req) => {
   const url = Deno.env.get('SUPABASE_URL')!;
   const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-  // seuls les joueurs connectés (même anonymes) peuvent déclencher la création
-  const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!jwt) return json({ error: 'not_signed_in' }, 401);
-  const admin = createClient(url, service, { auth: { persistSession: false } });
-  const { data: who, error: authErr } = await admin.auth.getUser(jwt);
-  if (authErr || !who?.user) return json({ error: 'not_signed_in' }, 401);
-
   let body: any = {};
   try { body = await req.json(); } catch (_) { /* corps vide */ }
 
+  // autotest : n'écrit rien, ne lit aucune donnée — ouvert sans session de joueur (bouton « Test » du tableau de bord)
   if (body?.action === 'selftest') {
     const t0 = performance.now(), results: Record<string, boolean> = {};
     for (const [seed, want] of Object.entries(ENGINE_REF as Record<string, string>)) {
@@ -42,6 +37,14 @@ Deno.serve(async (req) => {
     }
     return json({ ok: Object.values(results).every(Boolean), engine: ENGINE_HASH, results, ms: Math.round(performance.now() - t0) });
   }
+
+
+  // seuls les joueurs connectés (même anonymes) peuvent déclencher la création
+  const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!jwt) return json({ error: 'not_signed_in' }, 401);
+  const admin = createClient(url, service, { auth: { persistSession: false } });
+  const { data: who, error: authErr } = await admin.auth.getUser(jwt);
+  if (authErr || !who?.user) return json({ error: 'not_signed_in' }, 401);
 
   // une édition est-elle déjà annoncée (ou en cours) ? alors rien à faire
   const { data: open, error: e0 } = await admin.from('fronde_editions').select('id').eq('status', 'annoncee').limit(1);

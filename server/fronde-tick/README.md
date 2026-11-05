@@ -26,19 +26,17 @@ Prérequis : `schema_mp_v41_grande_fronde.sql` exécuté (vérification : `selec
 
 ## Vérifier après déploiement
 
-Dans la console du navigateur, sur play.starbyte.online (joueur connecté) — même appel que le Blackmarket :
+**Sans toucher au jeu** : tableau de bord Supabase → Edge Functions → `fronde-tick` → bouton **Test** (en haut à
+droite) → méthode POST, corps de la requête :
 
-```js
-const a = JSON.parse(localStorage.getItem('starbyte_auth')), tok = a.access_token || a.currentSession.access_token;
-await (await fetch('https://elupnpdcblztpfywnhjl.supabase.co/functions/v1/fronde-tick', { method: 'POST',
-  headers: { 'Content-Type': 'application/json', apikey: 'sb_publishable_tXGrQIROzH2DwBrny1GcHQ_iKJKoBOQ', Authorization: 'Bearer ' + tok },
-  body: JSON.stringify({ action: 'selftest' }) })).json()
-// → { ok: true, engine: '…', results: { 'fronde-222': true, … }, ms: … }
+```json
+{ "action": "selftest" }
 ```
 
-`ok: true` : le serveur calcule exactement les mêmes courses que le jeu (5 courses de référence).
+→ réponse `{ "ok": true, "engine": "…", "results": { "fronde-222": true, … }, "ms": … }` : le serveur calcule exactement
+les mêmes courses que le jeu (5 courses de référence). L'autotest n'écrit rien et ne lit aucune donnée.
 
-**Ne pas appeler sans `action`** avant que le jeu sache afficher la course : cet appel crée l'édition du mois suivant
+**Ne pas appeler sans `action`** (ni avec un autre corps) avant que le jeu sache afficher la course : cet appel crée l'édition du mois suivant
 (départ le premier samedi à 20 h, heure de Zurich), et les paris seraient ouverts. Une édition créée par erreur se retire
 dans le SQL Editor : `delete from public.fronde_editions where id = '2026-12';` (tant que personne n'a parié), ou
 `select public.fronde_cancel('2026-12');` (rembourse les mises).
