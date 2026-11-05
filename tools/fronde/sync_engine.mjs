@@ -30,15 +30,22 @@ for (const [id, file] of MODS) {
 }
 const api = ['runRace', 'digest', 'planOf', 'plansMap', 'choosePlan', 'passSystem', 'rngOf', 'PLAN_LABEL', 'FUEL_PER_DV', 'FUEL_PER_LEG', 'V_REF'];
 const data = ['RACE_SYSTEMS', 'RACERS', 'PILOT', 'gmOfGiant', 'sphereGM'];
+// références d'autocontrôle (5 graines) : la fonction serveur vérifie qu'elle calcule les mêmes courses que le jeu
+const ref = JSON.parse(readFileSync(new URL('tools/fronde/engine_ref.json', root), 'utf8'));
+const REF5 = Object.fromEntries(Object.entries(ref).slice(0, 5));
+const engineHash = srcHash.copy().digest('hex').slice(0, 16);
 const code = `// STARBYTE — moteur de course de la Grande Fronde, COPIE GÉNÉRÉE par tools/fronde/sync_engine.mjs (dépôt catabyte-starbyte).
 // Ne pas modifier ici : retoucher sandbox/race/engine.js (ou Gravity.js, raceData.js), relancer le script, redéployer fronde-tick.
-// Source : ${srcHash.digest('hex').slice(0, 16)} (empreinte des fichiers du moteur)
+// Source : ${engineHash} (empreinte des fichiers du moteur)
 // @ts-nocheck
 const __m = {};
 ${parts.join('\n\n')}
 
 export const { ${api.join(', ')} } = __m.engine;
 export const { ${data.join(', ')} } = __m.raceData;
+export const ENGINE_HASH = '${engineHash}';
+// empreintes de référence (sha-256 tronqué de digest(runRace)) calculées par tools/fronde/engine_test.mjs
+export const ENGINE_REF = ${JSON.stringify(REF5)};
 `;
 mkdirSync(new URL(dirname(out) + '/', root), { recursive: true });
 writeFileSync(new URL(out, root), code);

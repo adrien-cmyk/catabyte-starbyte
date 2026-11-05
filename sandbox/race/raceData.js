@@ -58,6 +58,7 @@ export const PILOT = {
   id: 'pilote-1', name: 'Grande Fronde · course pilote', seed: 'fronde-222',   // édition choisie : remontée par une plongée, une surchauffe, arrivée serrée
   legHours: 20.5,                              // durée de référence d'une étape interstellaire
   entryR: 9,                                   // entrée et sortie d'un système à 9 rayons de géante
+  nominalHours: 76,                            // durée annoncée d'une édition (la vraie fin reste secrète jusqu'à l'arrivée)
 };
 
 export { sphereGM };

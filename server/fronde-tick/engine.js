@@ -1,6 +1,6 @@
 // STARBYTE — moteur de course de la Grande Fronde, COPIE GÉNÉRÉE par tools/fronde/sync_engine.mjs (dépôt catabyte-starbyte).
 // Ne pas modifier ici : retoucher sandbox/race/engine.js (ou Gravity.js, raceData.js), relancer le script, redéployer fronde-tick.
-// Source : 2d80e0627551288e (empreinte des fichiers du moteur)
+// Source : 0dde6fe76e2c9d87 (empreinte des fichiers du moteur)
 // @ts-nocheck
 const __m = {};
 // ── sandbox/core/Gravity.js ──
@@ -167,6 +167,7 @@ const PILOT = {
   id: 'pilote-1', name: 'Grande Fronde · course pilote', seed: 'fronde-222',   // édition choisie : remontée par une plongée, une surchauffe, arrivée serrée
   legHours: 20.5,                              // durée de référence d'une étape interstellaire
   entryR: 9,                                   // entrée et sortie d'un système à 9 rayons de géante
+  nominalHours: 76,                            // durée annoncée d'une édition (la vraie fin reste secrète jusqu'à l'arrivée)
 };
 
 
@@ -387,3 +388,6 @@ return { rngOf, clamp, FUEL_PER_DV, choosePlan, PLAN_LABEL, passSystem, V_REF, r
 
 export const { runRace, digest, planOf, plansMap, choosePlan, passSystem, rngOf, PLAN_LABEL, FUEL_PER_DV, FUEL_PER_LEG, V_REF } = __m.engine;
 export const { RACE_SYSTEMS, RACERS, PILOT, gmOfGiant, sphereGM } = __m.raceData;
+export const ENGINE_HASH = '0dde6fe76e2c9d87';
+// empreintes de référence (sha-256 tronqué de digest(runRace)) calculées par tools/fronde/engine_test.mjs
+export const ENGINE_REF = {"fronde-222":"6b57aaff4e152102","test-2":"56c1729bcd3ea8b6","test-3":"6d77f7d7a05dece1","test-4":"7847fd82cc1c8e3c","test-5":"0f89b7f16d6d00aa"};

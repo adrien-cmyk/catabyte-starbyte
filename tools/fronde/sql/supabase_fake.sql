@@ -2,7 +2,11 @@
 -- rôles anon / authenticated / service_role, auth.users, auth.uid() lu dans request.jwt.claim.sub (comme PostgREST),
 -- schéma extensions (pgcrypto), droits par défaut larges sur public (comme Supabase : d'où les « revoke all »),
 -- table saves (sauvegardes du jeu, data → savegame → credits).
-create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;
+do $$ begin                                   -- rôles communs à toute l'instance : créés s'ils manquent
+  if not exists (select from pg_roles where rolname = 'anon') then create role anon nologin; end if;
+  if not exists (select from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
+  if not exists (select from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
+end $$;
 create schema auth; create schema extensions;
 create extension pgcrypto with schema extensions;
 create table auth.users (id uuid primary key);
