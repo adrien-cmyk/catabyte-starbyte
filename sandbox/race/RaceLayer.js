@@ -143,15 +143,21 @@ export class RaceLayer {
     for (const a of this.windows.anchors()) {
       let el = this.gateEls[a.kind];
       if (!el) {
-        el = this.gateEls[a.kind] = document.createElement('div'); el.className = 'rl-gate';
-        el.innerHTML = a.kind === 'peri'
-          ? '<b>Porte de périapse</b>' + BANDS.map((b) => `<span style="--c:#${new THREE.Color(b.col).getHexString()}">${b.label}</span>`).join('')
-          : '<b>Traversée des anneaux</b><span class="grad">vide · raccourci</span><span class="grad hot">dense · risque</span>';
+        // repère compact (losange + nom court) posé au-dessus de la porte ; un tap déplie la légende, un autre la referme
+        el = this.gateEls[a.kind] = document.createElement('button'); el.type = 'button'; el.className = 'rl-gate';
+        el.innerHTML = (a.kind === 'peri' ? '<b>Périapse</b><div class="lg">' + BANDS.map((b) => `<span style="--c:#${new THREE.Color(b.col).getHexString()}">${b.label}</span>`).join('')
+          : '<b>Anneaux</b><div class="lg"><span class="grad">vide · raccourci</span><span class="grad hot">dense · risque</span>') + '</div>';
+        el.setAttribute('aria-expanded', 'false'); el.setAttribute('aria-label', a.kind === 'peri' ? 'Porte de périapse : afficher la légende' : 'Traversée des anneaux : afficher la légende');
+        el.onclick = (e) => { e.stopPropagation(); const o = !el.classList.contains('open'); el.classList.toggle('open', o); el.setAttribute('aria-expanded', String(o)); };
         this.c.labels.appendChild(el);
       }
-      v.set(a.p[0] - frame.cam[0], a.p[1] - frame.cam[1], a.p[2] - frame.cam[2]).project(camera);
-      el.hidden = this._view === 'follow' || v.z > 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1;
-      el.style.transform = `translate(${((v.x * 0.5 + 0.5) * W) | 0}px, ${((-v.y * 0.5 + 0.5) * H) | 0}px)`;
+      const on = (p) => { v.set(p[0] - frame.cam[0], p[1] - frame.cam[1], p[2] - frame.cam[2]).project(camera); return v.z <= 1 && Math.abs(v.x) < 0.95 && Math.abs(v.y) < 0.95; };
+      const vis = this._view !== 'follow' && (on(a.p) || (a.alt && on(a.alt)));
+      el.hidden = !vis; if (!vis) continue;
+      // on garde le repère (et sa légende dépliée) dans l'écran
+      const ew = el.offsetWidth, eh = el.offsetHeight + 6;
+      const x = Math.min(Math.max((v.x * 0.5 + 0.5) * W, 6), W - ew - 6), y = Math.max((-v.y * 0.5 + 0.5) * H, eh + 6);
+      el.style.transform = `translate(${x | 0}px, ${y | 0}px)`;
     }
     this._hud();
   }

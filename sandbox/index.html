@@ -48,9 +48,15 @@
   #race li .gp { font: 11px ui-monospace, monospace; font-variant-numeric: tabular-nums; }
   #race #rh-win { margin-top: 8px; padding-top: 7px; border-top: 1px solid var(--line); display: grid; gap: 3px; font-size: 11px; color: var(--dim); }
   #race #rh-win[hidden] { display: none; }
-  .rl-gate { position: absolute; left: 0; top: 0; translate: 8px -50%; display: grid; gap: 1px; font-size: 10px; color: var(--dim); pointer-events: none; background: rgba(2, 4, 8, .6); padding: 4px 7px; border-radius: 5px; border-left: 2px solid #9fd4ec; }
+  .rl-gate { position: absolute; left: 0; top: 0; translate: 0 calc(-100% - 6px); display: grid; gap: 1px; font-family: inherit; font-size: 10px; line-height: 1.25; color: var(--dim); pointer-events: auto; cursor: pointer; text-align: left; background: rgba(2, 4, 8, .5); padding: 3px 8px 3px 6px; border: 0; border-radius: 4px 4px 4px 0; border-left: 1px solid #9fd4ec; }
+  .rl-gate::after { content: ""; position: absolute; left: -1px; bottom: -6px; width: 1px; height: 6px; background: #9fd4ec; }   /* filet jusqu'au point de la porte */
   .rl-gate[hidden], .rl-racer[hidden] { display: none; }
-  .rl-gate b { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg); }
+  .rl-gate b { font-size: 9px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--fg); opacity: .85; }
+  .rl-gate b::before { content: "◇ "; color: #9fd4ec; letter-spacing: 0; }
+  .rl-gate b::after { content: " ▸"; color: var(--dim); letter-spacing: 0; }
+  .rl-gate.open b::after { content: " ×"; }
+  .rl-gate .lg { display: none; gap: 1px; margin-top: 2px; }
+  .rl-racer { z-index: 1; } .rl-gate.open { background: rgba(2, 4, 8, .72); z-index: 2; } .rl-gate.open .lg { display: grid; }
   .rl-gate span::before { content: ""; display: inline-block; width: 8px; height: 2px; margin-right: 5px; vertical-align: middle; background: var(--c, #9fd4ec); }
   .rl-gate span.grad::before { background: #29c6b8; } .rl-gate span.grad.hot::before { background: #e0503a; }
   #race #rh-wait { margin-top: 8px; font-size: 11px; color: var(--dim); display: flex; gap: 8px; align-items: center; justify-content: space-between; }

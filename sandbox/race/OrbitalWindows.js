@@ -88,9 +88,10 @@ export class OrbitalWindows {
   // points d'ancrage des étiquettes, en coordonnées du monde (float64) : centre de la géante + rotation
   anchors() {
     const g = this.giant, q = g.group.quaternion, v = new THREE.Vector3(), out = [];
-    const put = (p, kind) => { v.set(...p).applyQuaternion(q); out.push({ kind, p: [g.pos[0] + v.x, g.pos[1] + v.y, g.pos[2] + v.z] }); };
-    if (this.periGate) put(this.periGate.end, 'peri');
-    if (this.ringGate) put(this.ringGate.end, 'ring');
+    const w = (p) => { v.set(...p).applyQuaternion(q); return [g.pos[0] + v.x, g.pos[1] + v.y, g.pos[2] + v.z]; };
+    // p : bout extérieur de la jauge (préféré) ; alt : son milieu, si le bout sort de l'écran
+    if (this.periGate) out.push({ kind: 'peri', p: w(this.periGate.end), alt: w(this.periGate.mid) });
+    if (this.ringGate) out.push({ kind: 'ring', p: w(this.ringGate.end), alt: w(this.ringGate.mid) });
     return out;
   }
   // point milieu des deux portes (monde, float64) et leur écart : pour cadrer la caméra dessus
