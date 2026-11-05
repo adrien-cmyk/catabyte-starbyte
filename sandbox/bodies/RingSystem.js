@@ -49,8 +49,10 @@ export class RingSystem {
     this.dens = dens;
     const cols = (RING_COLORS[palette] || RING_COLORS.amber).map((h) => new THREE.Color(h));
     const data = new Uint8Array(N * 4), c = new THREE.Color();
+    this.colLin = new Float32Array(N * 3);                // couleurs linéaires (fragments instanciés)
     for (let i = 0; i < N; i++) {
       c.copy(cols[1]).lerp(cols[0], tint[i]).lerp(cols[2], Math.max(0, dens[i] - 0.75) * 1.5);
+      this.colLin.set([c.r, c.g, c.b], i * 3);
       c.convertLinearToSRGB();
       data[i * 4] = Math.round(c.r * 255); data[i * 4 + 1] = Math.round(c.g * 255); data[i * 4 + 2] = Math.round(c.b * 255);
       data[i * 4 + 3] = Math.round(dens[i] * 255);
@@ -59,6 +61,10 @@ export class RingSystem {
     tex.colorSpace = THREE.SRGBColorSpace; tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearFilter; tex.needsUpdate = true;
   }
   // densité (0..1) à un rayon donné en rayons planétaires : donnée de jeu (simulation, risques de traversée)
+  colorAt(r) {
+    const i = Math.max(0, Math.min(this.N - 1, Math.floor((r - this.inner) / (this.outer - this.inner) * this.N)));
+    return [this.colLin[i * 3], this.colLin[i * 3 + 1], this.colLin[i * 3 + 2]];
+  }
   densityAt(r) {
     if (r < this.inner || r > this.outer) return 0;
     return this.dens[Math.min(this.N - 1, Math.floor((r - this.inner) / (this.outer - this.inner) * this.N))];
@@ -70,7 +76,7 @@ export class RingSystem {
     this.uniforms = {
       uRing: { value: this.texture }, uIn: { value: this.inner }, uOut: { value: this.outer },
       uSunL: { value: new THREE.Vector3() }, uCamL: { value: new THREE.Vector3() },
-      uSunCol: { value: new THREE.Color() }, uSunI: { value: 1.6 }, uFine: { value: 0 },
+      uSunCol: { value: new THREE.Color() }, uSunI: { value: 1.6 }, uFine: { value: 0 }, uNear: { value: 0 }, uRm: { value: giant.R },
     };
     this.mesh = new THREE.Mesh(geo, new THREE.ShaderMaterial({
       uniforms: this.uniforms, transparent: true, depthWrite: false, side: THREE.DoubleSide,
@@ -85,7 +91,7 @@ export class RingSystem {
         #include <common>
         #include <logdepthbuf_pars_fragment>
         ${NOISE}
-        uniform sampler2D uRing; uniform float uIn, uOut, uSunI, uFine;
+        uniform sampler2D uRing; uniform float uIn, uOut, uSunI, uFine, uNear, uRm;
         uniform vec3 uSunL, uCamL, uSunCol;
         varying vec3 vP;
         void main(){
@@ -98,6 +104,8 @@ export class RingSystem {
           vec3 rd = normalize(vP - uCamL);
           float cv = max(abs(rd.y), 0.015);
           float alpha = 1.0 - pow(1.0 - min(dens, 0.985), 1.0 / cv);
+          // près de la caméra, le disque cède la place aux fragments instanciés (fondu sur la portée des fragments)
+          if (uNear > 0.0) alpha *= smoothstep(0.3, 1.0, length(vP - uCamL) * uRm / uNear);
           // ombre de la planète (rayon vers le soleil coupé par la sphère unité), pénombre douce
           float shadow = 1.0;
           float along = dot(vP, uSunL);

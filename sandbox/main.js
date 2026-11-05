@@ -1,4 +1,4 @@
-// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 8 du plan technique).
+// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 9 du plan technique).
 // Assemble : renderer à profondeur logarithmique, origine flottante, ciel cuit, étoile, géante gazeuse + anneaux, trois lunes,
 // caméra libre à zoom logarithmique, post-traitement (bloom), panneau de réglages, vues des tests visuels.
 import { SB3D, THREE, qualityLevel } from './lib/sb3d-shim.js';
@@ -12,6 +12,7 @@ import { GIANTS } from './presets/giants.js';
 import { Moon, PatchPool } from './bodies/Moon.js';
 import { sandboxMoons } from './presets/moons.js';
 import { AsteroidField } from './bodies/AsteroidField.js';
+import { RingDebris } from './bodies/RingDebris.js';
 
 const Q = qualityLevel();
 const host = document.getElementById('view');
@@ -35,7 +36,7 @@ scene.add(star.group);
 const sunLight = new THREE.DirectionalLight(star.color, 3.0);   // pour les objets PBR (racer, astéroïdes : étapes suivantes)
 scene.add(sunLight, sunLight.target);
 
-let giant = null, giantKey = null;
+let giant = null, giantKey = null, debris = null;
 function setGiant(key) {
   if (giant) { scene.remove(giant.group); frame.remove(giant.group); giant.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); }
   const p = GIANTS[key]; giantKey = key;
@@ -43,6 +44,9 @@ function setGiant(key) {
   giant = new GasGiant(p, { seed: key, quality: Q, ring });
   frame.add(giant.group, giant.pos);
   scene.add(giant.group);
+  if (debris) debris.removeFrom(scene, frame);
+  debris = ring ? new RingDebris(giant, { quality: Q }) : null;
+  if (debris) debris.addTo(scene, frame);
   targets.giant = { pos: giant.pos, minDist: giant.R * 1.0015, label: p.name };
   // point d'observation dans les anneaux, sur la face éclairée, rayon 1,8 R (anneau principal)
   const a = Math.atan2(SUN_DIR.z, SUN_DIR.x) + 0.9, rr = 1.8 * giant.R, m = giant.group.matrixWorld;
@@ -109,6 +113,9 @@ const VIEWS = {
   night: () => cam.setTarget(targets.giant, { dist: giant.R * 2.2, yaw: sunYaw + 2.6, pitch: 0.22 }),
   backlit: () => cam.setTarget(targets.giant, { dist: giant.R * 4.5, yaw: sunYaw + Math.PI - 0.12, pitch: 0.08 }),
   rings: () => cam.setTarget(targets.rings, { dist: giant.R * 0.6, yaw: sunYaw + 0.4, pitch: 0.35 }),
+  // test n° 4 : traversée des anneaux — au-dessus de la couche de fragments, puis dedans
+  'ring-cross': () => cam.setTarget(targets.rings, { dist: 2600, yaw: sunYaw + 0.7, pitch: 0.32 }),
+  'ring-inside': () => cam.setTarget(targets.rings, { dist: 700, yaw: sunYaw + 1.5, pitch: 0.06 }),
   ringskim: () => cam.setTarget(targets.rings, { dist: 3e6, yaw: sunYaw + 1.2, pitch: 0.06 }),
   star: () => cam.setTarget(targets.star, { dist: star.R * 6, yaw: sunYaw + Math.PI + 0.6, pitch: 0.1 }),
   // une lune devant la géante, toutes deux éclairées de trois quarts : on avance le temps jusqu'à ce que Kesh passe
@@ -182,6 +189,7 @@ function step(dt) {
     m.update(frame, camera, sd, star.color, 1.7 * star.type.intensity, pix, simT);
   }
   pool.pump();
+  if (debris) debris.update(frame, camera, sunDirAtGiant, star.color, 1.7 * star.type.intensity, pix, simT);
   {
     const c = field.center, sd = new THREE.Vector3(star.pos[0] - c[0], star.pos[1] - c[1], star.pos[2] - c[2]).normalize();
     field.update(frame, camera, sd, star.color, 1.7 * star.type.intensity, pix, simT);
@@ -217,7 +225,7 @@ window.RW = {
   views: Object.keys(VIEWS), setView: (v) => { VIEWS[v](); }, setGiant, setTime: (t) => { simT = t; }, setTimeScale: (s) => { timeScale = s; },
   stop: () => renderer.setAnimationLoop(null),
   frames: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) step(dt); render(); },
-  info: () => ({ ...renderer.info.render, q: Q, dist: cam.distance, pending: pool.pending, field: field.stats }),
+  info: () => ({ ...renderer.info.render, q: Q, dist: cam.distance, pending: pool.pending, field: field.stats, ring: debris ? debris.stats : null }),
   // attend que toutes les parcelles de relief demandées soient construites (captures)
   settle: async (maxMs = 60000) => {
     const t0 = performance.now(); let calm = 0;

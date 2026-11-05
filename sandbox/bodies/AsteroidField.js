@@ -57,14 +57,14 @@ const DOT_VERT = /* glsl */`
 #include <common>
 #include <logdepthbuf_pars_vertex>
 attribute vec4 iPos; attribute vec3 iCol;
-uniform vec3 uSun; uniform float uProj, uSunI;
+uniform vec3 uSun; uniform float uProj, uSunI, uDotK;
 varying vec3 vC; varying float vA;
 void main(){
   vec4 w = modelMatrix * vec4(iPos.xyz, 1.0);
   float d = length(w.xyz), px = 2.0 * iPos.w / d * uProj;
   gl_PointSize = clamp(px, 1.0, 5.0);
   float ph = 0.5 + 0.5 * dot(normalize(-w.xyz), normalize(uSun));     // fraction éclairée vue d'ici
-  vC = iCol * ph * uSunI * 2.2; vA = clamp(px * 1.6, 0.3, 1.0);
+  vC = iCol * ph * uSunI * uDotK; vA = clamp(px * 1.6, 0.3, 1.0);
   gl_Position = projectionMatrix * viewMatrix * w;
   #include <logdepthbuf_vertex>
 }`;
@@ -115,8 +115,11 @@ class Bucket {
 
 export class AsteroidField {
   // def : voir AsteroidFieldData ; center en Float64Array (monde)
-  constructor(def, { quality = 0 } = {}) {
-    this.data = new AsteroidFieldData(def);
+  // options : data = autre source de rochers (même interface, ex. fragments d'anneaux) ; frame = quaternion
+  // repère local → monde (les cellules et les rochers sont alors exprimés dans ce repère, ex. plan des anneaux)
+  constructor(def, { quality = 0, data = null, frame = null, dotGain = 2.2 } = {}) {
+    this.data = data || new AsteroidFieldData(def);
+    this.frame = frame; this._q = new THREE.Quaternion(); this._v = new THREE.Vector3();
     this.center = Float64Array.from(def.center);
     this.anchor = Float64Array.from(def.center);
     this.group = new THREE.Group();
@@ -130,7 +133,7 @@ export class AsteroidField {
       const b = new Bucket(g, mat, sub === 3 ? 512 : 2048); this.group.add(b.mesh); return b;
     }));
     // imposteurs
-    this.dotU = { uSun: this.uniforms.uSun, uSunI: this.uniforms.uSunI, uProj: { value: 800 } };
+    this.dotU = { uSun: this.uniforms.uSun, uSunI: this.uniforms.uSunI, uProj: { value: 800 }, uDotK: { value: dotGain } };   // gain des imposteurs : compense le manque de taille apparente
     this.dotGeo = new THREE.BufferGeometry(); this.dotCap = 0; this._dotAlloc(32768);
     this.dots = new THREE.Points(this.dotGeo, new THREE.ShaderMaterial({ uniforms: this.dotU, vertexShader: DOT_VERT, fragmentShader: DOT_FRAG }));
     this.dots.frustumCulled = false; this.group.add(this.dots);
@@ -149,7 +152,8 @@ export class AsteroidField {
     u.uSun.value.copy(sunDirW); u.uSunCol.value.copy(sunColor); u.uSunI.value = sunI; u.uTime.value = timeS % 1e6;
     this.dotU.uProj.value = 1 / pixAngle;
     const cam = frame.cam, C = this.center;
-    const pc = [cam[0] - C[0], cam[1] - C[1], cam[2] - C[2]];
+    let pc = [cam[0] - C[0], cam[1] - C[1], cam[2] - C[2]];
+    if (this.frame) { this._v.set(...pc).applyQuaternion(this._q.copy(this.frame).invert()); pc = [this._v.x, this._v.y, this._v.z]; }
     // ancre : on la recale quand la caméra s'en éloigne (précision float32 des instances)
     if (Math.hypot(cam[0] - this.anchor[0], cam[1] - this.anchor[1], cam[2] - this.anchor[2]) > 2e5) { this.anchor.set(cam); this.dirty = true; }
     // cellules actives et niveau de détail de chacune
@@ -180,6 +184,8 @@ export class AsteroidField {
   _rebuild() {
     this.dirty = false; this.sinceBuild = 0;
     const A = this.anchor, C = this.center, ox = C[0] - A[0], oy = C[1] - A[1], oz = C[2] - A[2];
+    const F = this.frame, v = this._v;
+    const W = F ? (q) => { v.set(q.x, q.y, q.z).applyQuaternion(F); return v; } : (q) => v.set(q.x, q.y, q.z);
     for (const lv of this.buckets) for (const b of lv) b.begin();
     let nd = 0, nr = 0, ncell = 0;
     const P = this.dotGeo.attributes.iPos, K = this.dotGeo.attributes.iCol;
@@ -189,11 +195,11 @@ export class AsteroidField {
       if (c.lod === 3) {
         for (const q of c.rocks) {
           if (nd >= this.dotCap) break;
-          P.array.set([q.x + ox, q.y + oy, q.z + oz, q.r], nd * 4); K.array.set(q.tint, nd * 3); nd++;
+          const w = W(q); P.array.set([w.x + ox, w.y + oy, w.z + oz, q.r], nd * 4); K.array.set(q.tint, nd * 3); nd++;
         }
       } else {
         const lv = this.buckets[c.lod];
-        for (const q of c.rocks) { lv[q.shape % this.nShapes].push(q.x + ox, q.y + oy, q.z + oz, q); nr++; }
+        for (const q of c.rocks) { const w = W(q); lv[q.shape % this.nShapes].push(w.x + ox, w.y + oy, w.z + oz, q); nr++; }
       }
     }
     for (const lv of this.buckets) for (const b of lv) b.end();
