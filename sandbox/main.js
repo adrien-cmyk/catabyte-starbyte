@@ -1,4 +1,4 @@
-// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 10 du plan technique).
+// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 11 du plan technique).
 // Assemble : renderer à profondeur logarithmique, origine flottante, ciel cuit, étoile, géante gazeuse + anneaux, trois lunes,
 // caméra libre à zoom logarithmique, post-traitement (bloom), panneau de réglages, vues des tests visuels.
 import { SB3D, THREE, qualityLevel } from './lib/sb3d-shim.js';
@@ -14,6 +14,8 @@ import { sandboxMoons } from './presets/moons.js';
 import { AsteroidField } from './bodies/AsteroidField.js';
 import { RingDebris } from './bodies/RingDebris.js';
 import { Racer } from './scene/Racer.js';
+import { TrajectoryHolo } from './scene/TrajectoryHolo.js';
+import { propagate, sampleAt, hyperbolicApproach, GM_GIANT, gmOfSphere } from './core/Gravity.js';
 
 const Q = qualityLevel();
 const host = document.getElementById('view');
@@ -67,6 +69,7 @@ function setGiant(key) {
   const v = new THREE.Vector3(Math.cos(a) * rr, 0, Math.sin(a) * rr).applyMatrix4(new THREE.Matrix4().extractRotation(m));
   targets.rings = { pos: Float64Array.from([v.x, v.y, v.z]), minDist: 50, label: 'Anneaux' };
   if (cam.target) cam.setTarget(targets[curTarget] || targets.giant);
+  if (typeof holo !== 'undefined' && holo) { buildRace(); if (racerOn) racerAt(simT); }
 }
 
 /* ── caméra ── */
@@ -85,19 +88,74 @@ const moons = sandboxMoons(GIANTS.amber.radius).map((def) => {
 });
 const moonById = Object.fromEntries(moons.map((m) => [m.def.id, m]));
 
-/* ── racer témoin : frégate SR-01, en vol rectiligne pour l'instant (trajectoire gravitationnelle : étape 11) ── */
+/* ── racer témoin : frégate SR-01 sur une fronde gravitationnelle calculée (Velocity Verlet, géante + 3 lunes) ── */
 const racer = new Racer();
 frame.add(racer.group, racer.pos); scene.add(racer.group, racer.trail.mesh);
 targets.racer = { pos: racer.pos, minDist: 40, label: 'Racer SR-01' };
-let racerOn = false, fovOv = null;
-function racerStart() {
-  const q = giant.group.quaternion, sL = SUN_DIR.clone().applyQuaternion(q.clone().invert());
-  const a = Math.atan2(sL.z, sL.x) + 0.9, R = giant.R;
-  const p = new THREE.Vector3(Math.cos(a) * 1.75 * R, 0.22 * R, Math.sin(a) * 1.75 * R).applyQuaternion(q);
-  const v = new THREE.Vector3(-Math.sin(a), 0, Math.cos(a)).applyQuaternion(q).multiplyScalar(2.8e4);   // 28 km/s
-  racer.pos.set([giant.pos[0] + p.x, giant.pos[1] + p.y, giant.pos[2] + p.z]); racer.vel.set([v.x, v.y, v.z]);
-  racer.trail.reset(); racerOn = true;
-  return Math.atan2(p.x, p.z);                          // azimut géante → racer
+var holo = new TrajectoryHolo();   // var : setGiant (appelé plus haut) le teste avant sa création
+scene.add(holo.group);
+let racerOn = false, fovOv = null, race = null;
+const DENSITY = { rocky: 3300, icy: 1900, volcanic: 3500 };
+// astres pour l'intégration : positions exactes au temps t (mêmes formules que Moon.place)
+function raceBodies() {
+  const q = giant.group.quaternion.clone(), v = new THREE.Vector3(), gp = giant.pos;
+  const list = [{ GM: GM_GIANT, R: giant.R, pos: (t, o) => { o[0] = gp[0]; o[1] = gp[1]; o[2] = gp[2]; return o; } }];
+  for (const m of moons) {
+    const od = m.def.orbit;
+    list.push({ GM: gmOfSphere(m.R, DENSITY[m.def.family]), R: m.R, pos: (t, o) => {
+      const a = od.phase + 2 * Math.PI * t / od.period;
+      v.set(Math.cos(a) * od.r, Math.sin(a) * Math.sin(od.inc) * od.r, Math.sin(a) * Math.cos(od.inc) * od.r).applyQuaternion(q);
+      o[0] = gp[0] + v.x; o[1] = gp[1] + v.y; o[2] = gp[2] + v.z; return o; } });
+  }
+  return list;
+}
+// la course témoin : arrivée hyperbolique à 12 km/s, périapse à 1,12 R (sous l'anneau intérieur), plan incliné de 4°
+// dont la ligne des nœuds fait traverser l'anneau principal à l'aller ; périapse placée côté jour, près du terminateur
+function buildRace() {
+  const R = giant.R, q = giant.group.quaternion, Y = new THREE.Vector3(0, 1, 0);
+  const vInf = 1.2e4, rp = 1.12 * R, r0 = 14 * R;
+  const s0 = hyperbolicApproach(GM_GIANT, vInf, rp, r0, [0, 0, 1], [1, 0, 0]);
+  const single = [{ GM: GM_GIANT, R, pos: (t, o) => { o[0] = o[1] = o[2] = 0; return o; } }];
+  const S1 = propagate(single, { t: 0, p: s0.p, v: s0.v }, 2 * 86400, { dtMax: 300 });
+  let ip = 0, rmin = Infinity; S1.forEach((x, i) => { const r = Math.hypot(...x.p); if (r < rmin) { rmin = r; ip = i; } });
+  const Pp = new THREE.Vector3(...S1[ip].p).normalize();
+  const sL = SUN_DIR.clone().applyQuaternion(q.clone().invert());
+  const want = Math.atan2(sL.z, sL.x) + 0.9, have = Math.atan2(Pp.z, Pp.x);
+  const spin = new THREE.Quaternion().setFromAxisAngle(Y, have - want);          // azimut de la périapse
+  const P2 = Pp.clone().applyQuaternion(spin);
+  const n = new THREE.Vector3(...s0.p).cross(new THREE.Vector3(...s0.v)).normalize();
+  const node = P2.clone().applyAxisAngle(n, -74 * Math.PI / 180);               // nœud ascendant côté aller
+  const tilt = new THREE.Quaternion().setFromAxisAngle(node.normalize(), 4 * Math.PI / 180);
+  const toW = q.clone().multiply(tilt).multiply(spin);
+  const p = new THREE.Vector3(...s0.p).applyQuaternion(toW), v = new THREE.Vector3(...s0.v).applyQuaternion(toW);
+  const t0 = 0;
+  const S = propagate(raceBodies(), { t: t0, p: [giant.pos[0] + p.x, giant.pos[1] + p.y, giant.pos[2] + p.z], v: [v.x, v.y, v.z] }, 2.2 * 86400, { dtMax: 120 });
+  const axis = Y.clone().applyQuaternion(q);
+  holo.setPath(S, { tickEvery: 1800, ringPlane: giant.ring ? { center: giant.pos, normal: axis.toArray(), inner: giant.ring.inner * R, outer: giant.ring.outer * R } : null });
+  race = { S, t0: S[0].t, t1: S[S.length - 1].t, tp: holo.periapsis.t, rp: holo.periapsis.r, hit: S.hit };
+}
+buildRace();
+const _P = [0, 0, 0], _V = [0, 0, 0];
+function racerAt(t) { sampleAt(race.S, t, _P, _V); racer.pos.set(_P); racer.vel.set(_V); }
+// le racer est-il au soleil au temps t ? (hors du cylindre d'ombre de la géante)
+function racerLit(t) {
+  sampleAt(race.S, t, _P, _V);
+  const r = new THREE.Vector3(_P[0] - giant.pos[0], _P[1] - giant.pos[1], _P[2] - giant.pos[2]);
+  const along = r.dot(SUN_DIR);
+  return along > 0 || r.addScaledVector(SUN_DIR, -along).length() > giant.R * 1.02;
+}
+// direction de caméra : mélange de (géante → racer) et du soleil, en lacet / tangage pour FreeCamera
+function aimFromGiant(k) {
+  const d = new THREE.Vector3(racer.pos[0] - giant.pos[0], racer.pos[1] - giant.pos[1], racer.pos[2] - giant.pos[2]).normalize();
+  d.multiplyScalar(1 - k * 0.5).addScaledVector(SUN_DIR, k).normalize();
+  return { yaw: Math.atan2(d.x, d.z), pitch: Math.asin(THREE.MathUtils.clamp(d.y, -1, 1)) };
+}
+// premier instant éclairé à partir de `before` secondes avant la périapse (pas de 5 min)
+function litBefore(before) { for (let b = before; b > -6 * 3600; b -= 300) if (racerLit(race.tp - b)) return b; return before; }
+// place l'horloge de course `dt` secondes avant la périapse ; renvoie l'azimut géante → racer
+function racerStart(before = 1500) {
+  simT = race.tp - before; racerAt(simT); racer.trail.reset(); racerOn = true;
+  return Math.atan2(racer.pos[0] - giant.pos[0], racer.pos[2] - giant.pos[2]);
 }
 
 /* ── champ d'astéroïdes : un amas allongé le long de l'orbite, à 4,4 R de la géante, éclairé de côté ── */
@@ -170,8 +228,12 @@ const VIEWS = {
     targets.fieldIn = { pos: Float64Array.from([field.center[0] + p[0], field.center[1] + p[1], field.center[2] + p[2]]), minDist: 100, label: 'Cœur du champ' };
     cam.setTarget(targets.fieldIn, { dist: rock ? rock.r * 5 : 4000, yaw: Math.atan2(r.x, r.z) + 0.9, pitch: 0.12 }); },
   // test n° 2 : le racer devant la géante — plan rapproché, puis longue focale où il redevient minuscule
-  racer: () => { const az = racerStart(); timeScale = 1; cam.setTarget(targets.racer, { dist: 190, yaw: az + 0.55, pitch: 0.16 }); },
-  'racer-pass': () => { const az = racerStart(); timeScale = 1; fovOv = 9; cam.setTarget(targets.racer, { dist: 5200, yaw: az + 0.5, pitch: 0.11 }); },   // visée rasant le limbe
+  // la fronde vue de haut : trajectoire holographique complète, racer en accéléré
+  trajectory: () => { racerStart(3 * 3600); timeScale = 90; cam.setTarget(targets.giant, { dist: giant.R * 9, yaw: sunYaw + 0.4, pitch: 1.05 }); },
+  // caméra dans l'axe géante → racer (la géante est derrière lui), inclinée vers le soleil (éclairage de face) ;
+  // en longue focale, plus inclinée : le regard rase le limbe
+  racer: () => { racerStart(litBefore(420)); timeScale = 1; cam.setTarget(targets.racer, { dist: 190, ...aimFromGiant(0.4) }); },
+  'racer-pass': () => { racerStart(litBefore(420)); timeScale = 1; fovOv = 9; cam.setTarget(targets.racer, { dist: 5200, ...aimFromGiant(0.95) }); },
   moons: () => { graze = null; const m = moonById.kesh, o = m.def.orbit;
     const sL = SUN_DIR.clone().applyQuaternion(giant.group.quaternion.clone().invert());
     const aStar = Math.atan2(sL.z, sL.x) + 0.5;
@@ -185,7 +247,7 @@ for (const m of sandboxMoons(GIANTS.amber.radius)) {
   // test n° 3 : survol à ~2,5 km, regard le long de l'horizon, lumière rasante de trois quarts
   VIEWS['graze-' + m.id] = () => { const g = setGraze(m.id); cam.setTarget(g.target, { dist: 24000, yaw: g.sunYawM + 2.3, pitch: 0.1 }); };
 }
-for (const k of Object.keys(VIEWS)) { const f = VIEWS[k]; VIEWS[k] = () => { fovOv = null; if (k !== 'racer' && k !== 'racer-pass') timeScale = 240; f(); }; }
+for (const k of Object.keys(VIEWS)) { const f = VIEWS[k]; VIEWS[k] = () => { fovOv = null; if (!['racer', 'racer-pass', 'trajectory'].includes(k)) { timeScale = 240; racerOn = false; } f(); }; }
 VIEWS.giant();
 
 /* ── post-traitement : bloom réservé aux sources très lumineuses (étoile, moteurs) ── */
@@ -209,7 +271,11 @@ const sunDirAtGiant = new THREE.Vector3();
 function step(dt) {
   simT += dt * timeScale;
   for (const m of moons) m.place(giant, simT);
-  if (racerOn) for (let i = 0; i < 3; i++) racer.pos[i] += racer.vel[i] * dt * timeScale;
+  if (racerOn && race) {
+    if (simT > race.t1) { simT = race.tp - 3 * 3600; racer.trail.reset(); }    // la course témoin repart en boucle
+    racerAt(simT);
+    racer.throttle = Math.abs(simT - race.tp) < 1200 ? 1 : 0.3;                // poussée maximale autour de la périapse (effet Oberth)
+  }
   { const f = fovOv || baseFov; if (camera.fov !== f) { camera.fov = f; camera.updateProjectionMatrix(); } }
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
   cam.update(dt);
@@ -232,6 +298,8 @@ function step(dt) {
   sunLight.position.copy(sunDirAtGiant).multiplyScalar(1000); sunLight.target.position.set(0, 0, 0);
   giantShine.position.set(giant.pos[0] - racer.pos[0], giant.pos[1] - racer.pos[1], giant.pos[2] - racer.pos[2]).normalize().multiplyScalar(1000);
   racer.update(frame, simT, performance.now() / 1000);
+  holo.group.visible = racerOn;
+  if (racerOn) holo.update(frame.cam, simT, pix);
 }
 function render() { composer.render(); }
 function loop(now) {
@@ -262,7 +330,7 @@ window.RW = {
   views: Object.keys(VIEWS), setView: (v) => { VIEWS[v](); }, setGiant, setTime: (t) => { simT = t; }, setTimeScale: (s) => { timeScale = s; },
   stop: () => renderer.setAnimationLoop(null),
   frames: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) step(dt); render(); },
-  info: () => ({ ...renderer.info.render, q: Q, dist: cam.distance, pending: pool.pending, field: field.stats, ring: debris ? debris.stats : null }),
+  info: () => ({ ...renderer.info.render, race: race && { n: race.S.length, rp: race.rp / giant.R, hit: !!race.hit, alt: (race.rp - giant.R) / 1e3, vmax: Math.max(...race.S.map((x) => Math.hypot(...x.v))) / 1e3, marks: holo.markData.map((m) => m.k + ':' + (m.ring ? (m.ring / giant.R).toFixed(2) : '')).filter((x) => !x.startsWith('0:')) }, q: Q, dist: cam.distance, pending: pool.pending, field: field.stats, ring: debris ? debris.stats : null }),
   // attend que toutes les parcelles de relief demandées soient construites (captures)
   settle: async (maxMs = 60000) => {
     const t0 = performance.now(); let calm = 0;

@@ -58,7 +58,8 @@ export class RingSystem {
       data[i * 4 + 3] = Math.round(dens[i] * 255);
     }
     const tex = this.texture = new THREE.DataTexture(data, N, 1, THREE.RGBAFormat);
-    tex.colorSpace = THREE.SRGBColorSpace; tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearFilter; tex.needsUpdate = true;
+    tex.colorSpace = THREE.SRGBColorSpace; tex.magFilter = THREE.LinearFilter;
+    tex.minFilter = THREE.LinearMipmapLinearFilter; tex.generateMipmaps = true; tex.needsUpdate = true;   // pas de moiré de loin
   }
   // densité (0..1) à un rayon donné en rayons planétaires : donnée de jeu (simulation, risques de traversée)
   colorAt(r) {
