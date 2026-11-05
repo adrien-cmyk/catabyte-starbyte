@@ -416,7 +416,8 @@ Cette partie sera détaillée au début de la Phase 3 (simulation), et les paris
 | 7. Lunes : relief en Web Worker, cube-sphère, quadtree LOD, trois familles | fait (Kesh cratérisée, Ilva glacée, Oro volcanique ; `heightAt` / `altitudeAt` prêts pour la simulation) |
 | 8. Champ d'astéroïdes : 16 formes × 3 LOD, instanciation GPU, cellules par niveau d'échelle, imposteurs | fait (formes générées en JavaScript déterministe au lieu de Blender, absent de l'environnement : aucun fichier à télécharger, mêmes formes côté serveur ; `rocksInCell` / `queryNear` prêts pour la simulation) |
 | 9. Fragments d'anneaux + poussière + fondu disque ↔ fragments | fait (couche gaussienne de ±260 m, blocs de 1,4 à 30 m sur 3 niveaux, densité lue dans le profil radial des anneaux) |
-| 10 à 15 | à faire |
+| 10. Racer témoin SR-01 + panaches + traînée | fait (modèle du jeu, panaches repris de ship3d.js, traînée en float64 ; vol rectiligne en attendant la trajectoire gravitationnelle de l'étape 11) |
+| 11 à 15 | à faire |
 
 Captures : `node tools/fronde/shots.js amber,blue,black` (serveur statique à la racine du dépôt sur le port 8766 ;
 `THREE_DIR` pointe vers un `node_modules/three` 0.186.0 local si le CDN n'est pas joignable).

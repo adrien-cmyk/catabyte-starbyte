@@ -1,4 +1,4 @@
-// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 9 du plan technique).
+// La Grande Fronde — Race World Visual Sandbox (Phase 1, étapes 1 à 10 du plan technique).
 // Assemble : renderer à profondeur logarithmique, origine flottante, ciel cuit, étoile, géante gazeuse + anneaux, trois lunes,
 // caméra libre à zoom logarithmique, post-traitement (bloom), panneau de réglages, vues des tests visuels.
 import { SB3D, THREE, qualityLevel } from './lib/sb3d-shim.js';
@@ -13,6 +13,7 @@ import { Moon, PatchPool } from './bodies/Moon.js';
 import { sandboxMoons } from './presets/moons.js';
 import { AsteroidField } from './bodies/AsteroidField.js';
 import { RingDebris } from './bodies/RingDebris.js';
+import { Racer } from './scene/Racer.js';
 
 const Q = qualityLevel();
 const host = document.getElementById('view');
@@ -25,6 +26,7 @@ host.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, 1, 0.5, 1e13);
 const frame = new WorldFrame();
+let simT = 3 * 3600, timeScale = 240, last = performance.now(), fpsAcc = 0, fpsN = 0, fps = 0;
 scene.background = bakeBackdrop(renderer, { quality: Q });
 
 /* ── système de la sandbox : géante au centre, étoile jaune à 5,2 UA ── */
@@ -33,8 +35,20 @@ const star = new Star(STAR_TYPES.yellow);
 star.pos.set([SUN_DIR.x * 5.2 * AU, SUN_DIR.y * 5.2 * AU, SUN_DIR.z * 5.2 * AU]);
 frame.add(star.group, star.pos);
 scene.add(star.group);
-const sunLight = new THREE.DirectionalLight(star.color, 3.0);   // pour les objets PBR (racer, astéroïdes : étapes suivantes)
-scene.add(sunLight, sunLight.target);
+const sunLight = new THREE.DirectionalLight(star.color, 3.2);   // objets PBR (racer)
+const giantShine = new THREE.DirectionalLight(0xffb07a, 0.22);  // lumière renvoyée par la géante, chaude et faible
+scene.add(sunLight, sunLight.target, giantShine, giantShine.target);
+// reflets des métaux : environnement cuit une fois (espace noir, soleil, grande lueur chaude de la géante)
+{
+  const env = new THREE.Scene();
+  env.add(new THREE.Mesh(new THREE.SphereGeometry(10, 32, 16), new THREE.MeshBasicMaterial({ color: 0x020305, side: THREE.BackSide })));
+  const sun = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.95, 0.85).multiplyScalar(40) }));
+  sun.position.copy(SUN_DIR).multiplyScalar(9); env.add(sun);
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(4, 32, 16), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.5, 0.3, 0.16) }));
+  glow.position.set(SUN_DIR.z * 8, -1.5, -SUN_DIR.x * 8); env.add(glow);
+  const pm = new THREE.PMREMGenerator(renderer);
+  scene.environment = pm.fromScene(env, 0.02).texture; pm.dispose();
+}
 
 let giant = null, giantKey = null, debris = null;
 function setGiant(key) {
@@ -70,6 +84,21 @@ const moons = sandboxMoons(GIANTS.amber.radius).map((def) => {
   return m;
 });
 const moonById = Object.fromEntries(moons.map((m) => [m.def.id, m]));
+
+/* ── racer témoin : frégate SR-01, en vol rectiligne pour l'instant (trajectoire gravitationnelle : étape 11) ── */
+const racer = new Racer();
+frame.add(racer.group, racer.pos); scene.add(racer.group, racer.trail.mesh);
+targets.racer = { pos: racer.pos, minDist: 40, label: 'Racer SR-01' };
+let racerOn = false, fovOv = null;
+function racerStart() {
+  const q = giant.group.quaternion, sL = SUN_DIR.clone().applyQuaternion(q.clone().invert());
+  const a = Math.atan2(sL.z, sL.x) + 0.9, R = giant.R;
+  const p = new THREE.Vector3(Math.cos(a) * 1.75 * R, 0.22 * R, Math.sin(a) * 1.75 * R).applyQuaternion(q);
+  const v = new THREE.Vector3(-Math.sin(a), 0, Math.cos(a)).applyQuaternion(q).multiplyScalar(2.8e4);   // 28 km/s
+  racer.pos.set([giant.pos[0] + p.x, giant.pos[1] + p.y, giant.pos[2] + p.z]); racer.vel.set([v.x, v.y, v.z]);
+  racer.trail.reset(); racerOn = true;
+  return Math.atan2(p.x, p.z);                          // azimut géante → racer
+}
 
 /* ── champ d'astéroïdes : un amas allongé le long de l'orbite, à 4,4 R de la géante, éclairé de côté ── */
 const field = (() => {
@@ -140,6 +169,9 @@ const VIEWS = {
     const p = rock ? [rock.x, rock.y, rock.z] : best;
     targets.fieldIn = { pos: Float64Array.from([field.center[0] + p[0], field.center[1] + p[1], field.center[2] + p[2]]), minDist: 100, label: 'Cœur du champ' };
     cam.setTarget(targets.fieldIn, { dist: rock ? rock.r * 5 : 4000, yaw: Math.atan2(r.x, r.z) + 0.9, pitch: 0.12 }); },
+  // test n° 2 : le racer devant la géante — plan rapproché, puis longue focale où il redevient minuscule
+  racer: () => { const az = racerStart(); timeScale = 1; cam.setTarget(targets.racer, { dist: 190, yaw: az + 0.55, pitch: 0.16 }); },
+  'racer-pass': () => { const az = racerStart(); timeScale = 1; fovOv = 9; cam.setTarget(targets.racer, { dist: 5200, yaw: az + 0.5, pitch: 0.11 }); },   // visée rasant le limbe
   moons: () => { graze = null; const m = moonById.kesh, o = m.def.orbit;
     const sL = SUN_DIR.clone().applyQuaternion(giant.group.quaternion.clone().invert());
     const aStar = Math.atan2(sL.z, sL.x) + 0.5;
@@ -153,6 +185,7 @@ for (const m of sandboxMoons(GIANTS.amber.radius)) {
   // test n° 3 : survol à ~2,5 km, regard le long de l'horizon, lumière rasante de trois quarts
   VIEWS['graze-' + m.id] = () => { const g = setGraze(m.id); cam.setTarget(g.target, { dist: 24000, yaw: g.sunYawM + 2.3, pitch: 0.1 }); };
 }
+for (const k of Object.keys(VIEWS)) { const f = VIEWS[k]; VIEWS[k] = () => { fovOv = null; if (k !== 'racer' && k !== 'racer-pass') timeScale = 240; f(); }; }
 VIEWS.giant();
 
 /* ── post-traitement : bloom réservé aux sources très lumineuses (étoile, moteurs) ── */
@@ -163,19 +196,21 @@ bloom.enabled = Q < 2;
 composer.addPass(bloom);
 composer.addPass(new SB3D.OutputPass());
 
+let baseFov = 45;
 function resize() {
   const w = host.clientWidth, h = host.clientHeight;
   renderer.setSize(w, h, false); composer.setSize(w, h);
-  camera.aspect = w / h; camera.fov = w / h < 0.8 ? 58 : 45; camera.updateProjectionMatrix();
+  camera.aspect = w / h; baseFov = w / h < 0.8 ? 58 : 45; camera.fov = fovOv || baseFov; camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
 
 /* ── boucle ── */
-let simT = 3 * 3600, timeScale = 240, last = performance.now(), fpsAcc = 0, fpsN = 0, fps = 0;
 const sunDirAtGiant = new THREE.Vector3();
 function step(dt) {
   simT += dt * timeScale;
   for (const m of moons) m.place(giant, simT);
+  if (racerOn) for (let i = 0; i < 3; i++) racer.pos[i] += racer.vel[i] * dt * timeScale;
+  { const f = fovOv || baseFov; if (camera.fov !== f) { camera.fov = f; camera.updateProjectionMatrix(); } }
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
   cam.update(dt);
   frame.cam.set(cam.pos);
@@ -195,6 +230,8 @@ function step(dt) {
     field.update(frame, camera, sd, star.color, 1.7 * star.type.intensity, pix, simT);
   }
   sunLight.position.copy(sunDirAtGiant).multiplyScalar(1000); sunLight.target.position.set(0, 0, 0);
+  giantShine.position.set(giant.pos[0] - racer.pos[0], giant.pos[1] - racer.pos[1], giant.pos[2] - racer.pos[2]).normalize().multiplyScalar(1000);
+  racer.update(frame, simT, performance.now() / 1000);
 }
 function render() { composer.render(); }
 function loop(now) {
@@ -216,7 +253,7 @@ $('giant').onchange = (e) => { setGiant(e.target.value); };
 $('view-sel').onchange = (e) => { const v = e.target.value; curTarget = v.startsWith('ring') ? 'rings' : v === 'star' ? 'star' : moonById[v] ? 'moon:' + v : 'giant'; if (!v.startsWith('graze')) graze = null; VIEWS[v](); };
 $('target').onchange = (e) => { curTarget = e.target.value; graze = null;
   const m = curTarget.startsWith('moon:') ? moonById[curTarget.slice(5)] : null;
-  cam.setTarget(targets[curTarget], { dur: 3.2, dist: m ? m.R * 3 : curTarget === 'field' ? 2e6 : curTarget === 'star' ? star.R * 8 : curTarget === 'rings' ? 2e7 : giant.R * 3 }); };
+  cam.setTarget(targets[curTarget], { dur: 3.2, dist: m ? m.R * 3 : curTarget === 'racer' ? 300 : curTarget === 'field' ? 2e6 : curTarget === 'star' ? star.R * 8 : curTarget === 'rings' ? 2e7 : giant.R * 3 }); };
 $('speed').oninput = (e) => { timeScale = Math.round(Math.pow(10, +e.target.value)); hud(); };
 $('shot').onclick = () => { render(); const a = document.createElement('a'); a.download = `fronde_${giantKey}_${Date.now()}.png`; a.href = renderer.domElement.toDataURL('image/png'); a.click(); };
 
