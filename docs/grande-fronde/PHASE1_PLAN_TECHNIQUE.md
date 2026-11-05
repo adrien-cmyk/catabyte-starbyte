@@ -413,7 +413,8 @@ Cette partie sera détaillée au début de la Phase 3 (simulation), et les paris
 | 4. Géante v1 (bandes, rotation différentielle, éclairage, limbe) | fait |
 | 5. Géante v2 (tempêtes, aurores, éclairs, 3 variantes) | fait, **sauf** le cache cuit et le détail fin du plan rapproché |
 | 6. Anneaux : disque + ombres croisées | fait |
-| 7 à 15 | à faire |
+| 7. Lunes : relief en Web Worker, cube-sphère, quadtree LOD, trois familles | fait (Kesh cratérisée, Ilva glacée, Oro volcanique ; `heightAt` / `altitudeAt` prêts pour la simulation) |
+| 8 à 15 | à faire |
 
 Captures : `node tools/fronde/shots.js amber,blue,black` (serveur statique à la racine du dépôt sur le port 8766 ;
 `THREE_DIR` pointe vers un `node_modules/three` 0.186.0 local si le CDN n'est pas joignable).

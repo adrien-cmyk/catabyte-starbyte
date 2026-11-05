@@ -70,6 +70,7 @@ export class Star {
           vec4 c = projectionMatrix * modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
           // position normalisée (w = 1) : évite l'interpolation sur un w de 10¹¹ ; profondeur logarithmique réécrite
           gl_Position = vec4(c.xy / c.w + position.xy * uSize, clamp(c.z / c.w, -1.0, 0.999999), 1.0);
+          if (c.w <= 0.0) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);          // étoile derrière la caméra : hors champ
           #include <logdepthbuf_vertex>
           #ifdef USE_LOGDEPTHBUF
             vFragDepth = 1.0 + c.w;
