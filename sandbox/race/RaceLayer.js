@@ -32,10 +32,10 @@ export class RaceLayer {
     }
     this.c.setTime(t); this.c.setSpeed(this.speeds[this.speedI]);
     this.rebuild(); this._hud(true);
-    this.c.hud.hidden = false; this.c.labels.hidden = false;
+    this.c.hud.hidden = false; this.c.labels.hidden = false; document.body.classList.add('race');
   }
   exit() {
-    this.on = false; this.c.hud.hidden = true; this.c.labels.hidden = true;
+    this.on = false; this.c.hud.hidden = true; this.c.labels.hidden = true; document.body.classList.remove('race');
     for (const h of Object.values(this.holos)) h.group.visible = false;
     this.windows.group.visible = false; for (const e of Object.values(this.gateEls)) e.hidden = true;
   }
@@ -132,7 +132,7 @@ export class RaceLayer {
   select(id) {
     this.sel = this.sel === id ? null : id;
     const rc = this.sel && this.c.fleet().find((r) => r.def.id === this.sel);
-    if (rc && rc.inSys) this.c.follow(this.sel);
+    if (rc && rc.inSys) { this.c.follow(this.sel); this._view = 'follow'; }
     this._hud(true);
   }
   // instant d'arrivée du racer suivi dans ce système (s'il n'y est pas encore)
@@ -150,7 +150,14 @@ export class RaceLayer {
         <ol id="rh-list"></ol>
         <div id="rh-win" hidden></div>
         <div id="rh-wait" hidden><span></span><button type="button">Aller à son arrivée</button></div>
-        <div class="rh-clock"><input id="rh-clock" type="range" min="0" step="1" aria-label="Temps de course"><button id="rh-speed" type="button">×200</button></div>`;
+        <div class="rh-clock"><input id="rh-clock" type="range" min="0" step="1" aria-label="Temps de course"><button id="rh-speed" type="button">×200</button></div>
+        <div class="rh-views"><button type="button" data-v="overview">Ensemble</button><button type="button" data-v="gates">Portes</button><button type="button" data-v="follow">Suivre</button></div>`;
+      for (const b of el.querySelectorAll('.rh-views button')) b.onclick = () => {
+        const v = b.dataset.v;
+        if (v === 'follow') { const f = this.c.fleet(), rc = f.find((r) => r.def.id === this.sel && r.inSys) || f.find((r) => r.inSys); if (!rc) return; this.sel = rc.def.id; this.c.follow(rc.def.id); }
+        else this.c.views[v]();
+        this._view = v; this._hud(true);
+      };
       el.querySelector('#rh-clock').max = String(Math.ceil(F.edition.t1));
       el.querySelector('#rh-clock').oninput = (e) => { this.c.setTime(+e.target.value); };
       el.querySelector('#rh-speed').onclick = (e) => { this.speedI = (this.speedI + 1) % this.speeds.length; this.c.setSpeed(this.speeds[this.speedI]); e.target.textContent = '×' + this.speeds[this.speedI]; };
@@ -158,6 +165,7 @@ export class RaceLayer {
       el.querySelector('#rh-wait button').onclick = () => { const a = this._arrival(this.c.getTime()); if (a) { const id = this.sel; this.c.setTime(a - 300); this.position(a - 300); const rc = this.c.fleet().find((r) => r.def.id === id); if (rc && rc.inSys) this.c.follow(id); this._hud(true); } };
     }
     el.querySelector('#rh-sys').textContent = `${sys.name} · ${sys.address}`;
+    for (const b of el.querySelectorAll('.rh-views button')) b.classList.toggle('on', b.dataset.v === (this._view || 'overview'));
     el.querySelector('#rh-time').textContent = hh(t);
     // le racer suivi n'est pas encore là : on l'annonce, avec un raccourci vers son arrivée
     const arr = this._arrival(t), w = el.querySelector('#rh-wait');

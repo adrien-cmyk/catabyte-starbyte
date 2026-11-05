@@ -315,6 +315,7 @@ raceLayer = new RaceLayer({
   hud: document.getElementById('race'), labels: document.getElementById('race-labels'),
   setTime: (t) => { simT = t; }, getTime: () => simT, setSpeed: (x) => { timeScale = x; },
   follow: (id) => { const P = RACER_PROFILES[RACERS.find((r) => r.id === id).ship]; cam.setTarget(targets['racer:' + id], { dur: 2.2, dist: Math.max(P.length * 3, 400) }); },
+  views: { overview: () => cam.setTarget(targets.giant, { dur: 2, dist: giant.R * 7, yaw: sunYaw + 0.6, pitch: 0.55 }), gates: () => VIEWS['course-portes']() },
   back: () => {
     try { sessionStorage.setItem('fronde.t', String(simT)); sessionStorage.setItem('fronde.sel', raceLayer.sel || ''); } catch (e) {}
     let url = '../telebyte/index.html'; try { url = sessionStorage.getItem('fronde.back') || url; } catch (e) {}
@@ -327,15 +328,16 @@ function courseView(opts = {}) {
   raceLayer.enter(opts);
   raceLayer.position(simT);
   const s = raceLayer.sel && fleet.find((r) => r.def.id === raceLayer.sel);
-  if (s && s.inSys) raceLayer.c.follow(raceLayer.sel);                     // le racer suivi est ici : poursuite
-  else cam.setTarget(targets.giant, { dist: giant.R * 7, yaw: sunYaw + 0.6, pitch: 0.55 });   // sinon : vue d'ensemble
+  if (s && s.inSys) { raceLayer.c.follow(raceLayer.sel); raceLayer._view = 'follow'; }        // le racer suivi est ici : poursuite
+  else { cam.setTarget(targets.giant, { dist: giant.R * 7, yaw: sunYaw + 0.6, pitch: 0.55 }); raceLayer._view = 'overview'; }   // sinon : vue d'ensemble
+  raceLayer._hud(true);
 }
 VIEWS.course = () => { fovOv = null; courseView(); };
 VIEWS.course._w = true;
 // les fenêtres orbitales vues de près, en surplomb côté soleil
 VIEWS['course-portes'] = () => {
-  fovOv = null; courseView();
-  const f = raceLayer.windows.frameWorld(); if (!f) return;
+  fovOv = null; if (!raceLayer.on) courseView();                       // déjà en course : on ne fait que recadrer
+  const f = raceLayer.windows.frameWorld(); if (!f) return; raceLayer._view = 'gates';
   targets.gates = { pos: Float64Array.from(f.c), minDist: 1000, label: 'Fenêtres orbitales' };
   cam.setTarget(targets.gates, { dist: Math.max(f.spread * 1.6, giant.R * 0.6), yaw: sunYaw + 0.9, pitch: 0.75 });
 };

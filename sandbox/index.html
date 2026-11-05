@@ -57,7 +57,17 @@
   #race .rh-clock { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
   #race .rh-clock input { flex: 1; min-width: 0; accent-color: #9fd4ec; }
   #race .rh-clock button { background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; font: 600 11px -apple-system, system-ui, sans-serif; padding: 4px 7px; cursor: pointer; }
-  @media (max-width: 720px) { #race { left: 12px; right: 12px; width: auto; top: auto; bottom: calc(var(--sab) + 110px); } #race li small { display: none; } }
+  /* mode course : seul le panneau de course reste à l'écran (les outils de mise au point de la sandbox sont masqués) */
+  body.race #panel, body.race #readout, body.race #title { display: none; }
+  #race .rh-views { display: flex; gap: 6px; margin-top: 8px; }
+  #race .rh-views button { flex: 1; background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; font: 600 11px -apple-system, system-ui, sans-serif; padding: 5px 0; cursor: pointer; }
+  #race .rh-views button.on { border-color: #9fd4ec; color: #9fd4ec; }
+  @media (max-width: 720px) {
+    #race { left: 10px; right: 10px; width: auto; top: auto; bottom: calc(var(--sab) + 10px); max-height: 52vh; overflow-y: auto; padding: 8px 10px 6px; }
+    #race li { padding: 3px 0; } #race li small { display: none; } #race li .nm { font-size: 12px; }
+    #race .rh-time { font-size: 15px; margin: 0 0 4px; } #race b#rh-sys { margin-top: 4px; }
+    #race #rh-win { font-size: 10px; }
+  }
   body.clean #caption,
   body.clean #panel, body.clean #readout, body.clean #title { display: none; }
 </style>
