@@ -154,7 +154,12 @@ export class AsteroidField {
   update(frame, camera, sunDirW, sunColor, sunI, pixAngle, timeS) {
     this.frameNo++; this.sinceBuild++;
     const u = this.uniforms;
-    u.uSun.value.copy(sunDirW); u.uSunCol.value.copy(sunColor); u.uSunI.value = sunI; u.uTime.value = timeS % 1e6;
+    u.uSun.value.copy(sunDirW); u.uSunCol.value.copy(sunColor); u.uSunI.value = sunI;
+    // horloge de rotation propre : suit le temps simulé mais jamais plus vite que 0,5 s par image (×30 à 60 i/s),
+    // sinon le temps accéléré des vues d'ensemble fait toupiller les rochers
+    const dts = this._lastT == null ? 0 : timeS - this._lastT; this._lastT = timeS;
+    this.rotT = ((this.rotT || 0) + Math.min(Math.max(dts, 0), 0.5)) % 1e6;
+    u.uTime.value = this.rotT;
     this.dotU.uProj.value = 1 / pixAngle;
     const cam = frame.cam, C = this.center;
     let pc = [cam[0] - C[0], cam[1] - C[1], cam[2] - C[2]];

@@ -152,8 +152,9 @@ export class Racer {
         if (!o.isMesh) return;
         const mat = o.material;
         if (/GLOW_MOTEUR/.test(mat.name)) { mat.emissive.setRGB(...profile.engine); mat.emissiveIntensity = 6; }
-        else if (/GLOW|NAV/.test(mat.name)) { mat.emissiveIntensity = Math.max(mat.emissiveIntensity || 1, 2.5); }
-        else { mat.envMapIntensity = 0.35; }
+        else if (/NAV/.test(mat.name)) { mat.emissiveIntensity = 1.2; }                  // feux de navigation discrets
+        else if (/GLOW/.test(mat.name)) { mat.emissiveIntensity = 1.8; }
+        else { mat.envMapIntensity = 0.6; }
       });
       this.group.add(m); this.model = m; this.ready = true;
     };

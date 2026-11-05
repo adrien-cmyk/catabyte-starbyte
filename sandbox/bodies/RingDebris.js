@@ -43,7 +43,7 @@ export class RingDebrisData {
       h = next(h); const r = L.r * (1 + 1.7 * Math.pow(u01(h), 2.4));
       h = next(h); const shape = (h >>> 8) % 16;
       h = next(h); const az = u01(h) * 2 - 1; h = next(h); const aa = u01(h) * 6.2832, aq = Math.sqrt(1 - az * az);
-      h = next(h); const speed = (2 * Math.PI / (40 + 500 * u01(h))) * (u01(next(h)) < 0.5 ? -1 : 1);
+      h = next(h); const speed = (2 * Math.PI / (600 + 3000 * u01(h)))   // un tour en 10 min à 1 h * (u01(next(h)) < 0.5 ? -1 : 1);
       h = next(h); const phase = u01(h) * 6.2832;
       h = next(h); const ns = [0.9 + 0.2 * u01(h), 0.9 + 0.2 * u01(next(h)), 0.9 + 0.2 * u01(next(next(h)))];
       h = next(h); const tv = 0.8 + 0.35 * u01(h);

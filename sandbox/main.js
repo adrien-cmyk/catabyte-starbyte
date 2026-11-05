@@ -42,7 +42,7 @@ star.pos.set([SUN_DIR.x * 5.2 * AU, SUN_DIR.y * 5.2 * AU, SUN_DIR.z * 5.2 * AU])
 frame.add(star.group, star.pos);
 scene.add(star.group);
 const sunLight = new THREE.DirectionalLight(star.color, 3.2);   // objets PBR (racer)
-const giantShine = new THREE.DirectionalLight(0xffb07a, 0.22);  // lumière renvoyée par la géante, chaude et faible
+const giantShine = new THREE.DirectionalLight(0xffb07a, 0.22);  // lumière renvoyée par la géante (intensité recalculée à chaque image)
 scene.add(sunLight, sunLight.target, giantShine, giantShine.target);
 // reflets des métaux : environnement cuit une fois (espace noir, soleil, grande lueur chaude de la géante)
 {
@@ -314,6 +314,7 @@ function step(dt) {
   giant.update(frame, simT, sunDirAtGiant, star.color, 1.7 * star.type.intensity);
   star.update(frame, simT, camera);
   const pix = THREE.MathUtils.degToRad(camera.fov) / renderer.domElement.height;
+  giant.uniforms.uPix.value = pix;
   for (const m of moons) {
     const sd = new THREE.Vector3(star.pos[0] - m.pos[0], star.pos[1] - m.pos[1], star.pos[2] - m.pos[2]).normalize();
     m.update(frame, camera, sd, star.color, 1.7 * star.type.intensity, pix, simT);
@@ -325,7 +326,14 @@ function step(dt) {
     field.update(frame, camera, sd, star.color, 1.7 * star.type.intensity, pix, simT);
   }
   sunLight.position.copy(sunDirAtGiant).multiplyScalar(1000); sunLight.target.position.set(0, 0, 0);
-  giantShine.position.set(giant.pos[0] - racer.pos[0], giant.pos[1] - racer.pos[1], giant.pos[2] - racer.pos[2]).normalize().multiplyScalar(1000);
+  {
+    // lumière renvoyée par la géante : proportionnelle à sa taille apparente et à la part éclairée vue du racer
+    const gx = giant.pos[0] - racer.pos[0], gy = giant.pos[1] - racer.pos[1], gz = giant.pos[2] - racer.pos[2];
+    const d = Math.hypot(gx, gy, gz), solid = Math.min(1, (giant.R / d) ** 2);
+    const lit = 0.5 - 0.5 * (gx * SUN_DIR.x + gy * SUN_DIR.y + gz * SUN_DIR.z) / d;      // 1 = on voit sa face de jour
+    giantShine.intensity = 0.05 + 3.2 * 0.55 * solid * lit;
+    giantShine.position.set(gx, gy, gz).multiplyScalar(1000 / d);
+  }
   racer.update(frame, simT, performance.now() / 1000);
   holo.group.visible = racerOn;
   // lisibilité en vue système : balise du racer, lunes agrandies (jamais en vue rapprochée : échelle réelle)

@@ -70,17 +70,21 @@ const FRAG = /* glsl */`
 #include <logdepthbuf_pars_fragment>
 ${NOISE}
 uniform vec3 uSun, uSunCol, uColA, uColB, uColC;
-uniform float uSunI, uR, uPix, uT, uBumpK;
+uniform float uSunI, uR, uPix, uT, uBumpK; uniform int uOctMax;
 varying vec3 vN, vPosW, vDir, vSph; varying vec2 vMask;
 void main(){
   #include <logdepthbuf_fragment>
   float dist = length(vPosW), foot = max(dist * uPix, 0.05);
   // relief fin par octaves : chaque longueur d'onde n'apparaît que si elle couvre plusieurs pixels
-  float hs = 0.0, lam = 24000.0;
-  for (int i = 0; i < 11; i++){
-    float w = smoothstep(2.0 * foot, 7.0 * foot, lam);
-    if (w <= 0.0) break;
-    float n = vnoise(vDir * (uR / lam) + float(i) * 7.31);
+  // on part de l'octave que la géométrie ne porte plus (~8 % de la distance) ; l'octave la plus grossière s'efface
+  // en fondu avant d'être retirée, pour qu'aucun raccord n'apparaisse quand le point de départ change
+  float kf = max(0.0, log2(24000.0 / max(0.08 * dist, 1.0))), k0 = floor(kf);
+  float hs = 0.0, lam = 24000.0 * exp2(-k0);
+  for (int i = 0; i < 12; i++){
+    if (i > uOctMax) break;
+    float w = smoothstep(2.0 * foot, 7.0 * foot, lam) * (i == 0 && k0 > 0.0 ? 1.0 - fract(kf) : 1.0);
+    if (lam < 2.0 * foot) break;
+    float n = vnoise(vDir * (uR / lam) + (float(i) + k0) * 7.31);
     #ifdef FAMILY_ROCKY
       n = 1.0 - abs(n * 2.0 - 1.0); n = n * n;                              // creux et bosses façon régolithe cratérisé
     #endif
@@ -163,7 +167,7 @@ export class Moon {
     this.uniforms = {
       uSun: { value: new THREE.Vector3(1, 0, 0) }, uSunCol: { value: new THREE.Color(1, 1, 1) }, uSunI: { value: 1.7 },
       uColA: { value: hex(F.colors[0]) }, uColB: { value: hex(F.colors[1]) }, uColC: { value: hex(F.colors[2]) },
-      uR: { value: this.R }, uPix: { value: 0.001 }, uT: { value: 0 },
+      uR: { value: this.R }, uPix: { value: 0.001 }, uT: { value: 0 }, uOctMax: { value: 8 },
       uBumpK: { value: def.family === 'icy' ? 0.025 : def.family === 'volcanic' ? 0.04 : 0.07 },
     };
     this.material = new THREE.ShaderMaterial({
@@ -173,7 +177,7 @@ export class Moon {
     this.roots = [0, 1, 2, 3, 4, 5].map((f) => this._node(f, -1, -1, 1, 1, 0));
     this.shown = []; this.frameNo = 0; this.camL = new THREE.Vector3();
   }
-  setLod(b) { this.split = b.moonSplit; }
+  setLod(b) { this.split = b.moonSplit; this.uniforms.uOctMax.value = b.moonOct; }
   _node(f, s0, t0, s1, t1, depth) {
     const c = faceDir(f, (s0 + s1) / 2, (t0 + t1) / 2);
     return { f, s0, t0, s1, t1, depth, c, L: this.R * (s1 - s0) * 0.785, state: 0, mesh: null, kids: null, used: 0 };

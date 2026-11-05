@@ -1,6 +1,6 @@
 # La Grande Fronde — captures de validation de la Phase 1
 
-Race World Visual Sandbox, 5 novembre 2026. Images en 2560 × 1440, sans interface, rendues par la sandbox
+Race World Visual Sandbox, 5 novembre 2026 (02, 03, 04 et la poursuite refaites après les retouches du jour). Images en 2560 × 1440, sans interface, rendues par la sandbox
 elle-même (`node tools/fronde/shots.js`, densité de pixels 2, qualité Haute). Toutes les échelles sont réelles :
 géante de 70 000 km de rayon, racer SR-01 de 68 m, étoile à 5,2 UA.
 
@@ -22,9 +22,10 @@ Bonus : `bonus_periapse_poursuite.jpg` (poursuite à 58 km/s), `bonus_kesh_devan
 
 ## Points faibles connus (à juger à la validation)
 
-- **Géante de très près** (02, plans rapprochés) : les nuages derrière le racer restent doux, le détail fin du plan
-  rapproché (fin de l'étape 5) n'est pas fait.
-- **Racer** : coque assez sombre dès qu'il n'est pas de trois quarts face au soleil ; feux de navigation très présents.
+- **Géante de très près** : couche de nuages rapprochée ajoutée le 5 novembre (volutes étirées dans le sens des vents,
+  relief doux) ; à juger en mouvement.
+- **Racer** : lumière renvoyée par la géante désormais calculée (taille apparente × part éclairée), feux de
+  navigation atténués ; la coque reste en contre-jour dans la traversée des anneaux (caméra sous le plan).
 - **Zoom** (07, 2ᵉ image) : en traversant le plan des anneaux à mi-parcours, quelques images de stries floues.
 - **Lunes** : pas d'ombres portées du relief (un rebord de cratère n'ombre pas le fond).
 - **Images par seconde réelles** : non mesurées (voir `../PERF_PHASE1.md`), à relever sur iPhone et Android.

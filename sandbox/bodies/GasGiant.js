@@ -62,6 +62,7 @@ uniform vec3 uSunL, uCamL, uStormColor, uNight, uSunCol;
 uniform float uPhase, uDiffT, uDiffP, uJets, uJetCount, uWarp, uTurb, uSunI, uAurora, uLightning, uFlashT;
 uniform float uRingIn, uRingOut, uHasRing;
 uniform int uOct;
+uniform float uNear, uPix;
 uniform vec4 uStorms[4];
 uniform int uStormCount;
 varying vec3 vP;
@@ -120,9 +121,34 @@ void main(){
   #endif
   vec3 albedo = P.rgb;
 
+  // détail rapproché : cellules nuageuses moutonnées et relief des sommets de nuages (perturbation de normale),
+  // octaves ouvertes selon la taille d'un pixel à la surface ; calculé seulement de près (uNear > 0)
+  vec3 nl = n;                                                   // normale d'éclairage (relief des nuages)
+  if (uNear > 0.0){
+    vec3 q = rotY(n, -uPhase);
+    float foot = length(n - uCamL) * uPix;                       // taille d'un pixel, en rayons planétaires
+    // nuages étirés dans le sens des vents (longitude : plan xz local) et tordus en volutes
+    vec3 qs = q * vec3(0.28, 1.0, 0.28);
+    float h = 0.0, amp = 0.5, lam = 1.0 / 160.0;                 // ≈ 450 km de large pour une géante de 70 000 km
+    for (int i = 0; i < 7; i++){
+      float w = smoothstep(1.5 * foot, 5.0 * foot, lam);
+      if (w <= 0.0) break;
+      vec3 c = qs / lam + float(i) * 5.17;
+      c += (vec3(vnoise(c * 0.5 + 3.1), vnoise(c * 0.5 + 7.7), vnoise(c * 0.5 + 1.3)) - 0.5) * 1.6;   // volutes
+      float b = smoothstep(0.35, 0.75, vnoise(c));
+      h += amp * b * w; amp *= 0.55; lam *= 0.5;
+    }
+    albedo *= mix(1.0, 0.72 + 0.62 * h, uNear * 0.9);
+    float hb = h * 0.0005 * uNear;                              // relief doux des sommets de nuages
+    vec3 dpx = dFdx(vP), dpy = dFdy(vP);
+    vec3 r1 = cross(dpy, n), r2 = cross(n, dpx); float det = dot(dpx, r1);
+    if (abs(det) > 1e-20) nl = normalize(abs(det) * n - sign(det) * (dFdx(hb) * r1 + dFdy(hb) * r2));
+  }
+
   // éclairage : Lambert enveloppé, rougeoiement au terminateur, limbe assombri
   float ndl = dot(n, uSunL);
-  float diff = clamp((ndl + 0.05) / 1.05, 0.0, 1.0);
+  float ndlB = dot(nl, uSunL);
+  float diff = clamp((mix(ndl, ndlB, smoothstep(-0.02, 0.15, ndl)) + 0.05) / 1.05, 0.0, 1.0);   // le relief n'éclaire pas la nuit
   diff = diff * diff * (3.0 - 2.0 * diff) * 0.35 + diff * 0.65;
   vec3 vdir = normalize(uCamL - n);
   float mu = max(dot(n, vdir), 0.0);
@@ -225,7 +251,7 @@ export class GasGiant {
       uPhase: { value: 0 }, uDiffT: { value: 0 }, uDiffP: { value: 6 * 3600 * (2 * Math.PI / preset.spinPeriod) },
       uJets: { value: preset.jets }, uJetCount: { value: preset.jetCount }, uWarp: { value: preset.warp * 2.6 }, uTurb: { value: preset.turbulence },
       uAurora: { value: preset.aurora || 0 }, uLightning: { value: preset.lightning || 0 }, uFlashT: { value: 0 },
-      uOct: { value: 5 }, uStorms: { value: storms }, uStormCount: { value: (preset.storms || []).length },
+      uOct: { value: 5 }, uNear: { value: 0 }, uPix: { value: 0.001 }, uStorms: { value: storms }, uStormCount: { value: (preset.storms || []).length },
     };
     this.quality = quality; this.octCap = quality >= 2 ? 6 : 10;
     this.surface = new THREE.Mesh(geo, new THREE.ShaderMaterial({
@@ -254,7 +280,7 @@ export class GasGiant {
   get radius() { return this.R; }
   // niveau de détail (LodManager) : plafond d'octaves, fondu des deux phases de rotation (recompile le shader)
   setLod(b) {
-    this.octCap = b.giantOct;
+    this.octCap = b.giantOct; this.nearOn = b.giantNear !== false;
     const m = this.surface.material, has = !!m.defines.CROSSFADE;
     if (has !== b.crossfade) { if (b.crossfade) m.defines.CROSSFADE = 1; else delete m.defines.CROSSFADE; m.needsUpdate = true; }
   }
@@ -275,6 +301,7 @@ export class GasGiant {
     const alt = Math.max(camL.length() - 1, 1e-6);
     const oct = Math.round(5.5 + Math.log2(1 / alt) * 1.25);
     this.uniforms.uOct.value = Math.max(4, Math.min(this.octCap, oct));
+    this.uniforms.uNear.value = this.nearOn === false ? 0 : 1 - THREE.MathUtils.smoothstep(alt, 0.06, 0.7);   // détail rapproché
     // atmosphère : faces avant de l'extérieur, faces arrière de l'intérieur
     this.atmo.material.side = camL.length() < this.Ra ? THREE.BackSide : THREE.FrontSide;
     if (this.ring) this.ring.update(camL, this.uniforms.uSunL.value, sunColor, sunI, timeS);

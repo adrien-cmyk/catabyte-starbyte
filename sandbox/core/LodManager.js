@@ -8,10 +8,10 @@
 // desquelles un rocher passe au détail 0 (1 280 triangles), 1 (320), 2 (20), ou reste un point ; le relief fin est
 // porté par l'éclairage, donc le détail 1 suffit jusqu'à ~110 px. rockShare : part du budget de triangles des rochers.
 export const BUDGETS = [
-  { name: 'Haute', dpr: 2, calls: 400, tris: 1.5e6, bloom: true, giantOct: 10, crossfade: true, moonSplit: 0.32, rockPx: [110, 14, 3, 0.45], rockKeep: 1, dust: 1, rockShare: 0.7 },
-  { name: 'Moyenne', dpr: 1.25, calls: 250, tris: 6e5, bloom: true, giantOct: 8, crossfade: true, moonSplit: 0.42, rockPx: [140, 18, 4, 0.7], rockKeep: 0.75, dust: 0.7, rockShare: 0.6 },
-  { name: 'Économe', dpr: 1, calls: 150, tris: 3e5, bloom: false, giantOct: 6, crossfade: false, moonSplit: 0.62, rockPx: [180, 24, 5.5, 1.0], rockKeep: 0.5, dust: 0.45, rockShare: 0.5 },
-  { name: 'Minimale', dpr: 0.75, calls: 120, tris: 2e5, bloom: false, giantOct: 5, crossfade: false, moonSplit: 0.85, rockPx: [240, 32, 8, 1.6], rockKeep: 0.33, dust: 0.25, rockShare: 0.4 },
+  { name: 'Haute', dpr: 2, calls: 400, tris: 1.5e6, bloom: true, giantOct: 10, crossfade: true, moonSplit: 0.38, rockPx: [110, 14, 3, 0.45], rockKeep: 1, dust: 1, rockShare: 0.7, moonOct: 8 },
+  { name: 'Moyenne', dpr: 1.25, calls: 250, tris: 6e5, bloom: true, giantOct: 8, crossfade: true, moonSplit: 0.42, rockPx: [140, 18, 4, 0.7], rockKeep: 0.75, dust: 0.7, rockShare: 0.6, moonOct: 6 },
+  { name: 'Économe', dpr: 1, calls: 150, tris: 3e5, bloom: false, giantOct: 6, crossfade: false, moonSplit: 0.62, rockPx: [180, 24, 5.5, 1.0], rockKeep: 0.5, dust: 0.45, rockShare: 0.5, moonOct: 4 },
+  { name: 'Minimale', giantNear: false, dpr: 0.75, calls: 120, tris: 2e5, bloom: false, giantOct: 5, crossfade: false, moonSplit: 0.85, rockPx: [240, 32, 8, 1.6], rockKeep: 0.33, dust: 0.25, rockShare: 0.4, moonOct: 3 },
 ];
 
 export class LodManager {
