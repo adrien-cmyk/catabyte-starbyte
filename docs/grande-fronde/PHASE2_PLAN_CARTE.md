@@ -112,13 +112,19 @@ choisis par le Race Director. On n'en construit pas de copie : le plateau de rou
 | 8 | Zoom continu univers → système → racer | Plan sans coupure |
 | 9 | Passe téléphone (LOD, 60 i/s) + captures de validation | Mesures et captures |
 
-## 9. Questions pour Adrien
+## 9. Décisions d'Adrien (5 novembre 2026)
 
-1. **Les systèmes de la course :** de vrais systèmes de l'univers Starbyte (une adresse réelle, visible sur les
-   plateaux des joueurs), ou une région à part (« le Circuit ») hors des secteurs habités ?
-2. **Le style de la vue univers :** plateau hexagonal du jeu (cohérence immédiate), ou plans d'existence de
-   carte-v6 (nébuleuse, zoom continu) ?
-3. **Les racers de la course pilote :** des vaisseaux existants du jeu (SR-01, KV-01, TK-07 et un autre) sous des
-   livrées de course, ou quatre racers dédiés à modéliser ?
-4. **Le flux de démonstration :** horloge réelle (la course pilote dure 72 h et on la regarde vivre), ou accélérée
-   par défaut avec un curseur ?
+1. **Vrais systèmes de l'univers Starbyte**, mais **pas d'ajout sur la carte stratégique** du jeu, déjà chargée
+   d'informations. La course a sa propre vue, **l'écran Télébyte** (la télé de la course), qui n'affiche que la course.
+   Le liseré prévu au §4 sur le plateau stratégique est donc abandonné. L'entrée se fera par Télébyte.
+2. **Vue univers en plans d'existence** (langage de labo/carte-v6).
+3. **Racers : vaisseaux du jeu en livrée de course** (SR-01, KV-01, TK-07). Le quatrième est à confirmer, par exemple
+   un vaisseau « sport » du Blackmarket (Le Fulgurant), ce qui est une décision commerciale.
+4. **Flux de démonstration accéléré**, avec un curseur de temps.
+
+## 10. Avancement
+
+| Étape | État |
+|---|---|
+| 1. `RaceFeed` + `DemoFeed` | fait : `sandbox/race/` (JavaScript pur, réutilisable côté serveur). Course pilote de 72 h 37 sur Kerath, Vessa et Nox, 11 points de contrôle identiques pour tous, 4 racers aux profils distincts. Arrivée serrée : La Mule devant Le Fulgurant (8 min), Sentinelle à 86 min, Kerath Lourd à 3 h 37. Le classement n'utilise que les passages déjà faits (équité des paris). Démo console : `node tools/fronde/race_demo.mjs`. |
+| 2 à 9 | à faire |
