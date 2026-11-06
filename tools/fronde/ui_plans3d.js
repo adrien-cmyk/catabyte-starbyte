@@ -36,9 +36,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   ok(Math.abs(after.t - (ev.t + 60)) < 120, `horloge juste après le fait (${(after.t / 3600).toFixed(2)} h, fait ${(ev.t / 3600).toFixed(2)} h)`);
   // un autre « Revoir » (pas un dépassement) : comportement d'avant (vue système ou couloir), pas de 3D
   await p.tap('#news'); await sleep(500);
-  const k2 = await p.evaluate(() => TB.news.items.findIndex((x) => x.e.kind !== 'overtake' && x.e.kind !== 'start'));
+  const k2 = await p.evaluate(() => TB.news.items.findIndex((x) => !['overtake', 'start', 'flare', 'failure', 'beltHit', 'repair', 'failed', 'moon', 'finish'].includes(x.e.kind)));
   await p.tap(`.nw-rows button[data-k="${k2}"]`); await sleep(1500);
-  ok(!(await p.evaluate(() => TB.p3d.playing)), 'un autre fait : pas de plan 3D');
+  ok(!(await p.evaluate(() => TB.p3d.playing)), 'un fait sans plan 3D : revoir d\'avant');
+  // une éruption (ou une lune) : son plan 3D
+  await p.evaluate(() => { if (TB.state.inSystem) document.getElementById('sysframe').contentWindow.document.querySelector('#rh-back')?.click(); });
+  await sleep(1500); await p.evaluate(() => TB.set(70 * 3600)); await sleep(800);
+  await p.tap('#news'); await sleep(500);
+  const k3 = await p.evaluate(() => TB.news.items.findIndex((x) => x.e.kind === 'flare' || x.e.kind === 'moon'));
+  if (k3 >= 0) { await p.tap(`.nw-rows button[data-k="${k3}"]`); for (let i = 0; i < 40 && !(await p.evaluate(() => TB.p3d.playing)); i++) await sleep(300);
+    ok(await p.evaluate(() => TB.p3d.playing && /eruption|lune/.test(TB.p3d.state.shot || 'eruption lune')), `éruption ou lune : plan 3D (${await p.evaluate(() => TB.p3d.state.shot)})`);
+    await p.screenshot({ path: `${OUT}/t3d_3.png` }); await p.tap('#p3d .p3-skip'); await sleep(1200); }
   ok(!errs.length, `aucune erreur (${errs.length})`);
   await b.close();
   console.log(fail ? `${fail} échec(s)` : 'PLANS 3D OK');

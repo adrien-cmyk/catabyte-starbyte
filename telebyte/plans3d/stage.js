@@ -211,7 +211,7 @@ export async function createStage(canvas, { giant = 'amber' } = {}) {
       puff(dir, k) { for (const sp of puffs) if (sp.userData.dir === dir) { sp.material.opacity = k * 0.9; sp.scale.setScalar(Math.max(0.6, H.x * 0.35) * (0.6 + k * 1.6)); } },
       clearPuffs() { for (const sp of puffs) sp.material.opacity = 0; },
       // chaleur de coque 0..1 : la coque rougeoie (surchauffe, rentrée dans l'éruption)
-      heat(k) { for (const m of hullMats) { m.emissive.setRGB(1.0 * k, 0.32 * k * k, 0.08 * k * k * k); m.emissiveIntensity = k * 2.2; } },
+      heat(k) { for (const m of hullMats) { m.emissive.setRGB(1.0, 0.18 + 0.22 * k, 0.04 * k); m.emissiveIntensity = k * k * 0.75; } },   // rouge sombre → orange : la coque reste lisible
       // feux de bord 0..1 : éclairages, écrans, moteurs « allumés » (panne, électronique grillée)
       lights(k) { for (const m of glowMats) m.emissiveIntensity = m.userData.base * k; },
       // points remarquables (repère du vaisseau) : tuyères, nez, flanc

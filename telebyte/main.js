@@ -303,12 +303,14 @@ async function play3d(e) {
   in3d = true; cor.close(); dir.hold(true);
   const wasPlaying = playing; playing = false;
   try {
-    const [{ createPlayer }, { overtakeScript }] = await Promise.all([import('./plans3d/player.js'), import('./plans3d/overtake.js')]);
+    const [{ createPlayer }, { overtakeScript }, { SCRIPTS }] = await Promise.all([import('./plans3d/player.js'), import('./plans3d/overtake.js'), import('./plans3d/events.js')]);
     p3d = p3d || createPlayer({ racer, dur });
-    nar.aside([['A', 'Revoyons ce dépassement !']], 60000);
-    // le commentateur, sobre : le plan se comprend sans lui ; il réagit au passage sous la coque, puis à la sortie
+    // le commentateur, sobre : le plan se comprend sans lui ; une phrase pour lancer, une réaction au moment fort
+    const OPEN = { overtake: 'Revoyons ce dépassement !', flare: 'L\'éruption, revoyons ça.', failure: 'La panne, en images.', beltHit: 'Le choc, regardez.', repair: 'L\'arrêt réparation.', failed: 'La surchauffe, revoyons ça.', moon: 'Le passage au ras de la lune !', finish: 'L\'arrivée !' };
+    nar.aside([['A', OPEN[e.kind] || 'Revoyons ça !']], 60000);
     const onCue = (c) => { if (c.id === 'passe') nar.aside([['A', pick2(['Ohhh ! Il est passé !', 'Il le passe comme une balle !', 'Et c\'est fait ! Dépassement !'])]], 60000); };
-    const ok = await p3d.play(overtakeScript(e, { feed, E, racer }), { onCue, audio: audioCtx });
+    const script = e.kind === 'overtake' ? overtakeScript(e, { feed, E, racer }) : SCRIPTS[e.kind](e, { feed, E, racer });
+    const ok = await p3d.play(script, { onCue, audio: audioCtx });
     if (!ok) return false;
     if (!(LIVE && following)) { t = Math.min(E.t1, e.t + 60); if (LIVE && t < liveNow() - 1) setFollow(false); }
     if (e.racer && view.sel !== e.racer) view.select(e.racer);
@@ -319,9 +321,11 @@ async function play3d(e) {
 // son des plans 3D : le contexte audio s'ouvre dans le geste du joueur (« Revoir »), sinon iOS le laisse muet
 let audioCtx = null;
 function openAudio() { try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; audioCtx = audioCtx || new AC(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { audioCtx = null; } }
+// faits qui ont leur plan 3D (telebyte/plans3d) ; les autres gardent le revoir d'avant (vue système ou couloir)
+const IN3D = new Set(['overtake', 'flare', 'failure', 'beltHit', 'repair', 'failed', 'moon', 'finish']);
+const has3d = (e) => IN3D.has(e.kind) && !!e.racer && (e.kind !== 'overtake' || (e.data && e.data.passed && e.data.passed.length));
 function replay(e) {
-  if (e.kind === 'overtake') openAudio();
-  if (e.kind === 'overtake' && e.data && e.data.passed && e.data.passed.length) { play3d(e).then((ok) => { if (!ok) replayFlat(e); }); return; }
+  if (has3d(e)) { openAudio(); play3d(e).then((ok) => { if (!ok) replayFlat(e); }); return; }
   replayFlat(e);
 }
 function replayFlat(e) {

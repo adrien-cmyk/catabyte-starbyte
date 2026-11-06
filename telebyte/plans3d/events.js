@@ -182,8 +182,8 @@ export function overheatScript(e, ctx) {
       if (Math.sin(τ * 47) > 0.2) fx.sparks.emit(a.localToWorld(new THREE.Vector3(cs * W * 0.6 * Math.sin(τ * 7), Hh * 0.5, L * 0.45)), Math.round(2 + heat * 4), 14, new THREE.Vector3(0, 0, -3), 0xff7a30);
       fx.flash.set(a.localToWorld(new THREE.Vector3(0, 0, -L * 0.5)), Math.exp(-Math.pow((τ - TC) / 0.07, 2)) * 0.7, Math.max(W, 6) * 2.5, 0xffb070);
       // devant, de trois quarts : la coque qui rougit, la géante tout près derrière
-      cam.position.set(cs * (W + L * 0.55), Hh + L * 0.12, L * 0.75);
-      cam.lookAt(0, 0, -L * 0.05);
+      cam.position.set(cs * (W + L * 0.75), Hh + L * 0.16, L * 0.95);
+      cam.lookAt(0, 0, -L * 0.1);
       if (cam.fov !== 44) { cam.fov = 44; cam.updateProjectionMatrix(); }
       return 'surchauffe';
     },
