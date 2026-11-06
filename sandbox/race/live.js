@@ -4,7 +4,8 @@
 // de la session du joueur (localStorage « starbyte_auth », même origine que le jeu).
 // Configurable pour les essais : window.FRONDE_SB = { url, key } (serveur local), window.FRONDE_TOKEN (jeton).
 import { ServerFeed } from './DemoFeed.js';
-import { ENGINE_V } from './engine.js';
+import * as ENG from './engine.js';                                        // (espace de noms : une vieille copie en cache sans ENGINE_V ne casse pas la page)
+const ENGINE_V = ENG.ENGINE_V || 2;
 
 const DEFAULT = { url: 'https://elupnpdcblztpfywnhjl.supabase.co', key: 'sb_publishable_tXGrQIROzH2DwBrny1GcHQ_iKJKoBOQ' };
 // réglages d'essai : cette page, sinon la page du jeu qui l'a ouverte (même origine)
