@@ -252,12 +252,13 @@ export class RaceLayer {
     el.classList.toggle('follow', !!follow); tele.hidden = !follow;
     if (follow) this._tele(tele, t);
     el.querySelector('#rh-time').textContent = hh(t);
+    if (!F.live) { const sp = el.querySelector('#rh-speed'), so = this.c.slowOn && this.c.slowOn(); if (so && sp.textContent !== 'ralenti') sp.textContent = 'ralenti'; else if (!so && sp.textContent === 'ralenti') sp.textContent = '×' + this.speeds[this.speedI]; }
     if (F.live) {
       const lk = !!this.liveLock, now = F.live.source.now(), pill = el.querySelector('.rh-live'), sp = el.querySelector('#rh-speed');
-      const txt = now < 0 ? 'avant le départ' : lk ? 'en direct' : `revoir · −${dur(Math.max(0, now - t))} · direct ›`;
+      const txt = now < 0 ? 'avant le départ' : this.c.slowOn && this.c.slowOn() ? 'ralenti · puis le direct' : lk ? 'en direct' : `revoir · −${dur(Math.max(0, now - t))} · direct ›`;
       if (pill.textContent !== txt) pill.textContent = txt;
       pill.classList.toggle('replay', !lk && now >= 0);
-      const stx = lk ? 'direct' : '×' + this.speeds[this.speedI]; if (sp.textContent !== stx) sp.textContent = stx;
+      const stx = this.c.slowOn && this.c.slowOn() ? 'ralenti' : lk ? 'direct' : '×' + this.speeds[this.speedI]; if (sp.textContent !== stx) sp.textContent = stx;
       sp.disabled = lk;
     }
     // le racer suivi n'est pas encore là : on l'annonce, avec un raccourci vers son arrivée

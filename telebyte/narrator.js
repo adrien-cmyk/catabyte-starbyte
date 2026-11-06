@@ -272,8 +272,13 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   // un aparté (ralenti du réalisateur) : une phrase, puis on laisse passer le rejeu sans commenter ni « faire le point »
   let quietUntil = 0;
   nar.aside = (lines, ms) => { hush(); quietUntil = performance.now() + ms; enqueue(lines, Infinity, performance.now()); };
+  nar.endAside = () => { if (quietUntil > performance.now()) quietUntil = performance.now() + 300; };
+  // changement de vue (entrée dans un système, retour) : l'instant suivant est repris tel quel, sans « point course »
+  let resyncing = false;
+  nar.resync = () => { resyncing = true; };
   nar.update = (t, { now = null } = {}) => {
     const real = performance.now();
+    if (resyncing) { resyncing = false; lastT = t; lastReal = real; rateT = null; return; }
     if (real < quietUntil) { lastT = t; lastReal = real; rateT = null; if (!speaking || real >= speaking.until) { if (speaking && !speaking.voice) showSub('A', ''); speaking = null; if (queue.length) { const q = queue.shift(); say(q.lines[0]); } } return; }
     if (now != null && now < 0) t = -1;                            // avant le départ : rien de la course n'a eu lieu
     if (nar.mode === 'off') { lastT = t; lastReal = real; return; }

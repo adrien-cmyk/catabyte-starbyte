@@ -34,8 +34,9 @@ export function createDirector({ feed, E, racer, hh, dur, getTl, act }) {
         if (st.system === last) sc += 3;                            // la grande finale
         sc += (5 - (rank[r.id] || 4)) * 0.6;                        // la tête de course d'abord
         // duel : un autre racer dans le même système, à moins de 15 min
-        for (const o of E.racers) if (o.id !== r.id) { const so = feed.stateAt(o.id, t); if (so.phase === 'system' && so.system === st.system) { const row = rows.find((x) => x.id === o.id), me = rows.find((x) => x.id === r.id); if (row && me && Math.abs(row.gap - me.gap) < 900) sc += 1.5; } }
-        out.push({ kind: 'system', sys: st.system, racer: r.id, score: sc, why: dtp > 0 && dtp < 2700 ? `périapse à ${sysName(st.system)} dans ${dur(dtp)}` : st.system === last ? `grande finale à ${sysName(st.system)}` : `en passage à ${sysName(st.system)}` });
+        let duel = false; for (const o of E.racers) if (o.id !== r.id) { const so = feed.stateAt(o.id, t); if (so.phase === 'system' && so.system === st.system) { const row = rows.find((x) => x.id === o.id), me = rows.find((x) => x.id === r.id); if (row && me && Math.abs(row.gap - me.gap) < 900) duel = true; } }
+        if (duel) sc += 1.5;                                        // une seule fois, quel que soit le nombre de rivaux
+        out.push({ kind: 'system', sys: st.system, racer: r.id, score: sc, urgent: dtp > -60 && dtp < 1200, why: dtp > 0 && dtp < 2700 ? `périapse à ${sysName(st.system)} dans ${dur(dtp)}` : st.system === last ? `grande finale à ${sysName(st.system)}` : `en passage à ${sysName(st.system)}` });
       } else if (st.phase === 'leg') {
         let sc = 1.5 + (5 - (rank[r.id] || 4)) * 0.4;
         // un fait d'étape qui vient d'arriver (déjà passé : on peut le montrer)
@@ -63,38 +64,45 @@ export function createDirector({ feed, E, racer, hh, dur, getTl, act }) {
     if (c.kind === 'system') {
       act.closeCorridor();
       if (act.inSystem() && act.sysId() === c.sys) { act.follow(c.racer); return; }
-      if (act.inSystem()) { act.leave(null); pending = c; return; }   // d'abord remonter, puis entrer dans l'autre système
+      if (act.inSystem()) { act.leave(null, c.racer); pending = c; return; }   // d'abord remonter, puis entrer dans l'autre système
       act.select(c.racer); act.dive(c.sys, c.racer); pending = { ...c, follow: true };
     } else if (c.kind === 'corridor') {
-      if (act.inSystem()) { act.select(c.racer); act.leave('corridor'); return; }
+      if (act.inSystem()) { act.select(c.racer); act.leave('corridor', c.racer); return; }
       act.select(c.racer); act.corridor(c.k, c.racer);
     } else {
       act.closeCorridor(); if (act.inSystem()) act.leave(null);
     }
   }
 
+  let blocked = null;                                             // cible dont l'entrée a échoué : on la laisse un moment
   D.update = (t) => {
     const now = performance.now();
-    if (lowerUntil && now > lowerUntil) { lowerUntil = 0; act.lower(D.on ? (now < D.state.pausedUntil ? null : '<b>📺</b>') : null); }
+    if (lowerUntil && now > lowerUntil) { lowerUntil = 0; act.lower(D.on && now >= D.state.pausedUntil ? '<b>📺</b>' : null, true); }
     if (!D.on) { lastT = t; return; }
     if (now < D.state.pausedUntil) { lastT = t; return; }
     // suites d'une coupe en deux temps (remonter puis plonger ; suivre une fois entré)
     if (pending) {
       if (pending.follow && act.inSystem()) { act.follow(pending.racer); pending = null; }
       else if (!pending.follow && !act.inSystem()) { const p = pending; pending = null; cut(p, t); }
-      else if (now - cutAt > 12000) pending = null;                 // l'entrée n'a pas eu lieu : on repart de zéro
+      else if (now - cutAt > 12000) { blocked = { c: pending, until: now + 30000 }; pending = null; cur = null; }   // l'entrée n'a pas eu lieu
       lastT = t; return;
     }
-    const best = candidates(t)[0];
-    const stale = !valid(cur, t);
-    if (!cur || stale || (!same(best, cur) && now - cutAt > DWELL && best.score > (cur.score || 0) * 1.25 + 0.5)) cut(best, t);
-    else if (cur && same(best, cur) && best.racer !== cur.racer && now - cutAt > DWELL && cur.kind === 'system') { cur = best; cutAt = now; act.follow(best.racer); }
-    else if (cur) cur.score = best && same(best, cur) ? best.score : cur.score;
-    // ralenti : moment fort du racer suivi, juste passé (dans la vue système)
-    if (lastT != null && t > lastT && act.inSystem() && now - slowAt > SLOW_GAP) {
-      const sel = act.sel();
+    const all = candidates(t).filter((c) => !(blocked && now < blocked.until && same(c, blocked.c)));
+    const best = all[0] || { kind: 'universe', score: 1, why: 'vue d\'ensemble' };
+    if (cur) { const mine = all.find((c) => same(c, cur) && c.racer === cur.racer) || all.find((c) => same(c, cur)); if (mine) cur.score = mine.score; }   // note du plan en cours, à jour
+    const stale = !valid(cur, t), wait = now - cutAt;
+    let cutNow = false;
+    // changer de plan : après un temps d'antenne minimal, ou plus tôt pour un passage imminent ailleurs
+    if (!cur || stale || (!same(best, cur) && ((wait > DWELL && best.score > (cur.score || 0) * 1.25 + 0.5) || (best.urgent && !cur.urgent && wait > 4000 && best.score > (cur.score || 0))))) { cut(best, t); cutNow = true; }
+    else if (same(best, cur) && best.racer !== cur.racer && cur.kind === 'system' && ((wait > DWELL && best.score > cur.score + 1) || (best.urgent && !cur.urgent && wait > 4000))) {
+      cur = best; cutAt = now; D.state.target = best; act.follow(best.racer);   // un autre racer dans le même système
+    }
+    // ralenti : moment fort du racer suivi, juste passé (dans la vue système ; jamais au moment d'une coupe)
+    if (!cutNow && !pending && lastT != null && t > lastT && act.inSystem() && now - slowAt > SLOW_GAP) {
+      const sel = act.sel(), end = t >= E.t1 - 1;                    // à la toute fin, l'horloge s'arrête sur la dernière arrivée
       for (const e of getTl()) {
-        if (e.t > t - 20) break;
+        if (e.t > t) break;
+        if (e.t > t - 20 && !(end && e.kind === 'finish')) continue;
         if (e.t <= lastT - 20 || e.racer !== sel || slowDone.has(e.key)) continue;
         const strong = (e.kind === 'periapsis' && e.data.plan === 'plongée') || e.kind === 'moon' || e.kind === 'failed' || e.kind === 'finish' || (e.kind === 'overtake' && e.data.lead);
         if (!strong) continue;
@@ -110,8 +118,9 @@ export function createDirector({ feed, E, racer, hh, dur, getTl, act }) {
   D.userTouched = () => {
     if (!D.on) return;
     D.state.pausedUntil = performance.now() + PAUSE; pending = null; cur = null;
-    act.lower('<b>📺 Mode TV en pause</b> reprise dans 45 s · <u data-tv-resume>reprendre</u>'); lowerUntil = performance.now() + 5000;
+    act.lower('<b>📺 Mode TV en pause</b> reprise dans 45 s · <u data-tv-resume>reprendre</u>'); lowerUntil = D.state.pausedUntil;   // visible toute la pause
   };
-  D.resume = () => { D.state.pausedUntil = 0; cur = null; };
+  D.paused = () => D.on && performance.now() < D.state.pausedUntil;
+  D.resume = () => { D.state.pausedUntil = 0; cur = null; lowerUntil = 0; act.lower('<b>📺</b>', true); };
   return D;
 }
