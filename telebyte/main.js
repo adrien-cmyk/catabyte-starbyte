@@ -7,6 +7,7 @@ import { UniverseView } from './UniverseView.js';
 import { createNarrator } from './narrator.js';
 import { mountNews } from './news.js';
 import { mountCorridor } from './corridor.js';
+import { createDirector } from './director.js';
 
 // flux : ?feed=live → l'édition du serveur (Phase 3) ; ?feed=mock → publication simulée ; sinon la démo hors ligne.
 // En direct sans connexion (ou sans édition), on retombe sur la démo, avec un bandeau.
@@ -64,6 +65,7 @@ addEventListener('message', (e) => {
   const m = e.data; if (!sysFrame || e.source !== sysFrame.contentWindow || !m || !m.fronde) return;
   if (m.type === 'loaded') { frameOk = true; if (pending) { const p = pending; pending = null; p(); } }
   else if (m.type === 'progress') { loadSet(m.p); clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(curSysId); }, 7000); }   // chaque étape relance la garde
+  else if (m.type === 'user') { if (dir) dir.userTouched(); }
   else if (m.type === 'tick') { sysT = m.t; if (LIVE && following !== !!m.live) setFollow(!!m.live); }   // instant affiché par la vue système (voix off, actualité)
   else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); loadHide(); inSystem = true; sysFrame.classList.add('on'); document.body.classList.add('insys'); }
   else if (m.type === 'surface') {
@@ -245,6 +247,7 @@ function placeSub() {
 }
 addEventListener('resize', placeSub); setTimeout(placeSub, 300); setInterval(placeSub, 2000);
 function commentary(at) {
+  try { dir.update(at); } catch (e) { console.warn('[fronde] réalisateur', e); }
   const now = LIVE ? liveNow() : null;
   try { news.update(now != null && now < 0 ? -1 : at); nar.update(at, { now }); } catch (e) { console.warn('[fronde] commentaire', e); }
 }
@@ -257,6 +260,23 @@ const nar = createNarrator({
   mine: () => (LIVE && LIVE.snap.my_bets) || [],
 });
 const cor = mountCorridor({ feed, E, racer, hh, dur, onSelect: (id) => { if (view.sel !== id) view.select(id); } });
+/* ── réalisateur : mode TV (Phase 4) ── */
+const post = (x) => { if (sysFrame && frameOk) sysFrame.contentWindow.postMessage({ fronde: 1, ...x }, '*'); };
+const selectOnly = (id) => { if (id && view.sel !== id) view.select(id); };
+const dir = createDirector({ feed, E, racer, hh, dur, getTl: () => nar.tl, act: {
+  inSystem: () => inSystem, sysId: () => curSysId, corOpen: () => cor.isOpen, corK: () => cor.k, sel: () => view.sel,
+  select: selectOnly, dive: (sys, id) => { selectOnly(id); dive(sys); }, leave: (then) => post({ type: 'tv-leave', then }),
+  corridor: (k, id) => { selectOnly(id); cor.open(k, t, id); }, closeCorridor: () => cor.close(),
+  follow: (id) => { selectOnly(id); post({ type: 'tv-follow', sel: id }); },
+  slowmo: (tc, label) => { nar.aside([['A', pick2(['Revoyons ça au ralenti !', 'Le ralenti, regardez-moi ça !', 'On le revoit au ralenti !'])]], 12500); post({ type: 'slowmo', tc, label }); },
+  lower: (html) => { const el = $('lower'); if (!html) { el.hidden = true; return; } el.innerHTML = html; el.hidden = false; const u = el.querySelector('[data-tv-resume]'); if (u) u.onclick = (e) => { e.stopPropagation(); dir.resume(); el.hidden = true; }; },
+} });
+const pick2 = (a) => a[Math.floor(Math.random() * a.length)];
+const setTv = (on) => { dir.setOn(on); $('tv').classList.toggle('on', on); $('tv').setAttribute('aria-pressed', String(on)); try { localStorage.setItem('fronde.tv', on ? '1' : '0'); } catch (e) {} };
+$('tv').onclick = (e) => { e.stopPropagation(); setTv(!dir.on); };
+{ let on = true; try { on = localStorage.getItem('fronde.tv') !== '0'; } catch (e) {} setTv(on); }
+// un geste du joueur (hors boutons du mode TV et du commentaire) : la régie lui rend la main un moment
+addEventListener('pointerdown', (e) => { if (e.isTrusted && !(e.target.closest && e.target.closest('#tv, #voice, #lower'))) dir.userTouched(); }, { capture: true });
 const news = mountNews({ E, racer, hh, getTl: () => nar.tl, onReplay: replay });
 // revoir un moment fort : un peu avant, sur le bon racer ; dans la vue système s'il s'est passé dans un système
 function replay(e) {
@@ -289,4 +309,4 @@ import('./bets.js').then((m) => m.mountBets({ feed, LIVE, GAME, rpc, tick, racer
 // la vue système suit les nouveaux instantanés pendant qu'on y est
 if (LIVE) feed.onSnap((snap) => { if (sysFrame && frameOk) sysFrame.contentWindow.postMessage({ fronde: 1, type: 'snap', snap }, '*'); });
 
-window.TB = { nar, news, replay, cor, live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
+window.TB = { nar, news, replay, cor, dir, live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };

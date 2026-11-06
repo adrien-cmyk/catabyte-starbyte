@@ -207,6 +207,11 @@ export class RaceLayer {
     this._hud(true);
   }
   // instant d'arrivée du racer suivi dans ce système (s'il n'y est pas encore)
+  // réalisateur (mode TV) : la vue Suivre sur ce racer, comme si on avait touché « Suivre »
+  tvFollow(id) {
+    const rc = this.c.fleet().find((r) => r.def.id === id && r.inSys); if (!rc) return;
+    this.sel = id; this.c.follow(id); this._view = 'follow'; this._hud(true);
+  }
   _arrival(t) {
     if (!this.sel) return null;
     const seg = this.feed.tracks[this.sel].segs.find((s) => s.kind === 'system' && s.sys.id === this.c.sys().id);

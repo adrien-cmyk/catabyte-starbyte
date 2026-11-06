@@ -269,8 +269,12 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   };
   const hush = () => { queue = []; if (synth && nar.mode === 'voix') try { synth.cancel(); } catch (e) {} speaking = null; };
 
+  // un aparté (ralenti du réalisateur) : une phrase, puis on laisse passer le rejeu sans commenter ni « faire le point »
+  let quietUntil = 0;
+  nar.aside = (lines, ms) => { hush(); quietUntil = performance.now() + ms; enqueue(lines, Infinity, performance.now()); };
   nar.update = (t, { now = null } = {}) => {
     const real = performance.now();
+    if (real < quietUntil) { lastT = t; lastReal = real; rateT = null; if (!speaking || real >= speaking.until) { if (speaking && !speaking.voice) showSub('A', ''); speaking = null; if (queue.length) { const q = queue.shift(); say(q.lines[0]); } } return; }
     if (now != null && now < 0) t = -1;                            // avant le départ : rien de la course n'a eu lieu
     if (nar.mode === 'off') { lastT = t; lastReal = real; return; }
     const dtR = Math.max(1e-3, (real - (lastReal || real)) / 1000);

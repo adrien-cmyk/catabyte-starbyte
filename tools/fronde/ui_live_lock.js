@@ -10,6 +10,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 } });
   if (T) await ctx.route(/cdn\.jsdelivr\.net\/npm\/three@0\.186\.0\//, (r) => r.fulfill({ path: path.join(T, new URL(r.request().url()).pathname.replace(/^\/npm\/three@0\.186\.0\//, '')), contentType: 'application/javascript' }));
   await ctx.addInitScript(() => { window.FRONDE_DEMO = { countdown: 5, rate: 1500 }; });
+  await ctx.addInitScript(() => { try { localStorage.setItem('fronde.tv', '0'); } catch (e) {} });   // mode TV coupé : l'essai pilote lui-même
   const p = await ctx.newPage(); p.on('pageerror', (e) => console.log('PAGEERR', e.message.slice(0, 200)));
   await p.goto('http://localhost:8766/telebyte/index.html#repetition');
   await p.waitForFunction(() => window.TB && TB.ready && TB.live(), null, { timeout: 120000 });

@@ -479,6 +479,7 @@ function step(dt) {
   }
   if (graze) graze.moon.surfacePoint(graze.dirL, 0, graze.target.pos);
   if (raceLayer && raceLayer.on) {
+    slowTick();
     // en direct : jamais au-delà du présent ; une fois rattrapé, la vue reste calée sur l'horloge du serveur (pas de
     // va-et-vient entre la vitesse de revoir et le présent)
     if (raceLayer.feed.live) { const now = raceLayer.feed.live.source.now(); if (raceLayer.liveLock || simT >= now) { simT = now; raceLayer.liveLock = true; } }
@@ -631,7 +632,24 @@ function useSnap(snap) {
 /* ── mode intégré : le Télébyte pilote cette vue par messages (Phase 2, étape 8) ──
    enter { sys, t, sel } : on entre dans le système, caméra lancée de loin qui plonge (amortie) sur le peloton ou le racer ;
    la vue répond ready, puis vit seule ; en remontant (geste ou « ← Télébyte ») elle renvoie surface { t, sel } et se met en veille. */
+// ralenti (mode TV) : on revient 90 s avant le moment et on le rejoue lentement, puis on reprend où on en était
+// (en direct : on rejoint le présent)
+let slow = null;
+function slowmo(tc, label) {
+  if (slow || !raceLayer || !raceLayer.on) return;
+  slow = { wasLock: !!raceLayer.liveLock, scale: timeScale, end: tc + 90, back: simT };
+  raceLayer.liveLock = false; simT = Math.max(0, tc - 90); timeScale = 15;
+  const b = document.getElementById('slowbadge'); if (b) { b.textContent = '◀◀ Ralenti · ' + label; b.hidden = false; }
+}
+function slowTick() {
+  if (!slow || simT < slow.end) return;
+  const L = raceLayer.feed.live;
+  if (slow.wasLock && L) { simT = L.source.now(); raceLayer.liveLock = true; } else simT = Math.max(simT, slow.back);
+  timeScale = slow.scale; slow = null;
+  const b = document.getElementById('slowbadge'); if (b) b.hidden = true;
+}
 function embedSurface(then = null) {
+  if (slow) { timeScale = slow.scale; if (slow.wasLock) raceLayer.liveLock = true; slow = null; const b = document.getElementById('slowbadge'); if (b) b.hidden = true; }
   parent.postMessage({ fronde: 1, type: 'surface', t: simT, sel: raceLayer.sel || null, sys: curSys.id, then }, '*');
   renderer.setAnimationLoop(null);
 }
@@ -661,7 +679,13 @@ if (EMBED) {
         });
       });
     } else if (m.type === 'pause') renderer.setAnimationLoop(null);
+    // réalisateur du Télébyte (mode TV) : suivre un racer, remonter, ralenti d'un moment fort
+    else if (m.type === 'tv-follow') { if (raceLayer.on) raceLayer.tvFollow(m.sel); }
+    else if (m.type === 'tv-leave') embedSurface(m.then || null);
+    else if (m.type === 'slowmo') slowmo(m.tc, m.label);
   });
+  // un geste du joueur dans la vue système : le réalisateur lui rend la main
+  addEventListener('pointerdown', (e) => { if (e.isTrusted) parent.postMessage({ fronde: 1, type: 'user' }, '*'); }, { capture: true });
   parent.postMessage({ fronde: 1, type: 'loaded' }, '*');
   // préchauffage en arrière-plan : une image de course rendue tout de suite compile les shaders (géante, anneaux,
   // tracés, racers) ; l'entrée réelle n'aura plus ce coût, qui figeait l'éclair sur téléphone

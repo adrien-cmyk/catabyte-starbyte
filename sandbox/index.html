@@ -37,6 +37,8 @@
   #race .rh-live.replay { color: #ffd27a; cursor: pointer; }
   #race .rh-live.replay::before { background: #ffd27a; }
   #race #rh-speed:disabled { opacity: .55; }
+  #slowbadge { position: fixed; z-index: 30; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 50%; translate: -50% 0; font: 800 11px -apple-system, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #05080c; background: #ffd27a; border-radius: 6px; padding: 5px 10px; white-space: nowrap; pointer-events: none; }
+  #slowbadge[hidden] { display: none; }
   #race #rh-corr { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; padding: 6px 8px; border: 1px solid rgba(255, 201, 160, .35); border-radius: 8px; font-size: 11px; color: #ffc9a0; }
   #race #rh-corr[hidden] { display: none; }
   #race #rh-corr button { font: 600 11px -apple-system, system-ui, sans-serif; color: #05080c; background: #ffc9a0; border: 0; border-radius: 6px; padding: 5px 9px; cursor: pointer; white-space: nowrap; }
@@ -180,5 +182,6 @@
 </div>
 <script>if (/[?&]clean\b/.test(location.search)) document.body.classList.add('clean');</script>
 <script type="module" src="main.js"></script>
+<div id="slowbadge" hidden></div>
 </body>
 </html>

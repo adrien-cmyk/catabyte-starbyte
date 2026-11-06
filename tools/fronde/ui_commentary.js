@@ -21,6 +21,7 @@ const STUB = () => {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   if (T) await ctx.route(/cdn\.jsdelivr\.net\/npm\/three@0\.186\.0\//, (r) => r.fulfill({ path: path.join(T, new URL(r.request().url()).pathname.replace(/^\/npm\/three@0\.186\.0\//, '')), contentType: 'application/javascript' }));
   await ctx.addInitScript(STUB);
+  await ctx.addInitScript(() => { try { localStorage.setItem('fronde.tv', '0'); } catch (e) {} });   // mode TV coupé : l'essai pilote lui-même
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => { errs.push(e.message); console.log('PAGEERR', e.message.slice(0, 200)); });
   p.on('console', (m) => { if (m.type() === 'warning' && /commentaire/.test(m.text())) { errs.push(m.text()); console.log('WARN', m.text().slice(0, 200)); } });
   await p.goto('http://localhost:8766/telebyte/index.html');
