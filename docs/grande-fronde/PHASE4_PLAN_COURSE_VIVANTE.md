@@ -116,3 +116,27 @@ les pilotes, faits divers, paris en cours, et la montée vers la grande finale.
 
 À chaque étape : essais automatiques (moteur identique serveur et écran, équilibre, interface), puis une
 répétition accélérée sur ton compte avant la mise en ligne.
+
+## État (6 novembre 2026)
+
+Les quatre étapes sont faites, chacune relue par un agent indépendant puis corrigée.
+
+| Étape | Fichiers | Essais |
+|---|---|---|
+| 1. Voix off et fil d'actualité | telebyte/timeline.js, narrator.js, news.js | tools/fronde/narrator_test.mjs, ui_commentary.js |
+| 2. Événements du moteur (v2) | sandbox/race/engine.js, raceData.js (PILOT.v = 2), server/fronde-tick/* (copie générée), carte des dangers dans telebyte/UniverseView.js | tools/fronde/engine_test.mjs (v1 inchangé + v2), feed_test.mjs, e2e_test.mjs |
+| 3. Couloir des étapes | telebyte/corridor.js, sandbox/race/RaceLayer.js (« Voir le couloir ») | tools/fronde/ui_corridor.js |
+| 4. Réalisateur (mode TV) | telebyte/director.js, ralenti dans sandbox/main.js | tools/fronde/ui_director.js |
+
+Choix faits en route :
+- **Mode économie de carburant retiré** : il n'arrivait jamais, les pilotes gardent toujours une réserve (au plus bas, 39 % de réservoir).
+- **Durées d'étape plus annoncées par la voix off** : elles comprennent les incidents à venir.
+- **Hasard des éditions v2 sur 128 bits** : toute la graine compte, et non plus 32 bits.
+- **Équilibre v2 sur 200 éditions** : victoires 59 / 47 / 47 / 47, écart médian entre le 1er et le 2e de 28 min.
+- **Les plans publiés contiennent l'étape suivante entière** (chocs, panne, éruption), environ 20 h d'avance. Les paris sont fermés à ce moment-là, et l'écran ne montre rien avant l'heure.
+
+## Mise en ligne
+
+1. **Pages du jeu** : copier `telebyte/` et `sandbox/` dans `github_upload/fronde/` du dépôt starbyte, puis pousser sur `main`, avec l'accord d'Adrien. Sans risque pour la course du 8 novembre : son édition n'a pas de version (v1) et se rejoue exactement comme avant.
+2. **Fonction serveur fronde-tick** : redéployer `index.ts`, `edition.ts` et `engine.ts` (copies générées) depuis le tableau de bord Supabase, puis lancer le test `{ "action": "selftest" }`. Il faut le faire **avant l'arrivée de la course du 8 novembre** (vers le mercredi 11) pour que l'édition du 29 novembre soit créée en v2. Sinon, elle sera en v1 (sans événements) et la suivante en v2.
+3. **Ordre** : les pages d'abord (elles savent rejouer v1 et v2), le serveur ensuite. Une page en cache plus ancienne refuse une édition v2 et demande de recharger.
