@@ -18,22 +18,30 @@
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/" } }</script>
 </head>
 <body>
-<main><h1>Plans 3D · dépassement</h1><p>Démo hors ligne : chaque dépassement de la course, rejoué en 3D (environ 12 s).</p><ol id="list"></ol></main>
+<main><h1>Plans 3D · faits de course</h1><p>Démo hors ligne : chaque fait marquant, rejoué en 3D (4 à 6 s).</p><ol id="list"></ol></main>
 <script type="module">
   import { DemoFeed } from '../../sandbox/race/DemoFeed.js';
   import { buildTimeline } from '../../telebyte/timeline.js';
   import { overtakeScript } from '../../telebyte/plans3d/overtake.js';
+  import { SCRIPTS } from '../../telebyte/plans3d/events.js';
   import { createPlayer } from '../../telebyte/plans3d/player.js';
   const feed = new DemoFeed(), E = feed.edition, racer = Object.fromEntries(E.racers.map((r) => [r.id, r]));
   const dur = (s) => { s = Math.abs(s); if (s < 60) return `${Math.round(s)} s`; const h = Math.floor(s / 3600), m = Math.round(s % 3600 / 60); return h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`; };
   const hh = (s) => `${Math.floor(s / 3600)} h ${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}`;
-  const ov = buildTimeline(feed).filter((e) => e.kind === 'overtake' && e.data.passed && e.data.passed.length);
+  const LABEL = { failed: 'Surchauffe (exemple)', overtake: 'Dépassement', flare: 'Éruption', failure: 'Panne', beltHit: 'Choc', repair: 'Réparation', failed: 'Surchauffe', moon: 'Lune', finish: 'Arrivée' };
+  const all = buildTimeline(feed).filter((e) => (e.kind === 'overtake' && e.data.passed && e.data.passed.length) || SCRIPTS[e.kind]);
+  // la démo n'a pas toujours de surchauffe : on en fabrique une sur la première plongée (aperçu seulement)
+  if (!all.some((e) => e.kind === 'failed')) { const pl = buildTimeline(feed).find((e) => e.kind === 'periapsis' && e.data.plan === 'plongée'); if (pl) all.push({ ...pl, kind: 'failed', key: 'failed|' + pl.key, data: {} }); }
+  const scriptOf = (e) => (e.kind === 'overtake' ? overtakeScript : SCRIPTS[e.kind])(e, { feed, E, racer });
   const p3d = createPlayer({ racer, dur });
-  document.getElementById('list').innerHTML = ov.map((e, i) => `<li><span>${racer[e.racer].name} double ${e.data.passed.map((x) => racer[x].name).join(', ')}<small>${hh(e.t)} · P${e.data.rank}${e.data.lead ? ' · prise de tête' : ''}</small></span><button data-i="${i}">Revoir</button></li>`).join('');
-  const play = (i, opts) => p3d.play(overtakeScript(ov[i], { feed, E, racer }), opts);
+  document.getElementById('list').innerHTML = all.map((e, i) => `<li><span>${LABEL[e.kind]} · ${racer[e.racer].name}${e.kind === 'overtake' ? ' double ' + racer[e.data.passed[0]].name : ''}<small>${hh(e.t)}</small></span><button data-i="${i}">Revoir</button></li>`).join('');
+  const play = (i, opts) => p3d.play(scriptOf(all[i]), opts);
   for (const b of document.querySelectorAll('button[data-i]')) b.onclick = () => play(+b.dataset.i);
-  window.P3 = { ov, play, p3d, ready: true };
-  const q = new URLSearchParams(location.search); if (q.has('i')) play(+q.get('i'), q.has('freeze') ? { freeze: +q.get('freeze') } : {});
+  window.P3 = { all, play, p3d, ready: true };
+  // essais : ?k=type&n=rang (n-ième fait de ce type) [&freeze=τ] ; ou ?i=indice
+  const q = new URLSearchParams(location.search);
+  let i = q.has('i') ? +q.get('i') : -1; if (q.has('k')) { const list = all.map((e, j) => [e, j]).filter(([e]) => e.kind === q.get('k')); i = (list[+(q.get('n') || 0)] || [null, -1])[1]; }
+  if (i >= 0) play(i, q.has('freeze') ? { freeze: +q.get('freeze') } : {});
 </script>
 </body>
 </html>

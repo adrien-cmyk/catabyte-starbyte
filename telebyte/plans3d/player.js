@@ -20,6 +20,7 @@ const CSS = `
 #p3d .p3-pos small { display: block; font-size: 10px; font-weight: 600; color: #8b9aa6; } #p3d .p3-pos.up { color: #7fe08a; }
 #p3d .p3-name { font: 700 15px 'Space Grotesk', system-ui, sans-serif; color: #e6eef3; }
 #p3d .p3-gap { font: 600 12px 'JetBrains Mono', ui-monospace, monospace; color: #e6eef3; text-align: right; }
+#p3d .p3-gap small.note { font: 600 12px 'Space Grotesk', system-ui, sans-serif; color: #ffd27a; text-align: right; }
 #p3d .p3-gap small { display: block; font: 500 10px 'Space Grotesk', system-ui, sans-serif; color: #8b9aa6; }
 #p3d .p3-tele { grid-column: 3 / 5; display: flex; flex-wrap: wrap; gap: 4px 14px; white-space: nowrap; font: 10px 'JetBrains Mono', ui-monospace, monospace; color: #8b9aa6; }
 #p3d .p3-tele span { display: flex; align-items: center; gap: 6px; } #p3d .p3-tele u { display: block; width: 56px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.12); overflow: hidden; } #p3d .p3-tele u b { display: block; height: 100%; background: var(--c, #e6eef3); }
@@ -66,12 +67,13 @@ export function createPlayer({ racer, dur }) {
     const R = racer[h.racer], q = (s) => el.querySelector(s);
     q('.p3-card').classList.toggle('dim', !!h.hideCard);
     const px = q('.p3-prox'); px.hidden = h.proximity == null; if (h.proximity != null) px.textContent = `marge ${h.proximity.toFixed(1).replace('.', ',')} m`;
+    const px0 = q('.p3-prox'); if (h.proximity === undefined) px0.hidden = true;
     const c = q('.p3-call'); c.hidden = !h.callout; if (h.callout) { c.querySelector('b').textContent = h.callout.value; c.querySelector('span').textContent = h.callout.label; }
     q('.p3-title').textContent = h.title;
     q('.p3-card').style.setProperty('--livery', R.livery);
-    const pos = q('.p3-pos'); pos.innerHTML = `${h.pos}${h.posFrom ? `<small>${h.posFrom} → ${h.pos}</small>` : '<small>position</small>'}`; pos.classList.toggle('up', !!h.done);
+    const pos = q('.p3-pos'); pos.innerHTML = h.pos ? `${h.pos}${h.posFrom ? `<small>${h.posFrom} → ${h.pos}</small>` : '<small>position</small>'}` : ''; pos.classList.toggle('up', !!h.done && !!h.posFrom);
     q('.p3-name').textContent = R.name;
-    q('.p3-gap').innerHTML = `${fmtGap(h.gap.value, dur)}<small>${h.gap.label}${racer[h.other] ? ' ' + names(racer[h.other]).le : ''}</small>`;
+    q('.p3-gap').innerHTML = h.gap ? `${fmtGap(h.gap.value, dur)}<small>${h.gap.label}${racer[h.other] ? ' ' + names(racer[h.other]).le : ''}</small>` : `<small class="note">${h.note || ''}</small>`;
     const bar = (v, c) => `<u style="--c:${c}"><b style="width:${Math.round(v * 100)}%"></b></u>`;
     q('.p3-tele').innerHTML = `<span>coque ${bar(h.integrity, h.integrity < 0.6 ? '#ff8a6a' : '#e6eef3')} ${Math.round(h.integrity * 100)} %</span><span>carburant ${bar(h.fuel, '#ffd27a')} ${Math.round(h.fuel * 100)} %</span>`;
   }
@@ -97,10 +99,58 @@ export function createPlayer({ racer, dur }) {
   }
 
   // joue un scénario ; opts.freeze (essais) : image figée à τ donné ; opts.onCue : moments clés ; opts.audio : AudioContext
-  P.play = async (script, { freeze = null, onCue = null, audio = null } = {}) => {
+  P.play = async (script, opts = {}) => (script.frame ? playGeneric(script, opts) : playPair(script, opts));
+  // plan à un (ou plusieurs) vaisseaux : le scénario décide de tout (events.js)
+  async function playGeneric(script, { freeze = null, onCue = null, audio = null } = {}) {
     if (P.playing) return false;
     if (!(await ensure())) return false;
     P.playing = true;
+    const ships = []; for (const id of script.ships) ships.push(await shipOf(id));
+    stage.fx.reset(); if (script.giant) stage.setGiant(script.giant);
+    if (script.setup) script.setup(ships);
+    stage.scene.add(...ships);
+    el.hidden = false; size(); void el.offsetWidth; el.classList.add('on');
+    const snd = freeze == null ? makeAudio(audio) : null;
+    let τ = 0, last = performance.now(), skip = false, frames = 0, fpsT = 0, pr = Math.min(devicePixelRatio || 1, 2), lastHud = '', puffOn = new Set();
+    const onSkip = () => { skip = true; };
+    el.querySelector('.p3-skip').onclick = onSkip; el.onclick = (e) => { if (!e.target.closest('.p3-skip')) onSkip(); };
+    const v = new THREE.Vector3();
+    await new Promise((done) => {
+      const frame = (now) => {
+        const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
+        const τ0 = τ; if (freeze != null) τ = freeze; else τ += dt;
+        if (script.cues) for (const c of script.cues) if (τ0 < c.τ && τ >= c.τ) { if (c.id === 'click' && snd) snd.click(); if (onCue) onCue(c, script); }
+        for (const s2 of ships) { s2.userData.clearPuffs(); s2.userData.lights(1); s2.userData.heat(0); }
+        const pf = []; for (const [i, dir, t0, du] of script.puffs || []) { const k = τ <= t0 || τ >= t0 + du ? 0 : Math.sin(Math.PI * (τ - t0) / du); if (k > 0) { pf.push(i + dir); ships[i].userData.puff(dir, k); } }
+        const shot = script.frame(τ, { ships, cam, fx: stage.fx, dt: freeze != null ? 1 / 60 : dt, THREE });
+        if (snd) { for (const k of pf) if (!puffOn.has(k)) snd.click(); puffOn = new Set(pf); snd.set(script.audio(τ)); }
+        // la caméra n'entre jamais dans une coque
+        for (const s2 of ships) { const bx = stage.boxOf(s2).expandByScalar(1.5); if (bx.containsPoint(cam.position)) { const c = bx.getCenter(v); const out = cam.position.clone().sub(c); const h = bx.getSize(new THREE.Vector3()).multiplyScalar(0.5);
+          const k = ['x', 'y', 'z'].map((ax) => h[ax] - Math.abs(out[ax])); const ax = ['x', 'y', 'z'][k.indexOf(Math.min(...k))]; cam.position[ax] = c[ax] + Math.sign(out[ax] || 1) * h[ax]; } }
+        stage.render(cam, { speed: script.speed ? script.speed(τ) : 0, dt: freeze != null ? 1 / 60 : dt, avoid: ships.map((s2) => stage.boxOf(s2).expandByScalar(4)) });
+        const h = script.hud(τ), sig = JSON.stringify(h);
+        if (sig !== lastHud) { lastHud = sig; hud(h); }
+        el.querySelector('.p3-slow').hidden = true;
+        frames++; fpsT += dt; if (fpsT > 1) { const fps = frames / fpsT; P.state.fps = Math.round(fps); frames = 0; fpsT = 0; if (fps < 50 && pr > 1) { pr = Math.max(1, pr - 0.5); stage.setPixelRatio(pr); size(); } }
+        P.state.τ = τ; P.state.shot = shot;
+        if (freeze == null && (skip || τ >= script.duration)) return done();
+        if (freeze != null && skip) return done();
+        raf = requestAnimationFrame(frame);
+      };
+      raf = requestAnimationFrame(frame);
+    });
+    if (snd) snd.stop();
+    el.classList.remove('on');
+    await new Promise((r) => setTimeout(r, 450));
+    el.hidden = true; for (const s2 of ships) { stage.scene.remove(s2); s2.userData.heat(0); s2.userData.lights(1); } stage.fx.reset(); P.playing = false;
+    return true;
+  }
+  // le dépassement (deux vaisseaux, contrat d'origine)
+  async function playPair(script, { freeze = null, onCue = null, audio = null } = {}) {
+    if (P.playing) return false;
+    if (!(await ensure())) return false;
+    P.playing = true;
+    stage.fx.reset();
     const d = script.data, a = await shipOf(d.A), b = await shipOf(d.B);
     if (stage.setGiant && script.giant) stage.setGiant(script.giant);
     if (script.setup) script.setup(a, b);
@@ -147,6 +197,6 @@ export function createPlayer({ racer, dur }) {
     await new Promise((r) => setTimeout(r, 450));
     el.hidden = true; stage.scene.remove(a, b); P.playing = false;
     return true;
-  };
+  }
   return P;
 }

@@ -41,9 +41,11 @@ export function overtakeScript(e, ctx) {
     data: d, duration: D, side: cs, giant: d.giant,
     setup(a, b) {
       la = a.userData.len; lb = b.userData.len; wa = a.userData.half.x; wb = b.userData.half.x; ha = a.userData.half.y; hb = b.userData.half.y;
-      // caméra posée contre le flanc de b, à l'arrière du milieu, regard vers l'avant le long de la coque
-      cam0 = [cs * (wb + Math.max(1.6, lb * 0.04)), hb * 0.35, -lb * frac];
-      laneX = cam0[0] + cs * (wa * 0.6 + Math.max(2, la * 0.05));   // il passe juste à côté de la caméra, dans la moitié vide du cadre
+      // caméra de trois quarts arrière, à l'écart du flanc de b : on le lit comme un vaisseau qui file (pas « dressé »
+      // dans l'écran) ; le poursuivant passera entre lui et la caméra
+      const gapC = Math.max(6, lb * 0.35, wa * 2 + 4);
+      cam0 = [cs * (wb + gapC), hb * 0.2, -lb * 0.5 - Math.max(8, lb * 0.35)];
+      laneX = cs * (wb + gapC * 0.5);
     },
     rate: () => 1,
     pose(τ) {
@@ -51,7 +53,7 @@ export function overtakeScript(e, ctx) {
       const B = { x: j(1) * 0.15, y: Math.sin(τ * 0.9) * 0.15 + j(2) * 0.2, z: 0, rx: 0, ry: 0, rz: j(3) * 0.01 };
       // a : vient de loin derrière, passe la caméra à TP, puis file (vitesse relative énorme, en accélération)
       const v = Math.max(260, la * 9), z = cam0[2] + v * (τ - TP) + (τ > TP ? 120 * (τ - TP) * (τ - TP) : 0);
-      const A = { x: laneX - cs * Math.max(0, τ - TP) * 3, y: cam0[1] + ha + Math.max(1.5, hb * 0.15) - Math.max(0, τ - TP) * 2, z, rx: 0, ry: -cs * 0.02, rz: cs * 0.05 };   // un peu au-dessus de la caméra
+      const A = { x: laneX - cs * Math.max(0, τ - TP) * 2, y: cam0[1] + ha * 0.4, z, rx: 0, ry: -cs * 0.02, rz: cs * 0.05 };
       return { A, B };
     },
     place(τ, a, b) {
@@ -67,10 +69,10 @@ export function overtakeScript(e, ctx) {
       cam.position.set(cam0[0] + n(1), cam0[1] + n(2), cam0[2] + n(3));
       // regard : le long de la coque, puis il accroche le poursuivant qui s'éloigne (avec retard : on « le cherche »)
       // le long de la coque, légèrement tourné vers elle : la coque d'un côté, le vide (où il va passer) de l'autre
-      const hull = [cs * wb * 0.15, cam0[1] * 0.6, cam0[2] + Math.max(40, lb * 0.9)], follow = smooth(TP + 0.05, TP + 0.75, τ);
+      const hull = [cs * wb * 0.3, 0, lb * 0.15], follow = smooth(TP + 0.05, TP + 0.75, τ);
       const az = Math.min(A.z, cam0[2] + 1600), ax = lerp(cam0[0], A.x, 0.9);
       cam.lookAt(lerp(hull[0], ax, follow), lerp(hull[1], A.y, follow), lerp(hull[2], az, follow));
-      const fov = lerp(52, 40, smooth(TP + 0.3, D, τ));
+      const fov = lerp(46, 38, smooth(TP + 0.3, D, τ));
       if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
       return τ < TP - 0.15 ? 'flanc' : τ < TP + 0.3 ? 'passage' : 'fuite';
     },

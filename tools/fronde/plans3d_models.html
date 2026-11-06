@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plans 3D · modèles</title>
+<style> html, body { margin: 0; background: #020306; } #p3d .p3-bar, #p3d .p3-skip, #p3d .p3-tag { display: none !important; } </style>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/" } }</script>
+</head>
+<body>
+<script type="module">
+  // banc d'essai : les quatre vaisseaux des plans 3D, de profil (proue vers la droite, +z), dessus en haut (+y)
+  import { THREE } from '../../sandbox/lib/sb3d-shim.js';
+  import { createStage } from '../../telebyte/plans3d/stage.js';
+  const c = document.createElement('canvas'); c.style.cssText = 'width:100vw;height:100vh;display:block'; document.body.appendChild(c);
+  const st = await createStage(c, { giant: 'amber' }); st.fx.reset(); st.fx.rocks(false); st.fx.giant(false);
+  st.resize(innerWidth, innerHeight);
+  const ids = (new URLSearchParams(location.search).get('ids') || 'sentinelle,fulgurant,mule,cuirasse').split(',');
+  const view = new URLSearchParams(location.search).get('view') || 'side';
+  let y = 0; const ships = [];
+  for (const id of ids) { const s = await st.ship(id); s.userData.thrust(0.6); const h = s.userData.half; y -= h.y * 1.4 + 6; s.position.set(0, y, 0); y -= h.y * 1.4; st.scene.add(s); ships.push(s); }
+  const cam = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 1, 20000);
+  const span = -y, d = span * 2.4;
+  if (view === 'side') cam.position.set(d, y / 2, 0); else cam.position.set(d * 0.7, y / 2 + d * 0.4, -d * 0.6);
+  cam.lookAt(0, y / 2, 0);
+  st.render(cam, { dt: 0 }); window.READY = true;
+</script>
+</body>
+</html>
