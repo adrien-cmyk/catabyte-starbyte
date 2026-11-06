@@ -75,8 +75,11 @@ export function createDirector({ feed, E, racer, hh, dur, getTl, act }) {
   }
 
   let blocked = null;                                             // cible dont l'entrée a échoué : on la laisse un moment
+  let held = false;                                                // plan 3D en cours : la régie attend
+  D.hold = (on) => { held = !!on; if (!on) { cur = null; cutAt = performance.now(); } };
   D.update = (t) => {
     const now = performance.now();
+    if (held) { lastT = t; return; }
     if (lowerUntil && now > lowerUntil) { lowerUntil = 0; act.lower(D.on && now >= D.state.pausedUntil ? '<b>📺</b>' : null, true); }
     if (!D.on) { lastT = t; return; }
     if (now < D.state.pausedUntil) { lastT = t; return; }

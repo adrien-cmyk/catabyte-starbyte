@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Plans 3D · aperçu</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; background: #020306; color: #e6eef3; font: 13px/1.4 'Space Grotesk', system-ui, sans-serif; }
+  main { padding: calc(env(safe-area-inset-top) + 16px) 16px 24px; }
+  h1 { font-size: 12px; letter-spacing: .3em; text-transform: uppercase; margin: 0 0 4px; } p { color: #8b9aa6; margin: 0 0 14px; }
+  ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  li { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid rgba(200,214,224,.16); border-radius: 10px; }
+  li small { display: block; color: #8b9aa6; font: 11px 'JetBrains Mono', monospace; }
+  button { font: 600 12px 'Space Grotesk', system-ui, sans-serif; color: #9fd4ec; background: none; border: 1px solid rgba(159,212,236,.4); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+</style>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/" } }</script>
+</head>
+<body>
+<main><h1>Plans 3D · dépassement</h1><p>Démo hors ligne : chaque dépassement de la course, rejoué en 3D (environ 12 s).</p><ol id="list"></ol></main>
+<script type="module">
+  import { DemoFeed } from '../../sandbox/race/DemoFeed.js';
+  import { buildTimeline } from '../../telebyte/timeline.js';
+  import { overtakeScript } from '../../telebyte/plans3d/overtake.js';
+  import { createPlayer } from '../../telebyte/plans3d/player.js';
+  const feed = new DemoFeed(), E = feed.edition, racer = Object.fromEntries(E.racers.map((r) => [r.id, r]));
+  const dur = (s) => { s = Math.abs(s); if (s < 60) return `${Math.round(s)} s`; const h = Math.floor(s / 3600), m = Math.round(s % 3600 / 60); return h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`; };
+  const hh = (s) => `${Math.floor(s / 3600)} h ${String(Math.floor(s % 3600 / 60)).padStart(2, '0')}`;
+  const ov = buildTimeline(feed).filter((e) => e.kind === 'overtake' && e.data.passed && e.data.passed.length);
+  const p3d = createPlayer({ racer, dur });
+  document.getElementById('list').innerHTML = ov.map((e, i) => `<li><span>${racer[e.racer].name} double ${e.data.passed.map((x) => racer[x].name).join(', ')}<small>${hh(e.t)} · P${e.data.rank}${e.data.lead ? ' · prise de tête' : ''}</small></span><button data-i="${i}">Revoir</button></li>`).join('');
+  const play = (i, opts) => p3d.play(overtakeScript(ov[i], { feed, E, racer }), opts);
+  for (const b of document.querySelectorAll('button[data-i]')) b.onclick = () => play(+b.dataset.i);
+  window.P3 = { ov, play, p3d, ready: true };
+  const q = new URLSearchParams(location.search); if (q.has('i')) play(+q.get('i'), q.has('freeze') ? { freeze: +q.get('freeze') } : {});
+</script>
+</body>
+</html>

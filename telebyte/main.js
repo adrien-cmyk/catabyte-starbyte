@@ -249,7 +249,7 @@ function loop(now) {
   } else if (playing) { t = Math.min(E.t1, t + dt * SPEEDS[speedI]); if (t >= E.t1) { playing = false; $('play').textContent = 'Lecture'; } }
   if (feed.sync) feed.sync(t);                                    // flux publié : plans reçus jusqu'à l'instant affiché
   renderStandings(); renderClock();
-  if (cor.isOpen) cor.update(t, dt, view.sel); else view.update(t, dt);
+  if (in3d) { /* plan 3D à l'écran : le schéma ne se dessine pas */ } else if (cor.isOpen) cor.update(t, dt, view.sel); else view.update(t, dt);
   commentary(t);
 }
 // sous-titres juste au-dessus du classement (en bas sur téléphone) ou du pied de page
@@ -296,7 +296,29 @@ addEventListener('pointerup', touched, { capture: true });
 addEventListener('wheel', (e) => { if (e.isTrusted) dir.userTouched(); }, { capture: true, passive: true });
 const news = mountNews({ E, racer, hh, getTl: () => nar.tl, onReplay: replay });
 // revoir un moment fort : un peu avant, sur le bon racer ; dans la vue système s'il s'est passé dans un système
+// plan 3D d'un dépassement (GDD_PLANS_3D) : joué à vitesse normale, puis retour au schéma juste après le fait
+let p3d = null, in3d = false;
+async function play3d(e) {
+  if (in3d) return true;
+  in3d = true; cor.close(); dir.hold(true);
+  const wasPlaying = playing; playing = false;
+  try {
+    const [{ createPlayer }, { overtakeScript }] = await Promise.all([import('./plans3d/player.js'), import('./plans3d/overtake.js')]);
+    p3d = p3d || createPlayer({ racer, dur });
+    nar.aside([['A', 'Revoyons ce dépassement !']], 60000);
+    const ok = await p3d.play(overtakeScript(e, { feed, E, racer }));
+    if (!ok) return false;
+    if (!(LIVE && following)) { t = Math.min(E.t1, e.t + 60); if (LIVE && t < liveNow() - 1) setFollow(false); }
+    if (e.racer && view.sel !== e.racer) view.select(e.racer);
+    return true;
+  } catch (err) { console.warn('[plans 3D]', err); return false; }
+  finally { in3d = false; playing = wasPlaying; nar.endAside(); dir.hold(false); renderStandings(true); renderClock(); }
+}
 function replay(e) {
+  if (e.kind === 'overtake' && e.data && e.data.passed && e.data.passed.length) { play3d(e).then((ok) => { if (!ok) replayFlat(e); }); return; }
+  replayFlat(e);
+}
+function replayFlat(e) {
   const inSys = e.sys && ['plan', 'ring', 'periapsis', 'failed', 'damage', 'finale', 'finish', 'moon'].includes(e.kind);
   const lead = e.kind === 'plan' || e.kind === 'finale' ? 600 : inSys ? 1500 : 900;
   t = Math.max(0, e.t - lead); playing = true;
@@ -326,4 +348,4 @@ import('./bets.js').then((m) => m.mountBets({ feed, LIVE, GAME, rpc, tick, racer
 // la vue système suit les nouveaux instantanés pendant qu'on y est
 if (LIVE) feed.onSnap((snap) => { if (sysFrame && frameOk) sysFrame.contentWindow.postMessage({ fronde: 1, type: 'snap', snap }, '*'); });
 
-window.TB = { nar, news, replay, cor, dir, live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
+window.TB = { nar, news, replay, cor, dir, get p3d() { return p3d; }, get in3d() { return in3d; }, live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
