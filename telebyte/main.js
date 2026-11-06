@@ -28,6 +28,8 @@ if (!feed) feed = feedFromUrl(FEED_Q === 'live' || FEED_Q === 'demo-live' ? '' :
 // le jeu (même origine) ouvre le Télébyte en superposition et expose sa passerelle : CG, mise en accord avec le serveur
 const GAME = window.SBFronde || (() => { try { return window.parent !== window && window.parent.SBFronde ? window.parent.SBFronde : null; } catch (e) { return null; } })();
 const $ = (id) => document.getElementById(id);
+// n'écrire dans la page que ce qui change (iOS : une page qui bouge sous le doigt peut annuler le toucher)
+const setTxt = (el, v) => { if (el.textContent !== v) el.textContent = v; };
 const E = feed.edition;
 const racer = Object.fromEntries(E.racers.map((r) => [r.id, r]));
 
@@ -142,6 +144,10 @@ if (LIVE) {
 if (!FEED_Q) { const a = document.createElement('button'); a.id = 'try-bets'; a.type = 'button'; a.textContent = 'Essayer les paris'; a.onclick = () => { location.hash = 'repetition'; location.reload(); }; document.querySelector('.onair').appendChild(a); }
 if (FEED_Q === 'demo-live') { const a = document.createElement('div'); a.id = 'offline'; a.textContent = 'Répétition · partie fictive · course accélérée'; document.body.appendChild(a); }
 if (liveErr) { const b = document.createElement('div'); b.id = 'offline'; b.textContent = `Hors direct (${liveErr}) : course de démonstration`; document.body.appendChild(b); }
+// classement repliable (mémorisé) : la vue respire ; replié, il ne montre que le premier
+const setBoard = (min) => { document.body.classList.toggle('board-min', min); $('board-h').setAttribute('aria-expanded', String(!min)); try { localStorage.setItem('fronde.board', min ? 'min' : ''); } catch (e) {} setTimeout(placeSub, 30); };
+$('board-h').onclick = () => setBoard(!document.body.classList.contains('board-min'));
+{ let m = false; try { m = localStorage.getItem('fronde.board') === 'min'; } catch (e) {} setBoard(m); }
 $('focus-clear').onclick = () => { cor.close(); view.overview(); };
 $('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); if (s.phase === 'leg') return cor.open(null, t, view.sel); dive(s.phase === 'system' || s.phase === 'start' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id); };
 $('edition').textContent = E.name;
@@ -189,6 +195,7 @@ const PHASE = { system: 'en passage', leg: 'en voyage', done: 'arrivé', start: 
 let lastSig = '';
 function renderStandings(force = false) {
   const rows = feed.standingsAt(t);
+  { const r0 = rows[0], r1 = rows[1]; setTxt($('board-lead'), r0 ? `1. ${racer[r0.id].name}${r1 ? ` · ${racer[r1.id].name} +${r1.gap < 1 ? '0' : dur(r1.gap)}` : ''}` : ''); }
   const sig = rows.map((r) => r.id + r.cp).join('|') + view.sel;
   const list = $('standings');
   if (force || sig !== lastSig) {
@@ -203,8 +210,6 @@ function renderStandings(force = false) {
     for (const li of list.children) li.onclick = () => view.select(li.dataset.id);
   }
 }
-// n'écrire dans la page que ce qui change (iOS : une page qui bouge sous le doigt peut annuler le toucher)
-const setTxt = (el, v) => { if (el.textContent !== v) el.textContent = v; };
 function renderClock() {
   setTxt($('time'), hh(t));
   { let cur = 0; STAGES.forEach((s, i) => { if (t >= s.t0) cur = i; }); const lk = cor.legNow(t, null); const inLeg = lk >= 0 && E.racers.every((r) => feed.stateAt(r.id, t).phase !== 'system');

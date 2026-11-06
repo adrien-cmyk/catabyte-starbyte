@@ -56,6 +56,13 @@
   #board { position: fixed; right: max(16px, var(--sar)); top: calc(var(--sat) + 78px); width: 290px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 0 6px; backdrop-filter: blur(6px); }
   #board h2 { margin: 0 14px 6px; font-size: 10px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; color: var(--dim); }
   #standings { list-style: none; margin: 0; padding: 0; }
+  /* classement repliable : une seule ligne (le premier) pour libérer la vue */
+  #board-h { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; padding: 2px 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+  #board-h span { flex: none; } #board-h em { flex: 1; min-width: 0; font-style: normal; text-transform: none; letter-spacing: .02em; color: var(--ink); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; visibility: hidden; }
+  #board-h svg { width: 14px; height: 14px; flex: none; transition: transform .2s; }
+  body.board-min #board-h svg { transform: rotate(180deg); } body.board-min #board-h em { visibility: visible; }
+  body.board-min #standings, body.board-min #focus { display: none; }
+  body.board-min #board { padding-bottom: 4px; }
   #standings li { display: grid; grid-template-columns: 22px 8px 1fr auto; align-items: center; gap: 8px; padding: 7px 14px; cursor: pointer; border-top: 1px solid rgba(159, 212, 236, .06); }
   #standings li:hover, #standings li.on { background: rgba(159, 212, 236, .08); }
   #standings .rk { font: 700 13px var(--f-num); color: var(--dim); }
@@ -187,7 +194,7 @@
   #offline { top: calc(var(--sat) + 156px) !important; }
   @media (max-width: 720px) {
     #board { left: max(12px, var(--sal)); right: max(12px, var(--sar)); top: auto; bottom: calc(var(--sab) + 74px); width: auto; padding: 6px 0 2px; }
-    #board h2 { display: none; }
+    #board h2 { margin: 0 12px 2px; }
     #stages { gap: 3px; flex-wrap: nowrap; } #stages button { padding: 4px 6px; gap: 4px; } #stages button span { display: none; }
     #stages button::before { display: none; } #stages button b { letter-spacing: .06em; font-size: 9.5px; }
     #stages button.leg { width: 22px; padding: 4px 0; justify-content: center; } #stages button.leg::before { display: inline; font-size: 10px; }
@@ -210,7 +217,7 @@
   <div class="onair"><span class="pill-row"><button id="tv" type="button" title="Mode TV : la régie choisit les images" aria-pressed="false">📺</button><button id="voice" type="button" title="Commentaire">🔊</button><span class="pill" id="state">en direct</span></span><span class="t" id="time">00 h 00</span></div>
 </header>
 <aside id="board" aria-label="Classement">
-  <h2>Classement</h2>
+  <h2><button id="board-h" type="button" aria-expanded="true" aria-controls="standings"><span>Classement</span><em id="board-lead"></em><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h2>
   <ol id="standings"></ol>
   <div id="focus" hidden><button id="focus-clear" type="button">Tout le parcours</button><button id="focus-enter" type="button">Vue système</button><b id="focus-name"></b><br><span id="focus-tele"></span></div>
 </aside>
