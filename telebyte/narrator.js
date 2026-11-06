@@ -12,6 +12,7 @@
 //   nar.log                    ce qui a été dit (essais)
 // Rien ici ne change la course : faits divers et vécu des pilotes sont de la couleur, tirés au hasard sur l'écran.
 import { buildTimeline } from './timeline.js';
+import { svg } from './icons.js';
 
 const SPK = { A: { name: 'Arno', rate: 1.1, pitch: 1.08 }, B: { name: 'Mila', rate: 0.98, pitch: 0.94 } };
 
@@ -227,7 +228,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     if (!sub) return;
     if (nar.mode === 'off' || !text) { sub.hidden = true; return; }
     // voix voulue mais pas encore autorisée par le téléphone : on le dit (un toucher suffit)
-    const hint = nar.mode === 'voix' && synth && !audioOk ? ' <small class="hint">🔇 touche l\'écran pour le son</small>' : '';
+    const hint = nar.mode === 'voix' && synth && !audioOk ? ` <small class="hint">${svg('muted')} touche l'écran pour le son</small>` : '';
     sub.hidden = false; sub.innerHTML = `<b>${SPK[who].name}</b> ${text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])}${hint}`;
     sub.classList.toggle('b', who === 'B');
   }

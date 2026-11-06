@@ -8,7 +8,7 @@
 //   cor.open(k | null)  (k : indice de l'étape ; null = celle du racer choisi ou de la tête), cor.close(), cor.isOpen
 //   cor.update(t, dt, sel)   à chaque image ; cor.legNow(t, sel) → étape à montrer (ou -1)
 // Ne lit que le flux (ce qui est révélé) et n'affiche que ce qui s'est passé à l'instant t.
-const LY_KM = 9.4607e12;
+import { draw as icon } from './icons.js';
 
 export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) {
   const root = document.getElementById('corridor'), cv = root.querySelector('canvas'), ctx = cv.getContext('2d');
@@ -94,7 +94,7 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
       win = [a, a + span]; fx = (f) => L + (R - L) * (f - a) / span;
     }
     // systèmes aux deux bouts
-    const edge = (f, name, left) => { const x = fx(f); if (x < L - 4 || x > R + 4) return; c.fillStyle = '#9fd4ec'; c.beginPath(); c.arc(x, yMain, 5, 0, 7); c.fill(); c.font = '600 10px system-ui, sans-serif'; c.textAlign = left ? 'left' : 'right'; c.fillStyle = '#cfe6f3'; c.fillText(name.toUpperCase(), x + (left ? -2 : 2), yMain + 22); };
+    const edge = (f, name, left) => { const x = fx(f); if (x < L - 4 || x > R + 4) return; c.fillStyle = '#cfd8df'; c.beginPath(); c.arc(x, yMain, 5, 0, 7); c.fill(); c.font = '600 10px "Space Grotesk", system-ui, sans-serif'; c.textAlign = left ? 'left' : 'right'; c.fillStyle = '#e6eef3'; c.fillText(name.toUpperCase(), x + (left ? -2 : 2), yMain + 22); };
     c.strokeStyle = 'rgba(255,201,160,.45)'; c.setLineDash([8, 6]); c.lineWidth = 1.5; c.beginPath(); c.moveTo(Math.max(L, fx(0)), yMain); c.lineTo(Math.min(R, fx(1)), yMain); c.stroke(); c.setLineDash([]);
     edge(0, from.name, true); edge(1, to.name, false);
     if (hz && hz.belt) {
@@ -102,8 +102,8 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
       c.fillStyle = 'rgba(184,165,138,.07)'; c.fillRect(Math.max(0, b0), yBelt - H * 0.13, Math.min(W, b1) - Math.max(0, b0), H * 0.26);
       for (const r of rocks) { const x = fx(0.26 + r.f * 0.46); if (x < 0 || x > W) continue; c.fillStyle = 'rgba(205,185,153,.55)'; c.beginPath(); c.arc(x, yBelt + (r.y - 0.5) * H * 0.24, r.r, 0, 7); c.fill(); }
       c.strokeStyle = 'rgba(205,185,153,.35)'; c.setLineDash([3, 5]); c.beginPath(); c.moveTo(fx(0.2), yMain); c.quadraticCurveTo(fx(0.26), yBelt, fx(0.32), yBelt); c.lineTo(fx(0.66), yBelt); c.quadraticCurveTo(fx(0.72), yBelt, fx(0.78), yMain); c.stroke(); c.setLineDash([]);
-      c.font = '9px ui-monospace, monospace'; c.fillStyle = '#cdb999'; c.textAlign = 'left';
-      if (b0 > -200 && b0 < W) c.fillText(`⁂ CEINTURE · raccourci −${Math.round(hz.belt.gain * 100)} %`, Math.max(6, b0), yBelt - H * 0.13 - 4);
+      c.font = '9px "JetBrains Mono", ui-monospace, monospace'; c.fillStyle = '#cdb999'; c.textAlign = 'left';
+      if (b0 > -200 && b0 < W) { const xb = Math.max(6, b0), yb = yBelt - H * 0.13 - 4; icon(c, 'rocks', xb + 6, yb - 3, 11, '#cdb999'); c.fillText(`CEINTURE · raccourci −${Math.round(hz.belt.gain * 100)} %`, xb + 15, yb); }
     }
     // éruption en cours (un fait déjà arrivé à l'un des racers de cette étape)
     let flare = null;
@@ -112,8 +112,8 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
       const a = 0.16 + 0.07 * Math.sin(performance.now() / 260);
       const g = c.createLinearGradient(0, 0, W, 0); g.addColorStop(0, `rgba(255,150,60,${a + 0.1})`); g.addColorStop(1, `rgba(255,150,60,${a * 0.3})`);
       c.fillStyle = g; c.fillRect(0, 0, W, H);
-      c.font = '700 11px system-ui, sans-serif'; c.fillStyle = '#ffd27a'; c.textAlign = 'center'; c.fillText('☀ ÉRUPTION STELLAIRE EN COURS', W / 2, 16);
-    } else if (hz) { c.font = '9px ui-monospace, monospace'; c.fillStyle = 'rgba(255,176,112,.8)'; c.textAlign = 'right'; c.fillText(`☀ risque d'éruption : ${hz.flare}`, W - 8, 14); }
+      c.font = '700 11px "Space Grotesk", system-ui, sans-serif'; c.fillStyle = '#ffd27a'; c.textAlign = 'center'; c.fillText('ÉRUPTION STELLAIRE EN COURS', W / 2 + 8, 16); icon(c, 'sun', W / 2 - c.measureText('ÉRUPTION STELLAIRE EN COURS').width / 2 - 4, 12, 13, '#ffd27a');
+    } else if (hz) { c.font = '9px "JetBrains Mono", ui-monospace, monospace'; c.fillStyle = 'rgba(255,176,112,.8)'; c.textAlign = 'right'; const tx = `risque d'éruption : ${hz.flare}`; c.fillText(tx, W - 8, 14); icon(c, 'sun', W - 16 - c.measureText(tx).width, 11, 11, 'rgba(255,176,112,.8)'); }
     // vaisseaux
     hits = [];
     const rows = feed.standingsAt(t), placed = [];
@@ -133,7 +133,7 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
       if (win && (it.d.f < win[0] || it.d.f > win[1])) {
         // hors de la fenêtre (Suivre) : flèche au bord, avec l'écart
         const right = it.d.f > win[1], xe = right ? R + 10 : L - 10, ye = 34 + placed.filter((p) => p.edge === right).length * 15; placed.push({ edge: right });
-        c.fillStyle = r.livery; c.font = '600 10px system-ui, sans-serif'; c.textAlign = right ? 'right' : 'left';
+        c.fillStyle = r.livery; c.font = '600 10px "Space Grotesk", system-ui, sans-serif'; c.textAlign = right ? 'right' : 'left';
         c.fillText(`${right ? '' : '◂ '}${r.name} ${row && row.rank > 1 ? '+' + dur(row.gap) : 'en tête'}${right ? ' ▸' : ''}`, xe + (right ? -6 : 6), ye);
         continue;
       }
@@ -146,30 +146,30 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
       if (on) { c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, 11, 0, 7); c.stroke(); }
       hits.push({ id: r.id, x, y });
       // étiquette sur une ligne, à droite du vaisseau (à gauche près du bord) : rang, nom, état
-      let tag = '', tagCol = '#ff8a6a';
-      if (it.d.stopped) { const s0 = it.d.stopped; tag = ({ failure: '⚠ panne', repair: '🔧 réparation', flare: s0.h.data.prudent ? '☀ à l\'abri' : '⚡ en panne' }[s0.h.kind] || 'arrêt') + ' ' + dur(s0.end - t); if (s0.h.kind === 'repair') tagCol = '#9fe6ff'; }
+      let tag = '', tagCol = '#ff8a6a', tagIc = null;
+      if (it.d.stopped) { const s0 = it.d.stopped; tag = ({ failure: 'panne', repair: 'réparation', flare: s0.h.data.prudent ? 'à l\'abri' : 'en panne' }[s0.h.kind] || 'arrêt') + ' ' + dur(s0.end - t); tagIc = { failure: 'alert', repair: 'wrench', flare: s0.h.data.prudent ? 'sun' : 'bolt' }[s0.h.kind] || 'alert'; if (s0.h.kind === 'repair') tagCol = '#7fe08a'; }
       for (const h of feed.tracks[r.id].happenings || []) if ((h.kind === 'beltHit' || (h.kind === 'flare' && !h.data.prudent)) && t >= h.t && t - h.t < 2400) {
-        const a = 1 - (t - h.t) / 2400; tag = tag || (h.kind === 'beltHit' ? '💥 choc' : '⚡ électronique grillée');
+        const a = 1 - (t - h.t) / 2400; if (!tag) { tag = h.kind === 'beltHit' ? 'choc' : 'électronique grillée'; tagIc = h.kind === 'beltHit' ? 'impact' : 'bolt'; }
         c.strokeStyle = `rgba(255,170,120,${a})`; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, 12 + (1 - a) * 16, 0, 7); c.stroke();
       }
-      const name = `${row ? row.rank + ' · ' : ''}${r.name}`; let tele = on ? `  coque ${Math.round(st.integrity * 100)} % · ⛽ ${Math.round(st.fuel * 100)} %` : '';
-      c.font = `${on ? 700 : 600} 11px system-ui, sans-serif`;
-      const wName = c.measureText(name).width; c.font = '700 10px system-ui, sans-serif'; const wTag = tag ? c.measureText('  ' + tag).width : 0;
-      c.font = '9px ui-monospace, monospace'; let wTele = c.measureText(tele).width;
+      const name = `${row ? row.rank + ' · ' : ''}${r.name}`; let tele = on ? `  coque ${Math.round(st.integrity * 100)} % · carb. ${Math.round(st.fuel * 100)} %` : '';
+      c.font = `${on ? 700 : 600} 11px "Space Grotesk", system-ui, sans-serif`;
+      const wName = c.measureText(name).width; c.font = '700 10px "Space Grotesk", system-ui, sans-serif'; const wTag = tag ? c.measureText('    ' + tag).width : 0;
+      c.font = '9px "JetBrains Mono", ui-monospace, monospace'; let wTele = c.measureText(tele).width;
       // à droite du vaisseau si ça tient, sinon à gauche ; la télémétrie saute si la place manque
       const fits = (w) => x + 16 + w <= W - 4 || x - 30 - w >= 4;
       if (!fits(wName + wTag + wTele)) { tele = ''; wTele = 0; }
       const wAll = wName + wTag + wTele, left = x + 16 + wAll > W - 4, x0 = Math.max(4, left ? x - 30 - wAll : x + 16);   // à gauche : au-delà de l'anneau
-      c.textAlign = 'left'; c.font = `${on ? 700 : 600} 11px system-ui, sans-serif`; c.fillStyle = on ? '#fff' : '#d6e2ea'; c.fillText(name, x0, y + 4);
-      if (tag) { c.font = '700 10px system-ui, sans-serif'; c.fillStyle = tagCol; c.fillText('  ' + tag, x0 + wName, y + 4); }
-      if (tele) { c.font = '9px ui-monospace, monospace'; c.fillStyle = 'rgba(160,180,195,.9)'; c.fillText(tele, x0 + wName + wTag, y + 4); }
+      c.textAlign = 'left'; c.font = `${on ? 700 : 600} 11px "Space Grotesk", system-ui, sans-serif`; c.fillStyle = on ? '#fff' : '#d6e2ea'; c.fillText(name, x0, y + 4);
+      if (tag) { const xt = x0 + wName + 6; if (tagIc) icon(c, tagIc, xt + 6, y, 11, tagCol); c.font = '700 10px "Space Grotesk", system-ui, sans-serif'; c.fillStyle = tagCol; c.fillText(tag, xt + 15, y + 4); }
+      if (tele) { c.font = '9px "JetBrains Mono", ui-monospace, monospace'; c.fillStyle = 'rgba(160,180,195,.9)'; c.fillText(tele, x0 + wName + wTag, y + 4); }
     }
     // qui n'est pas (ou plus) sur cette étape
     { const parts = []; if (waitFrom.length) parts.push(`encore à ${from.name} : ${waitFrom.join(', ')}`); if (arrived.length) parts.push(`arrivés à ${to.name} : ${arrived.join(', ')}`);
       if (selSeg && t < selSeg.t0) parts.unshift(`${racer[sel].name} n'est pas encore parti`);
-      if (parts.length) { c.font = '10px system-ui, sans-serif'; c.fillStyle = 'rgba(214,226,234,.75)'; c.textAlign = 'left'; c.fillText(parts.join(' · '), 8, H - 24); } }
+      if (parts.length) { c.font = '10px "Space Grotesk", system-ui, sans-serif'; c.fillStyle = 'rgba(214,226,234,.75)'; c.textAlign = 'left'; c.fillText(parts.join(' · '), 8, H - 24); } }
     // échelle (Suivre : graduations fines en années-lumière)
-    c.font = '9px ui-monospace, monospace'; c.fillStyle = 'rgba(139,154,166,.75)'; c.textAlign = 'center';
+    c.font = '9px "JetBrains Mono", ui-monospace, monospace'; c.fillStyle = 'rgba(139,154,166,.75)'; c.textAlign = 'center';
     const ticks = win ? 10 : 5;
     for (let i = 0; i <= ticks; i++) {
       const f = win ? win[0] + (win[1] - win[0]) * i / ticks : i / ticks, x = fx(f);
@@ -180,7 +180,7 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
     if (selSeg && t >= selSeg.t0 && t <= selSeg.t1) {
       const lostAll = stopsOf(sel, selSeg).reduce((a, s) => a + s.lost, 0), pure = (selSeg.t1 - selSeg.t0 - lostAll) / 3600;
       const xc = Math.round(dly * 8766 / Math.max(1, pure));
-      c.textAlign = 'left'; c.font = '600 10px system-ui, sans-serif'; c.fillStyle = '#9fe6ff';
+      c.textAlign = 'left'; c.font = '600 10px "Space Grotesk", system-ui, sans-serif'; c.fillStyle = '#e6eef3';
       c.fillText(`${racer[sel].name} · ${distF(sel, selSeg, t).stopped ? 'à l\'arrêt' : `≈ ${xc.toLocaleString('fr-CH')} × la vitesse de la lumière`}`, 8, H - 8);
     }
   };

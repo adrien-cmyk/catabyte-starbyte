@@ -3,6 +3,7 @@
 // étapes interstellaires, boucle de fronde autour de chaque géante (entrée → périapse → sortie), racers placés
 // d'après le flux de course. Étiquettes et marqueurs en HTML par-dessus (nets, à taille constante, touchables).
 import { THREE } from '../sandbox/lib/sb3d-shim.js';
+import { svg } from './icons.js';
 
 const LY = 230;                                    // unités de scène par année-lumière
 const LOOP = 210;                                  // rayon de la boucle de fronde autour d'un système
@@ -130,7 +131,7 @@ export class UniverseView {
     // passages dans les systèmes : trait fin continu ; étapes interstellaires : pointillé et couloir de lumière douce
     for (const n of N) {
       const a = n.iE, b = n.last ? n.iP : n.iX;
-      S.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(seg(a, b, 60)), new THREE.LineBasicMaterial({ color: 0x9fd4ec, transparent: true, opacity: 0.55 })));
+      S.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(seg(a, b, 60)), new THREE.LineBasicMaterial({ color: 0xc3ccd4, transparent: true, opacity: 0.55 })));
     }
     for (let i = 0; i < N.length - 1; i++) {
       const pts2 = seg(N[i].iX, N[i + 1].iE, 80);
@@ -158,7 +159,7 @@ export class UniverseView {
       }
       const glow = sprite(GLOW.soft, 2200, 0xffa040, 0); glow.position.set(N[k].p[0], -6, N[k].p[2]); this.scene.add(glow); hz.glow = glow;
       const el = document.createElement('span'); el.className = 'tb-hz';
-      el.innerHTML = (L.belt ? `<em>⁂</em> ceinture −${Math.round(L.belt.gain * 100)} %<br>` : '') + `<em class="fl">☀</em> éruption · risque <b>${L.flare}</b>`;
+      el.innerHTML = (L.belt ? `<em>${svg('rocks')}</em> ceinture −${Math.round(L.belt.gain * 100)} %<br>` : '') + `<em class="fl">${svg('sun')}</em> éruption · risque <b>${L.flare}</b>`;
       el.title = (L.belt ? 'Ceinture d\'astéroïdes : raccourci possible, chocs possibles. ' : '') + 'Risque d\'éruption stellaire : ' + L.flare;
       this.overlay.prepend(el); hz.el = el;                     // sous les racers
       this.hz.push(hz);

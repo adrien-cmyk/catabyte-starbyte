@@ -4,8 +4,9 @@
 //   mountNews({ E, racer, hh, getTl: () => chronologie, onReplay: (fait) => … }) → { update(t) }
 import { upTo } from './timeline.js';
 import { names } from './narrator.js';
+import { svg } from './icons.js';
 
-const ICON = { moon: '☾', belt: '⁂', beltHit: '⚠', failure: '⚠', repair: '🔧', flare: '☀', fuelSave: '⛽', overtake: '⇄', failed: '⚠', damage: '⚠', finish: '🏁', finale: '★', plan: '↘', ring: '◌', fuel: '⛽', start: '▶', periapsis: '◉', leg: '→', exit: '↗' };
+const ICON = { overtake: 'swap', failed: 'alert', damage: 'alert', finish: 'flag', finale: 'star', plan: 'dive', ring: 'ring', fuel: 'fuel', start: 'play', periapsis: 'target', leg: 'arrive', exit: 'leave', moon: 'moon', belt: 'rocks', beltHit: 'impact', failure: 'alert', repair: 'wrench', flare: 'sun', fuelSave: 'fuel' };
 
 export function headline(e, E, racer) {
   const n = e.racer ? names(racer[e.racer]) : null, nm = n ? n.Le : '', S = e.sys ? (E.systems.find((s) => s.id === e.sys) || {}).name : '', d = e.data || {};
@@ -39,7 +40,7 @@ export function mountNews({ E, racer, hh, getTl, onReplay }) {
   bar.onclick = () => open(panel.hidden);
   document.getElementById('news-close').onclick = () => open(false);
   function render() {
-    body.innerHTML = items.length ? '<ol class="nw-rows">' + items.slice().reverse().map((x, i) => `<li style="--livery:${x.e.racer ? racer[x.e.racer].livery : '#9fd4ec'}"><span class="ic">${ICON[x.e.kind] || '•'}</span><span class="tx">${x.h}<small>${hh(x.e.t)}</small></span><button type="button" data-k="${items.length - 1 - i}">Revoir</button></li>`).join('') + '</ol>'
+    body.innerHTML = items.length ? '<ol class="nw-rows">' + items.slice().reverse().map((x, i) => `<li style="--livery:${x.e.racer ? racer[x.e.racer].livery : '#c8d2da'}"><span class="ic">${svg(ICON[x.e.kind] || 'target')}</span><span class="tx">${x.h}<small>${hh(x.e.t)}</small></span><button type="button" data-k="${items.length - 1 - i}">Revoir</button></li>`).join('') + '</ol>'
       : '<p class="nw-empty">Rien encore : la course n\'a pas commencé.</p>';
     for (const b of body.querySelectorAll('button[data-k]')) b.onclick = () => { open(false); onReplay(items[+b.dataset.k].e); };
   }

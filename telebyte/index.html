@@ -4,16 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Télébyte · La Grande Fronde</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'"><!-- non bloquant : la page démarre sans attendre la police -->
 <style>
-  /* Télébyte : antenne sobre sur le noir de l'espace — un seul accent (le cyan des tracés), les couleurs des racers
-     ne servent qu'à les reconnaître. Mise en page : scène plein écran, bandeau d'antenne en haut, classement à
+  /* Télébyte : antenne sobre sur le noir de l'espace. Cyan réservé à la navigation (boutons et liens qui changent de
+     vue) ; ambre pour les faits et les paris, rouge pour le direct et les avaries ; les couleurs des racers ne servent
+     qu'à les reconnaître. Polices : Space Grotesk (texte), JetBrains Mono (chiffres). Mise en page : scène plein écran, bandeau d'antenne en haut, classement à
      droite (en bas sur téléphone), horloge de course tout en bas. */
   :root {
     color-scheme: dark;
-    --bg: #020306; --ink: #e6eef3; --dim: #8b9aa6; --faint: #5a6873; --line: rgba(159, 212, 236, .18);
-    --panel: rgba(4, 8, 13, .78); --accent: #9fd4ec; --live: #ff5a4f;
-    --f-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    --f-num: ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, monospace;
+    --bg: #020306; --ink: #e6eef3; --dim: #8b9aa6; --faint: #5a6873; --line: rgba(200, 214, 224, .16);
+    --panel: rgba(4, 8, 13, .78); --accent: #9fd4ec; --live: #ff5a4f; --amber: #ffd27a;   /* --accent : navigation seulement */
+    --f-ui: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --f-num: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
     --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
     --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
   }
@@ -26,7 +29,7 @@
   #load[hidden] { display: none; } #load.out { opacity: 0; }
   #load span { font: 600 11px var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: #eaf6ff; text-shadow: 0 0 8px rgba(0, 20, 40, .9); }
   #load i { display: block; width: 168px; height: 3px; border-radius: 2px; background: rgba(4, 12, 24, .55); overflow: hidden; box-shadow: 0 0 0 1px rgba(160, 210, 255, .25); }
-  #load b { display: block; height: 100%; width: 100%; background: #9fe6ff; transform-origin: 0 50%; transform: scaleX(0); box-shadow: 0 0 8px #9fe6ff; }
+  #load b { display: block; height: 100%; width: 100%; background: #eef4f8; transform-origin: 0 50%; transform: scaleX(0); box-shadow: 0 0 8px #9fe6ff; }
   #sysframe.on { opacity: 1; pointer-events: auto; }
   #scene canvas { display: block; width: 100%; height: 100%; }
   #labels { position: fixed; inset: 0; pointer-events: none; }
@@ -45,7 +48,7 @@
 
   header { position: fixed; top: 0; left: 0; right: 0; padding: calc(var(--sat) + 12px) max(16px, var(--sar)) 0 max(16px, var(--sal)); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; pointer-events: none; }
   .brand b { display: block; font-size: 12px; font-weight: 800; letter-spacing: .38em; }
-  .brand b em { font-style: normal; color: var(--accent); }
+  .brand b em { font-style: normal; color: var(--amber); }
   .brand span { display: block; margin-top: 3px; font-size: 11px; color: var(--dim); }
   .brand small#route { display: none; } .brand small { display: block; margin-top: 2px; font-size: 10px; letter-spacing: .14em; color: var(--faint); text-transform: uppercase; }
   .onair { text-align: right; }
@@ -64,7 +67,7 @@
   body.board-min #standings, body.board-min #focus { display: none; }
   body.board-min #board { padding-bottom: 4px; }
   #standings li { display: grid; grid-template-columns: 22px 8px 1fr auto; align-items: center; gap: 8px; padding: 7px 14px; cursor: pointer; border-top: 1px solid rgba(159, 212, 236, .06); }
-  #standings li:hover, #standings li.on { background: rgba(159, 212, 236, .08); }
+  #standings li:hover, #standings li.on { background: rgba(255, 255, 255, .06); }
   #standings .rk { font: 700 13px var(--f-num); color: var(--dim); }
   #standings i { width: 8px; height: 22px; border-radius: 2px; background: var(--livery); }
   #standings .nm { font-weight: 600; min-width: 0; }
@@ -91,7 +94,7 @@
   #stages button.now { border-color: var(--accent); }
   #stages button.now span { color: var(--accent); }
   #stages button:hover, #stages button:focus-visible { border-color: var(--accent); outline: none; }
-  #stages button::before { content: '▶'; font-size: 8px; color: var(--accent); }
+  #stages button::before { content: '\25B6\FE0E'; font-size: 8px; color: var(--accent); }
   .tb-sys i { display: block; margin-top: 2px; font: normal 9px var(--f-num); color: var(--accent); letter-spacing: .06em; opacity: .85; }
   /* direct et paris (Phase 3) */
   body.in-game header { padding-right: calc(max(16px, var(--sar)) + 46px); }
@@ -136,8 +139,8 @@
   .bt-rank li.me span { color: #ffd27a; } .bt-rank .up { color: #7fe08a; } .bt-rank .down { color: #ff8a7a; }
   .bt-chat { max-height: 38vh; overflow-y: auto; margin: 0 0 8px; } .bt-chat p { margin: 0 0 8px !important; font-size: 12px; } .bt-chat p.me b { color: #ffd27a; } .bt-chat small { color: var(--dim); font-size: 10px; }
   .bt-say { display: flex; gap: 6px; } .bt-say input { flex: 1; min-width: 0; font: 14px var(--f-ui); color: var(--ink); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
-  .bt-say button { font: 700 12px var(--f-ui); color: #05080c; background: #9fe6ff; border: 0; border-radius: 8px; padding: 0 12px; cursor: pointer; }
-  #bets .bt-msg { color: #9fe6ff; } #bets .bt-pay b { color: #7fe08a; } #bets code { font: 10px var(--f-num); }
+  .bt-say button { font: 700 12px var(--f-ui); color: #05080c; background: var(--amber); border: 0; border-radius: 8px; padding: 0 12px; cursor: pointer; }
+  #bets .bt-msg { color: var(--ink); } #bets .bt-pay b { color: #7fe08a; } #bets code { font: 10px var(--f-num); }
   /* voix off et fil d'actualité (Phase 4) */
   .tb-hz { position: absolute; left: 0; top: 0; translate: -50% -50%; pointer-events: none; font: 9px var(--f-num); color: var(--faint); white-space: nowrap; line-height: 1.35; text-align: left; padding: 2px 6px; border-radius: 4px; background: rgba(2, 3, 6, .55); }
   .tb-hz em { font-style: normal; color: #cdb999; } .tb-hz em.fl { color: #ffb070; } .tb-hz b { font-weight: 400; color: var(--dim); }
@@ -157,6 +160,11 @@
   #stages button.leg { padding: 4px 7px; } #stages button.leg::before { content: '⇢'; font-size: 11px; color: #ffc9a0; }
   #stages button.leg.now { border-color: #ffc9a0; }
   @media (min-width: 721px) { #corridor { right: calc(max(16px, var(--sar)) + 306px); top: calc(var(--sat) + 160px); } }
+  svg.ic { width: 1.15em; height: 1.15em; vertical-align: -.2em; }
+  #voice svg.ic { width: 15px; height: 15px; vertical-align: middle; }
+  .nw-rows .ic svg.ic { width: 14px; height: 14px; }
+  #sub .hint svg.ic { width: 13px; height: 13px; }
+  .tb-hz em svg.ic { width: 10px; height: 10px; vertical-align: -1px; }
   .pill-row { display: inline-flex; align-items: center; gap: 6px; }
   #voice { pointer-events: auto; width: 26px; height: 26px; font-size: 14px; line-height: 1; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 50%; padding: 0; cursor: pointer; }
   #voice.off { opacity: .55; }
@@ -187,7 +195,7 @@
   #sub { position: fixed; z-index: 45; left: 50%; translate: -50% 0; bottom: var(--sub-b, calc(var(--sab) + 220px)); width: min(560px, calc(100% - 32px)); box-sizing: border-box; text-align: center; font: 600 14px/1.35 var(--f-ui); color: #fff; background: rgba(2, 4, 8, .72); border-radius: 10px; padding: 7px 12px; pointer-events: none; text-shadow: 0 1px 2px #000; }
   #sub[hidden] { display: none; }
   #sub b { display: inline-block; margin-right: 6px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #ffd27a; }
-  #sub.b b { color: #9fe6ff; }
+  #sub.b b { color: #c9b8ff; }
   #sub .hint { display: block; margin-top: 3px; font: 600 11px var(--f-ui); color: #ffd27a; }
   body.insys #sub { bottom: auto; top: calc(var(--sat) + 64px); }
   body.insys #news { display: none; }

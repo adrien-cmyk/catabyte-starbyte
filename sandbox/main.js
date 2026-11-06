@@ -640,7 +640,7 @@ function slowmo(tc, label) {
   if (slow || !raceLayer || !raceLayer.on) return;
   slow = { wasLock: !!raceLayer.liveLock, scale: timeScale, end: tc + 90, back: simT };
   raceLayer.liveLock = false; simT = Math.max(0, tc - 90); timeScale = 15;
-  const b = document.getElementById('slowbadge'); if (b) { b.textContent = '◀◀ Ralenti · ' + label; b.hidden = false; }
+  const b = document.getElementById('slowbadge'); if (b) { b.textContent = '\u25C0\uFE0E\u25C0\uFE0E Ralenti · ' + label; b.hidden = false; }
 }
 function endSlow(post = true) {
   if (!slow) return;

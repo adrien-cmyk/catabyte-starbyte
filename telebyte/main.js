@@ -8,6 +8,7 @@ import { createNarrator } from './narrator.js';
 import { mountNews } from './news.js';
 import { mountCorridor } from './corridor.js';
 import { createDirector } from './director.js';
+import { svg } from './icons.js';
 
 // flux : ?feed=live → l'édition du serveur (Phase 3) ; ?feed=mock → publication simulée ; sinon la démo hors ligne.
 // En direct sans connexion (ou sans édition), on retombe sur la démo, avec un bandeau.
@@ -308,8 +309,8 @@ function replay(e) {
   else if (LEG.includes(e.kind)) { const k = E.systems.findIndex((s) => s.id === e.sys) - 1; if (k >= 0) cor.open(k, t, e.racer || null); }   // fait d'étape : le couloir
 }
 // commentaire : voix + sous-titres, sous-titres seuls, ou rien (mémorisé) ; le son ne part qu'après un premier toucher
-const VOICE_L = { voix: '🔊', texte: '💬', off: '🔇' }, VOICE_T = { voix: 'voix off et sous-titres', texte: 'sous-titres seuls', off: 'coupé' };
-const setVoice = (m) => { nar.setMode(m); $('voice').textContent = VOICE_L[m]; $('voice').title = 'Commentaire : ' + VOICE_T[m]; $('voice').classList.toggle('off', m === 'off'); $('voice').setAttribute('aria-label', 'Commentaire : ' + VOICE_T[m]); try { localStorage.setItem('fronde.voice', m); } catch (e) {} };
+const VOICE_L = { voix: svg('speaker'), texte: svg('captions'), off: svg('muted') }, VOICE_T = { voix: 'voix off et sous-titres', texte: 'sous-titres seuls', off: 'coupé' };
+const setVoice = (m) => { nar.setMode(m); $('voice').innerHTML = VOICE_L[m]; $('voice').title = 'Commentaire : ' + VOICE_T[m]; $('voice').classList.toggle('off', m === 'off'); $('voice').setAttribute('aria-label', 'Commentaire : ' + VOICE_T[m]); try { localStorage.setItem('fronde.voice', m); } catch (e) {} };
 { let m = 'voix'; try { m = localStorage.getItem('fronde.voice') || 'voix'; } catch (e) {} setVoice(VOICE_L[m] ? m : 'voix'); }
 $('voice').onclick = () => {
   nar.unlock(); const m = nar.mode === 'voix' ? 'texte' : nar.mode === 'texte' ? 'off' : 'voix'; setVoice(m);
