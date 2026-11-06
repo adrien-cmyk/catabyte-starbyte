@@ -43,7 +43,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const paused = await p.evaluate(() => TB.dir.state.pausedUntil > performance.now());
   ok(paused && !(await p.evaluate(() => document.getElementById('lower').hidden)), 'un toucher met la régie en pause (bandeau « en pause »)');
   // bouton 📺 : arrêt
-  await p.click('#tv'); ok(await p.evaluate(() => TB.dir.on && !TB.dir.paused()), 'bouton 📺 en pause : la régie reprend');
+  ok(await p.$('#lower [data-tv-off]') !== null, 'bandeau de pause : « rendre à la régie » et « arrêter la TV »');
+  await p.click('#lower [data-tv-resume]'); ok(await p.evaluate(() => TB.dir.on && !TB.dir.paused()), '« rendre à la régie » : elle reprend');
   await p.click('#tv'); ok(await p.evaluate(() => !TB.dir.on), 'bouton 📺 : mode TV coupé');
   ok(!errs.length, `aucune erreur (${errs.length})`);
   await b.close();

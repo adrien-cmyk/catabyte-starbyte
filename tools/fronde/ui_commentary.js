@@ -13,7 +13,7 @@ const STUB = () => {
   window.SpeechSynthesisUtterance = function (text) { this.text = text; };
   Object.defineProperty(window, 'speechSynthesis', { value: {
     getVoices: () => voices, addEventListener() {}, cancel() { if (busy) { clearTimeout(busy.h); busy = null; } },
-    speak(u) { window.__spoken.push({ text: u.text, voice: u.voice && u.voice.name, rate: u.rate, pitch: u.pitch }); if (!u.text.trim()) return; const h = setTimeout(() => { busy = null; u.onend && u.onend(); }, 40 * u.text.length); busy = { h }; },
+    speak(u) { window.__spoken.push({ text: u.text, voice: u.voice && u.voice.name, rate: u.rate, pitch: u.pitch }); if (!u.text.trim()) return; setTimeout(() => u.onstart && u.onstart(), 30); const h = setTimeout(() => { busy = null; u.onend && u.onend(); }, 40 * u.text.length); busy = { h }; },
   } });
 };
 (async () => {

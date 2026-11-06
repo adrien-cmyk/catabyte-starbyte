@@ -109,7 +109,7 @@ const dive = (sysId, auto = false) => {
   if (frameOk) return go();
   loadFrame(); pending = go;
 };
-const view = new UniverseView($('scene'), $('labels'), feed, { onEnter: (id) => dive(id), onSelect: (id) => { renderStandings(true); $('focus').hidden = !id; if (id) $('focus-name').textContent = racer[id].name; } });
+const view = new UniverseView($('scene'), $('labels'), feed, { onEnter: (id) => dive(id), onSelect: (id) => { renderStandings(true); setTimeout(placeSub, 30); $('focus').hidden = !id; if (id) $('focus-name').textContent = racer[id].name; } });
 addEventListener('resize', () => view.resize());
 
 const slider = $('clock');
@@ -248,7 +248,7 @@ function placeSub() {
   const b = $('board').getBoundingClientRect(), f = document.querySelector('footer').getBoundingClientRect();
   const top = b.top > innerHeight * 0.4 && b.height > 0 ? b.top : f.top;   // classement en bas (téléphone) ; sinon le pied de page
   document.documentElement.style.setProperty('--sub-b', Math.round(innerHeight - top + 8) + 'px');
-  document.documentElement.style.setProperty('--corr-b', Math.round(innerHeight - top + 66) + 'px');   // le couloir s'arrête au-dessus des sous-titres
+  document.documentElement.style.setProperty('--corr-b', Math.round(innerHeight - top + 96) + 'px');   // le couloir s'arrête au-dessus des sous-titres (deux lignes)
 }
 addEventListener('resize', placeSub); setTimeout(placeSub, 300); setInterval(placeSub, 2000);
 function commentary(at) {
@@ -274,11 +274,11 @@ const dir = createDirector({ feed, E, racer, hh, dur, getTl: () => nar.tl, act: 
   corridor: (k, id) => { selectOnly(id); cor.open(k, t, id); }, closeCorridor: () => cor.close(),
   follow: (id) => { selectOnly(id); post({ type: 'tv-follow', sel: id }); },
   slowmo: (tc, label) => { nar.aside([['A', pick2(['Revoyons ça au ralenti !', 'Le ralenti, regardez-moi ça !', 'On le revoit au ralenti !'])]], 60000); post({ type: 'slowmo', tc, label }); },   // silence jusqu'au message slow-end
-  lower: (html, mini = false) => { const el = $('lower'); if (!html) { el.hidden = true; return; } el.innerHTML = html; el.hidden = false; el.classList.toggle('mini', mini); const u = el.querySelector('[data-tv-resume]'); if (u) u.onclick = (e) => { e.stopPropagation(); dir.resume(); el.hidden = true; }; },
+  lower: (html, mini = false) => { const el = $('lower'); if (!html) { el.hidden = true; return; } el.innerHTML = html; el.hidden = false; el.classList.toggle('mini', mini); const u = el.querySelector('[data-tv-resume]'); if (u) u.onclick = (e) => { e.stopPropagation(); dir.resume(); }; const x = el.querySelector('[data-tv-off]'); if (x) x.onclick = (e) => { e.stopPropagation(); setTv(false); }; },
 } });
 const pick2 = (a) => a[Math.floor(Math.random() * a.length)];
 const setTv = (on) => { dir.setOn(on); $('tv').classList.toggle('on', on); $('tv').setAttribute('aria-pressed', String(on)); try { localStorage.setItem('fronde.tv', on ? '1' : '0'); } catch (e) {} };
-$('tv').onclick = (e) => { e.stopPropagation(); if (dir.paused()) dir.resume(); else setTv(!dir.on); };   // en pause : reprendre ; sinon activer / couper
+$('tv').onclick = (e) => { e.stopPropagation(); setTv(!dir.on); };   // activer / couper le mode TV (en pause aussi)
 { let on = true; try { on = localStorage.getItem('fronde.tv') !== '0'; } catch (e) {} setTv(on); }
 // un geste du joueur (hors boutons du mode TV et du commentaire) : la régie lui rend la main un moment
 addEventListener('pointerdown', (e) => { if (e.isTrusted && !(e.target.closest && e.target.closest('#tv, #voice, #lower'))) dir.userTouched(); }, { capture: true });
@@ -306,7 +306,7 @@ $('voice').onclick = () => {
   const sb = $('sub'); sb.hidden = false; sb.classList.remove('b'); sb.innerHTML = `<b>Commentaire</b> ${VOICE_T[m]}`;   // ce que fait le bouton, un instant
   clearTimeout(sb._h); sb._h = setTimeout(() => { if (sb.textContent.startsWith('Commentaire')) sb.hidden = true; }, 1800);
 };
-addEventListener('pointerdown', () => nar.unlock(), { capture: true, once: true });
+for (const ev of ['touchend', 'click', 'keydown']) addEventListener(ev, () => nar.unlock(), { capture: true, passive: true });   // vrai geste (iOS) ; sans effet une fois le son parti
 
 requestAnimationFrame(loop);
 

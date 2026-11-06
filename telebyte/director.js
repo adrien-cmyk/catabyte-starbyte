@@ -118,7 +118,7 @@ export function createDirector({ feed, E, racer, hh, dur, getTl, act }) {
   D.userTouched = () => {
     if (!D.on) return;
     D.state.pausedUntil = performance.now() + PAUSE; pending = null; cur = null;
-    act.lower('<b>📺 Mode TV en pause</b> reprise dans 45 s · <u data-tv-resume>reprendre</u>'); lowerUntil = D.state.pausedUntil;   // visible toute la pause
+    act.lower('<b>📺 À toi</b> 45 s · <u data-tv-resume>rendre à la régie</u> · <u data-tv-off>arrêter la TV</u>'); lowerUntil = D.state.pausedUntil;   // visible toute la pause
   };
   D.paused = () => D.on && performance.now() < D.state.pausedUntil;
   D.resume = () => { D.state.pausedUntil = 0; cur = null; lowerUntil = 0; act.lower('<b>📺</b>', true); };

@@ -226,14 +226,16 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   function showSub(who, text) {
     if (!sub) return;
     if (nar.mode === 'off' || !text) { sub.hidden = true; return; }
-    sub.hidden = false; sub.innerHTML = `<b>${SPK[who].name}</b> ${text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])}`;
+    // voix voulue mais pas encore autorisée par le téléphone : on le dit (un toucher suffit)
+    const hint = nar.mode === 'voix' && synth && !audioOk ? ' <small class="hint">🔇 touche l\'écran pour le son</small>' : '';
+    sub.hidden = false; sub.innerHTML = `<b>${SPK[who].name}</b> ${text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])}${hint}`;
     sub.classList.toggle('b', who === 'B');
   }
   function say(line) {
     const [who, text] = line, at = performance.now();
     nar.log.push({ who, text, t: lastT, at });
     if (nar.log.length > 400) nar.log.shift();
-    showSub(who, text);
+    showSub(who, text); lastLine = text;
     const minMs = 1200 + text.length * 55;                  // durée de lecture d'un sous-titre (et repli sans voix)
     speaking = { until: at + minMs, voice: false };
     if (nar.mode === 'voix' && synth && unlocked) {
@@ -243,16 +245,30 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
         u.rate = SPK[who].rate * (rate > 1000 ? 1.12 : 1); u.pitch = SPK[who].pitch; u.volume = 1;
         const me = speaking; me.voice = true; me.until = at + Math.max(minMs, 25000);   // garde : si onend ne vient jamais
         u.onend = u.onerror = () => { if (speaking === me) speaking = { until: performance.now() + 350, voice: false }; };
+        // la voix n'a pas démarré (téléphone qui bloque le son) : on retombe sur la durée du sous-titre, sans attendre 25 s
+        setTimeout(() => { if (speaking === me && !me.started) { me.voice = false; me.until = at + minMs; } }, 2000);
+        u.onstart = () => { me.started = true; if (!audioOk) { audioOk = true; showSub(who, text); } };
+        try { synth.resume(); } catch (e) {}                // iOS : la synthèse reste parfois en pause après un passage en arrière-plan
         nar._u = u; synth.speak(u);                         // référence gardée : sinon Chrome peut perdre onend
       } catch (e) { /* pas de voix : sous-titres seuls */ }
     }
   }
-  let unlocked = false;
+  // iOS n'autorise la voix qu'à partir d'un vrai geste (fin de toucher, clic) : on retente à chaque geste tant qu'aucune
+  // phrase n'a réellement démarré, en disant tout de suite la phrase affichée (ou un mot d'accueil)
+  let unlocked = false, audioOk = false, lastLine = '';
   nar.unlock = () => {
-    if (unlocked || !synth) { unlocked = true; return; }
+    if (!synth || audioOk || nar.mode !== 'voix') return;
     unlocked = true;
-    try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); } catch (e) {}
+    try {
+      synth.cancel(); try { synth.resume(); } catch (e) {}
+      const u = new SpeechSynthesisUtterance(speakable(lastLine && sub && !sub.hidden ? lastLine : 'Bienvenue sur le Télébyte !'));
+      u.lang = 'fr-FR'; if (voices.A) u.voice = voices.A; u.rate = SPK.A.rate; u.pitch = SPK.A.pitch;
+      u.onstart = () => { audioOk = true; if (sub && !sub.hidden) { const h = sub.querySelector('.hint'); if (h) h.remove(); } };
+      nar._u0 = u; synth.speak(u);
+      if (speaking) speaking.until = Math.max(speaking.until, performance.now() + 2500);
+    } catch (e) {}
   };
+  Object.defineProperty(nar, 'audioOk', { get: () => audioOk });
   nar.setMode = (m) => {
     nar.mode = m;
     if (m !== 'voix' && synth) try { synth.cancel(); } catch (e) {}
