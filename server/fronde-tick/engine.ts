@@ -1,6 +1,6 @@
 // STARBYTE — moteur de course de la Grande Fronde, COPIE GÉNÉRÉE par tools/fronde/sync_engine.mjs (dépôt catabyte-starbyte).
 // Ne pas modifier ici : retoucher sandbox/race/engine.js (ou Gravity.js, raceData.js), relancer le script, redéployer fronde-tick.
-// Source : fdf63deccccad712 (empreinte des fichiers du moteur)
+// Source : 1913cfe11b23cc2a (empreinte des fichiers du moteur)
 // @ts-nocheck
 const __m = {};
 // ── sandbox/core/Gravity.js ──
@@ -467,7 +467,15 @@ function runRace({ systems, racers, pilot, plans = null, memo = null }) {
           // les temps perdus décalent la suite de l'étape (pas l'éruption : même heure pour tous)
           let shift = 0;
           const rel = marks.filter((m) => !m[4]).sort((a, b) => a[0] - b[0]), abs = marks.filter((m) => m[4]), seq = [];
-          while (rel.length || abs.length) { const take = !abs.length || (rel.length && rel[0][0] + shift <= abs[0][0]) ? rel.shift() : abs.shift(); seq.push([take[4] ? take[0] : take[0] + shift, take]); shift += take[3] || 0; }
+          let prevEnd = legT0;
+          while (rel.length || abs.length) {
+            const take = !abs.length || (rel.length && rel[0][0] + shift <= abs[0][0]) ? rel.shift() : abs.shift();
+            const t = take[4] ? take[0] : take[0] + shift;
+            // une éruption pendant un arrêt (panne, réparation) : seul le temps qui dépasse cet arrêt est perdu en plus
+            if (take[4] && take[3] && t < prevEnd) { take[3] = Math.max(0, Math.round(t + take[3] - prevEnd)); take[2] = { ...take[2], data: { ...take[2].data, lost: take[3] } }; }
+            seq.push([t, take]); shift += take[3] || 0;
+            if (take[3]) prevEnd = Math.max(t, prevEnd) + take[3];
+          }
           for (const [t, m] of seq) {
             if (m[1]) { S.integrity = clamp(S.integrity + m[1], 0.3, 1); }
             S.events.push({ t, fuel: legFuel, integrity: S.integrity });
@@ -517,6 +525,6 @@ return { rngOf, rng2, clamp, FUEL_PER_DV, choosePlan, PLAN_LABEL, passSystem, EN
 
 export const { runRace, digest, planOf, plansMap, choosePlan, passSystem, rngOf, rng2, hazardsOf, FLARE_P, ENGINE_V, PLAN_LABEL, FUEL_PER_DV, FUEL_PER_LEG, V_REF } = __m.engine;
 export const { RACE_SYSTEMS, RACERS, PILOT, gmOfGiant, sphereGM } = __m.raceData;
-export const ENGINE_HASH = 'fdf63deccccad712';
+export const ENGINE_HASH = '1913cfe11b23cc2a';
 // empreintes de référence (sha-256 tronqué de digest(runRace)) calculées par tools/fronde/engine_test.mjs
 export const ENGINE_REF = {"fronde-222":"6e761f2fe26fc587","test-2":"0e72856e09c27ce4","test-3":"9d717e59d9e4bd4f","test-4":"8656357ca1aa2081","test-5":"5c6893a3d5c9224b"};

@@ -232,7 +232,7 @@ export class RaceLayer {
         <div class="rh-views"><button type="button" data-v="overview">Ensemble</button><button type="button" data-v="gates">Portes</button><button type="button" data-v="follow">Suivre</button></div>`;
       for (const b of el.querySelectorAll('.rh-views button')) b.onclick = () => {
         const v = b.dataset.v;
-        if (v === 'follow') { const f = this.c.fleet(), rc = f.find((r) => r.def.id === this.sel && r.inSys) || f.find((r) => r.inSys); if (!rc) { if (this.c.corridor) this.c.corridor(); return; } this.sel = rc.def.id; this.c.follow(rc.def.id); }   // personne ici : le couloir
+        if (v === 'follow') { const f = this.c.fleet(), rc = f.find((r) => r.def.id === this.sel && r.inSys) || f.find((r) => r.inSys); if (!rc) { if (this.c.corridor && this.feed.racers.some((r) => this.feed.stateAt(r.id, this.c.getTime()).phase === 'leg')) this.c.corridor(); return; } this.sel = rc.def.id; this.c.follow(rc.def.id); }   // personne ici : le couloir
         else this.c.views[v]();
         this._view = v; this._hud(true);
       };

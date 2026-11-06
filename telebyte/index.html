@@ -137,6 +137,8 @@
   .tb-hz.on { color: #ffd27a; border: 1px solid rgba(255, 154, 64, .6); } .tb-hz.on b::after { content: ' · en cours !'; color: #ffd27a; } .tb-hz.on { translate: -50% -50%; }
   #corridor { position: fixed; z-index: 29; left: max(10px, var(--sal)); right: max(10px, var(--sar)); top: calc(var(--sat) + 152px); bottom: var(--corr-b, 300px); border: 1px solid rgba(255, 201, 160, .3); border-radius: 12px; overflow: hidden; background: rgba(2, 4, 9, .4); }
   #corridor[hidden] { display: none; }
+  #corridor { min-height: 190px; }
+  @media (max-height: 520px) { #corridor { top: calc(var(--sat) + 92px) !important; bottom: calc(var(--sab) + 66px) !important; right: max(10px, var(--sar)) !important; min-height: 0; } body.corr #board { display: none; } }
   #corridor .co-bar { display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 8px 0 12px; border-bottom: 1px solid rgba(255, 201, 160, .18); }
   #corridor .co-title { flex: 1; min-width: 0; font: 600 10px var(--f-ui); letter-spacing: .12em; text-transform: uppercase; color: #ffc9a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #corridor .co-views { display: flex; gap: 4px; }

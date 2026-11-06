@@ -98,6 +98,7 @@ function loadHide() { if (loadEl.hidden) return; loadSet(1, false); loadEl.class
 // en fondu, avec la mini barre tant qu'elle se prépare
 const dive = (sysId) => {
   if (inSystem || !loadEl.hidden) return;
+  cor.close();                                                      // le couloir ne reste pas derrière la vue système
   curSysId = sysId; loadShow(sysId);
   const go = () => { sysFrame.classList.add('on'); sysFrame.contentWindow.postMessage({ fronde: 1, type: 'enter', sys: sysId, t, sel: view.sel || null, snap: LIVE ? LIVE.snap : null, live: LIVE ? following : null }, '*'); };
   clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(sysId); }, 7000);   // jamais bloqué
@@ -241,7 +242,7 @@ function loop(now) {
 // sous-titres juste au-dessus du classement (en bas sur téléphone) ou du pied de page
 function placeSub() {
   const b = $('board').getBoundingClientRect(), f = document.querySelector('footer').getBoundingClientRect();
-  const top = b.bottom > innerHeight * 0.6 ? b.top : f.top;
+  const top = b.top > innerHeight * 0.4 && b.height > 0 ? b.top : f.top;   // classement en bas (téléphone) ; sinon le pied de page
   document.documentElement.style.setProperty('--sub-b', Math.round(innerHeight - top + 8) + 'px');
   document.documentElement.style.setProperty('--corr-b', Math.round(innerHeight - top + 66) + 'px');   // le couloir s'arrête au-dessus des sous-titres
 }

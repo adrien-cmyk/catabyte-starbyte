@@ -25,6 +25,7 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.width = W + 'px'; cv.style.height = H + 'px';
   }
   addEventListener('resize', () => { if (S.isOpen) resize(); });
+  try { new ResizeObserver(() => { if (S.isOpen) resize(); }).observe(root); } catch (e) {}   // la hauteur suit les sous-titres, le classement
   for (const b of btns) b.onclick = () => { if (b.dataset.v === 'close') return S.close(); mode = b.dataset.v; paintBtns(); };
   const paintBtns = () => { for (const b of btns) b.classList.toggle('on', b.dataset.v === mode); };
   // toucher un vaisseau : le choisir (et passer en Suivre)
@@ -45,7 +46,7 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
   };
   S.open = (kk = null, t = 0, sel = null) => {
     S.isOpen = true; root.hidden = false; document.body.classList.add('corr');
-    auto = kk == null; k = kk == null ? S.legNow(t, sel) : kk; if (k < 0) k = 0;
+    auto = kk == null; k = kk == null ? S.legNow(t, sel) : kk; if (k < 0) { S.close(); return false; }   // personne en voyage : pas de couloir
     mode = sel ? 'suivre' : 'ensemble'; paintBtns(); resize();
   };
   S.close = () => { S.isOpen = false; root.hidden = true; document.body.classList.remove('corr'); };
@@ -57,11 +58,12 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
     for (const h of feed.tracks[id].happenings || []) if (h.t >= seg.t0 && h.t <= seg.t1 && h.data && h.data.lost) out.push({ t: h.t, lost: h.data.lost, h });
     return out;
   }
+  // temps de vol écoulé = temps écoulé − temps passé à l'arrêt ; un arrêt ne commence pas avant la fin du précédent
   function distF(id, seg, t) {
-    const stops = stopsOf(id, seg), total = seg.t1 - seg.t0, lostAll = stops.reduce((a, s) => a + s.lost, 0);
-    let moved = Math.min(Math.max(t, seg.t0), seg.t1) - seg.t0, stopped = null;
-    for (const s of stops) { const a = s.t - seg.t0; if (moved > a) { const inStop = Math.min(moved - a, s.lost); moved -= inStop; if (inStop < s.lost) stopped = s; } }
-    return { f: Math.max(0, Math.min(1, moved / Math.max(1, total - lostAll))), stopped };
+    const stops = stopsOf(id, seg).sort((a, b) => a.t - b.t), total = seg.t1 - seg.t0, lostAll = stops.reduce((a, s) => a + s.lost, 0);
+    const el = Math.min(Math.max(t, seg.t0), seg.t1) - seg.t0; let still = 0, prevEnd = 0, stopped = null;
+    for (const s of stops) { const a = Math.max(s.t - seg.t0, prevEnd), inStop = Math.min(Math.max(el - a, 0), s.lost); still += inStop; if (inStop > 0 && inStop < s.lost) stopped = { ...s, end: seg.t0 + a + s.lost }; prevEnd = a + s.lost; }
+    return { f: Math.max(0, Math.min(1, (el - still) / Math.max(1, total - lostAll))), stopped };
   }
 
   S.update = (t, dt, sel) => {
@@ -82,7 +84,7 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
       c.strokeStyle = `rgba(200,220,255,${0.15 + s.z * 0.35})`; c.lineWidth = s.z; c.beginPath(); c.moveTo(x, y); c.lineTo(x + l, y); c.stroke();
     }
     // piste : marges, ligne principale, voie de la ceinture
-    const L = 34, R = W - 34, yMain = H * 0.64, yBelt = H * 0.34;
+    const L = 34, R = W - 34, yMain = hz && hz.belt ? H * 0.62 : H * 0.5, yBelt = H * 0.32;   // sans ceinture : la piste au milieu
     const X0 = (f) => L + (R - L) * f;
     // cadrage Suivre : fenêtre autour du racer choisi
     let fx = (f) => X0(f), win = null;
@@ -121,30 +123,22 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
       if (t > seg.t1) return { r, where: 'après', st };
       const d = distF(r.id, seg, t); return { r, where: 'ici', seg, d, st };
     });
+    const waitFrom = [], arrived = [];
     for (const it of list) {
       const { r, st } = it, row = rows.find((x) => x.id === r.id);
-      if (it.where !== 'ici') {
-        // pas encore parti / déjà arrivé : petit jeton au bout de la piste
-        const f = it.where === 'avant' ? 0 : 1, x0 = fx(f); if (x0 < L - 4 || x0 > R + 4) continue;
-        const n = placed.filter((p) => p.end === f).length; placed.push({ end: f });
-        const y = yMain + 34 + n * 13;
-        c.fillStyle = r.livery; c.beginPath(); c.arc(x0, y, 3.5, 0, 7); c.fill();
-        c.font = '10px system-ui, sans-serif'; c.fillStyle = 'rgba(230,238,243,.7)'; c.textAlign = f ? 'right' : 'left';
-        c.fillText(`${r.name} ${it.where === 'avant' ? '· encore à ' + from.name : '· arrivé'}`, x0 + (f ? -8 : 8), y + 3);
-        continue;
-      }
+      if (it.where !== 'ici') { (it.where === 'avant' ? waitFrom : arrived).push(r.name); continue; }   // listés en haut
       const onBelt = it.seg.belt && it.d.f > 0.2 && it.d.f < 0.78;
       const bw = onBelt ? Math.min(1, Math.min(it.d.f - 0.2, 0.78 - it.d.f) / 0.06) : 0;
       let x = fx(it.d.f);
       if (win && (it.d.f < win[0] || it.d.f > win[1])) {
         // hors de la fenêtre (Suivre) : flèche au bord, avec l'écart
-        const right = it.d.f > win[1], xe = right ? R + 10 : L - 10, ye = 22 + placed.filter((p) => p.edge === right).length * 15; placed.push({ edge: right });
+        const right = it.d.f > win[1], xe = right ? R + 10 : L - 10, ye = 34 + placed.filter((p) => p.edge === right).length * 15; placed.push({ edge: right });
         c.fillStyle = r.livery; c.font = '600 10px system-ui, sans-serif'; c.textAlign = right ? 'right' : 'left';
         c.fillText(`${right ? '' : '◂ '}${r.name} ${row && row.rank > 1 ? '+' + dur(row.gap) : 'en tête'}${right ? ' ▸' : ''}`, xe + (right ? -6 : 6), ye);
         continue;
       }
       // une rangée par racer (ordre du classement) : jamais d'étiquettes empilées les unes sur les autres
-      const ri = row ? row.rank - 1 : 0, y = yMain + (yBelt - yMain) * bw + (ri - (E.racers.length - 1) / 2) * 24;
+      const ri = row ? row.rank - 1 : 0, y = yMain + (yBelt - yMain) * bw + (ri - (E.racers.length - 1) / 2) * Math.max(17, Math.min(24, H * 0.07));
       const on = sel === r.id;
       // vaisseau : flèche aux couleurs du racer, traînée derrière (aucune à l'arrêt)
       if (!it.d.stopped) { const tr = c.createLinearGradient(x - 46, 0, x, 0); tr.addColorStop(0, 'rgba(255,255,255,0)'); tr.addColorStop(1, r.livery); c.strokeStyle = tr; c.lineWidth = 2; c.beginPath(); c.moveTo(x - 46, y); c.lineTo(x - 6, y); c.stroke(); }
@@ -153,7 +147,7 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
       hits.push({ id: r.id, x, y });
       // étiquette sur une ligne, à droite du vaisseau (à gauche près du bord) : rang, nom, état
       let tag = '', tagCol = '#ff8a6a';
-      if (it.d.stopped) { const s0 = it.d.stopped; tag = ({ failure: '⚠ panne', repair: '🔧 réparation', flare: '☀ à l\'abri' }[s0.h.kind] || 'arrêt') + ' ' + dur(s0.t + s0.lost - t); if (s0.h.kind === 'repair') tagCol = '#9fe6ff'; }
+      if (it.d.stopped) { const s0 = it.d.stopped; tag = ({ failure: '⚠ panne', repair: '🔧 réparation', flare: s0.h.data.prudent ? '☀ à l\'abri' : '⚡ en panne' }[s0.h.kind] || 'arrêt') + ' ' + dur(s0.end - t); if (s0.h.kind === 'repair') tagCol = '#9fe6ff'; }
       for (const h of feed.tracks[r.id].happenings || []) if ((h.kind === 'beltHit' || (h.kind === 'flare' && !h.data.prudent)) && t >= h.t && t - h.t < 2400) {
         const a = 1 - (t - h.t) / 2400; tag = tag || (h.kind === 'beltHit' ? '💥 choc' : '⚡ électronique grillée');
         c.strokeStyle = `rgba(255,170,120,${a})`; c.lineWidth = 1.5; c.beginPath(); c.arc(x, y, 12 + (1 - a) * 16, 0, 7); c.stroke();
@@ -163,13 +157,17 @@ export function mountCorridor({ feed, E, racer, hh, dur, onSelect = () => {} }) 
       const wName = c.measureText(name).width; c.font = '700 10px system-ui, sans-serif'; const wTag = tag ? c.measureText('  ' + tag).width : 0;
       c.font = '9px ui-monospace, monospace'; let wTele = c.measureText(tele).width;
       // à droite du vaisseau si ça tient, sinon à gauche ; la télémétrie saute si la place manque
-      const fits = (w) => x + 14 + w <= W - 4 || x - 14 - w >= 4;
+      const fits = (w) => x + 16 + w <= W - 4 || x - 30 - w >= 4;
       if (!fits(wName + wTag + wTele)) { tele = ''; wTele = 0; }
-      const wAll = wName + wTag + wTele, left = x + 14 + wAll > W - 4, x0 = Math.max(4, left ? x - 14 - wAll : x + 14);
+      const wAll = wName + wTag + wTele, left = x + 16 + wAll > W - 4, x0 = Math.max(4, left ? x - 30 - wAll : x + 16);   // à gauche : au-delà de l'anneau
       c.textAlign = 'left'; c.font = `${on ? 700 : 600} 11px system-ui, sans-serif`; c.fillStyle = on ? '#fff' : '#d6e2ea'; c.fillText(name, x0, y + 4);
       if (tag) { c.font = '700 10px system-ui, sans-serif'; c.fillStyle = tagCol; c.fillText('  ' + tag, x0 + wName, y + 4); }
       if (tele) { c.font = '9px ui-monospace, monospace'; c.fillStyle = 'rgba(160,180,195,.9)'; c.fillText(tele, x0 + wName + wTag, y + 4); }
     }
+    // qui n'est pas (ou plus) sur cette étape
+    { const parts = []; if (waitFrom.length) parts.push(`encore à ${from.name} : ${waitFrom.join(', ')}`); if (arrived.length) parts.push(`arrivés à ${to.name} : ${arrived.join(', ')}`);
+      if (selSeg && t < selSeg.t0) parts.unshift(`${racer[sel].name} n'est pas encore parti`);
+      if (parts.length) { c.font = '10px system-ui, sans-serif'; c.fillStyle = 'rgba(214,226,234,.75)'; c.textAlign = 'left'; c.fillText(parts.join(' · '), 8, H - 24); } }
     // échelle (Suivre : graduations fines en années-lumière)
     c.font = '9px ui-monospace, monospace'; c.fillStyle = 'rgba(139,154,166,.75)'; c.textAlign = 'center';
     const ticks = win ? 10 : 5;

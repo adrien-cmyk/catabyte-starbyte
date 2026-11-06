@@ -289,7 +289,15 @@ export function runRace({ systems, racers, pilot, plans = null, memo = null }) {
           // les temps perdus décalent la suite de l'étape (pas l'éruption : même heure pour tous)
           let shift = 0;
           const rel = marks.filter((m) => !m[4]).sort((a, b) => a[0] - b[0]), abs = marks.filter((m) => m[4]), seq = [];
-          while (rel.length || abs.length) { const take = !abs.length || (rel.length && rel[0][0] + shift <= abs[0][0]) ? rel.shift() : abs.shift(); seq.push([take[4] ? take[0] : take[0] + shift, take]); shift += take[3] || 0; }
+          let prevEnd = legT0;
+          while (rel.length || abs.length) {
+            const take = !abs.length || (rel.length && rel[0][0] + shift <= abs[0][0]) ? rel.shift() : abs.shift();
+            const t = take[4] ? take[0] : take[0] + shift;
+            // une éruption pendant un arrêt (panne, réparation) : seul le temps qui dépasse cet arrêt est perdu en plus
+            if (take[4] && take[3] && t < prevEnd) { take[3] = Math.max(0, Math.round(t + take[3] - prevEnd)); take[2] = { ...take[2], data: { ...take[2].data, lost: take[3] } }; }
+            seq.push([t, take]); shift += take[3] || 0;
+            if (take[3]) prevEnd = Math.max(t, prevEnd) + take[3];
+          }
           for (const [t, m] of seq) {
             if (m[1]) { S.integrity = clamp(S.integrity + m[1], 0.3, 1); }
             S.events.push({ t, fuel: legFuel, integrity: S.integrity });
