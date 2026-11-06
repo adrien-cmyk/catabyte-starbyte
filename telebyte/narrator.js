@@ -255,9 +255,25 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   }
   // iOS n'autorise la voix qu'à partir d'un vrai geste (fin de toucher, clic) : on retente à chaque geste tant qu'aucune
   // phrase n'a réellement démarré, en disant tout de suite la phrase affichée (ou un mot d'accueil)
-  let unlocked = false, audioOk = false, lastLine = '';
+  let unlocked = false, audioOk = false, lastLine = '', keep = null;
+  // iPhone : le bouton silencieux coupe la voix des pages ; une piste audio (muette) en lecture fait passer la page en
+  // mode « lecture », que ce bouton ne coupe pas. Jouée au premier geste, en boucle tant que la voix est active.
+  const silentWav = () => {
+    const n = 4000, b = new Uint8Array(44 + n), w = (o, str) => { for (let i = 0; i < str.length; i++) b[o + i] = str.charCodeAt(i); }, d = new DataView(b.buffer);
+    w(0, 'RIFF'); d.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true);
+    d.setUint32(24, 8000, true); d.setUint32(28, 8000, true); d.setUint16(32, 1, true); d.setUint16(34, 8, true); w(36, 'data'); d.setUint32(40, n, true);
+    b.fill(128, 44); let bin = ''; for (const x of b) bin += String.fromCharCode(x); return 'data:audio/wav;base64,' + btoa(bin);
+  };
+  const keepAlive = (on) => {
+    try {
+      if (on) { if (!keep) { keep = new Audio(silentWav()); keep.loop = true; keep.setAttribute('playsinline', ''); } if (keep.paused) keep.play().catch(() => {}); }
+      else if (keep && !keep.paused) keep.pause();
+    } catch (e) {}
+  };
   nar.unlock = () => {
-    if (!synth || audioOk || nar.mode !== 'voix') return;
+    if (!synth || nar.mode !== 'voix') return;
+    keepAlive(true);
+    if (audioOk) return;
     unlocked = true;
     try {
       synth.cancel(); try { synth.resume(); } catch (e) {}
@@ -270,7 +286,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   };
   Object.defineProperty(nar, 'audioOk', { get: () => audioOk });
   nar.setMode = (m) => {
-    nar.mode = m;
+    nar.mode = m; if (m !== 'voix') keepAlive(false);
     if (m !== 'voix' && synth) try { synth.cancel(); } catch (e) {}
     if (m === 'off') { queue = []; showSub('A', ''); }
     speaking = null;

@@ -117,7 +117,9 @@ export function createDirector({ feed, E, racer, hh, dur, getTl, act }) {
   D.setOn = (on) => { D.on = on; cur = null; pending = null; D.state.pausedUntil = 0; act.lower(on ? '<b>📺 Mode TV</b> la régie prend la main' : null); lowerUntil = on ? performance.now() + 3000 : 0; };
   D.userTouched = () => {
     if (!D.on) return;
-    D.state.pausedUntil = performance.now() + PAUSE; pending = null; cur = null;
+    const was = D.paused();
+    D.state.pausedUntil = performance.now() + PAUSE; pending = null; cur = null; lowerUntil = D.state.pausedUntil;
+    if (was) return;                                               // déjà en pause : on prolonge, sans retoucher la page
     act.lower('<b>📺 À toi</b> 45 s · <u data-tv-resume>rendre à la régie</u> · <u data-tv-off>arrêter la TV</u>'); lowerUntil = D.state.pausedUntil;   // visible toute la pause
   };
   D.paused = () => D.on && performance.now() < D.state.pausedUntil;

@@ -691,7 +691,7 @@ if (EMBED) {
     else if (m.type === 'slowmo') { if (awake) slowmo(m.tc, m.label); }   // jamais dans la vue en veille
   });
   // un geste du joueur dans la vue système : le réalisateur lui rend la main
-  addEventListener('pointerdown', (e) => { if (e.isTrusted) parent.postMessage({ fronde: 1, type: 'user' }, '*'); }, { capture: true });
+  addEventListener('pointerup', (e) => { if (e.isTrusted) parent.postMessage({ fronde: 1, type: 'user' }, '*'); }, { capture: true });
   parent.postMessage({ fronde: 1, type: 'loaded' }, '*');
   // préchauffage en arrière-plan : une image de course rendue tout de suite compile les shaders (géante, anneaux,
   // tracés, racers) ; l'entrée réelle n'aura plus ce coût, qui figeait l'éclair sur téléphone

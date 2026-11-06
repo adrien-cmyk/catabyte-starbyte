@@ -65,7 +65,7 @@ addEventListener('message', (e) => {
   const m = e.data; if (!sysFrame || e.source !== sysFrame.contentWindow || !m || !m.fronde) return;
   if (m.type === 'loaded') { frameOk = true; if (pending) { const p = pending; pending = null; p(); } }
   else if (m.type === 'progress') { loadSet(m.p); clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(curSysId); }, 7000); }   // chaque étape relance la garde
-  else if (m.type === 'user') { if (dir) dir.userTouched(); }
+  else if (m.type === 'user') { if (dir) setTimeout(() => dir.userTouched(), 450); }
   else if (m.type === 'tick') { sysT = m.t; if (LIVE && following !== !!m.live) setFollow(!!m.live); }   // instant affiché par la vue système (voix off, actualité)
   else if (m.type === 'slow-end') nar.endAside();
   else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); loadHide(); nar.resync(); inSystem = true; sysFrame.classList.add('on'); document.body.classList.add('insys'); }
@@ -142,7 +142,7 @@ if (LIVE) {
 if (!FEED_Q) { const a = document.createElement('button'); a.id = 'try-bets'; a.type = 'button'; a.textContent = 'Essayer les paris'; a.onclick = () => { location.hash = 'repetition'; location.reload(); }; document.querySelector('.onair').appendChild(a); }
 if (FEED_Q === 'demo-live') { const a = document.createElement('div'); a.id = 'offline'; a.textContent = 'Répétition · partie fictive · course accélérée'; document.body.appendChild(a); }
 if (liveErr) { const b = document.createElement('div'); b.id = 'offline'; b.textContent = `Hors direct (${liveErr}) : course de démonstration`; document.body.appendChild(b); }
-$('focus-clear').onclick = () => view.overview();
+$('focus-clear').onclick = () => { cor.close(); view.overview(); };
 $('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); if (s.phase === 'leg') return cor.open(null, t, view.sel); dive(s.phase === 'system' || s.phase === 'start' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id); };
 $('edition').textContent = E.name;
 $('route').textContent = E.systems.map((s) => s.name).join(' → ');
@@ -203,24 +203,27 @@ function renderStandings(force = false) {
     for (const li of list.children) li.onclick = () => view.select(li.dataset.id);
   }
 }
+// n'écrire dans la page que ce qui change (iOS : une page qui bouge sous le doigt peut annuler le toucher)
+const setTxt = (el, v) => { if (el.textContent !== v) el.textContent = v; };
 function renderClock() {
-  $('time').textContent = hh(t);
+  setTxt($('time'), hh(t));
   { let cur = 0; STAGES.forEach((s, i) => { if (t >= s.t0) cur = i; }); const lk = cor.legNow(t, null); const inLeg = lk >= 0 && E.racers.every((r) => feed.stateAt(r.id, t).phase !== 'system');
     for (const b of $('stages').querySelectorAll('button[data-i]')) b.classList.toggle('now', !inLeg && +b.dataset.i === cur);
     for (const b of $('stages').querySelectorAll('button[data-leg]')) b.classList.toggle('now', inLeg && +b.dataset.leg === lk); }
-  slider.value = String(Math.round(t));
+  { const v = String(Math.round(t)); if (slider.value !== v && document.activeElement !== slider) slider.value = v; }
   const ev = feed.nextEvent(t);
-  $('next').textContent = ev ? `${ev.label} · ${racer[ev.racer].name} dans ${dur(ev.t - t)}` : 'course terminée';
+  setTxt($('next'), ev ? `${ev.label} · ${racer[ev.racer].name} dans ${dur(ev.t - t)}` : 'course terminée');
   const done = t >= E.t1;
   if (LIVE) {
     const nowR = liveNow(), st = LIVE.snap.state;
-    $('state').textContent = st === 'reglee' ? 'arrivée' : nowR < 0 ? 'départ · ' + countdown(-nowR) : following ? 'en direct' : 'revoir · ' + dur(nowR - t) + ' avant';
-    if (nowR < 0) { $('next').textContent = 'Départ ' + startLabel; $('time').textContent = ''; }
-  } else $('state').textContent = done ? 'arrivée' : t <= 0 ? 'départ' : 'en direct';
+    setTxt($('state'), st === 'reglee' ? 'arrivée' : nowR < 0 ? 'départ · ' + countdown(-nowR) : following ? 'en direct' : 'revoir · ' + dur(nowR - t) + ' avant');
+    if (nowR < 0) { setTxt($('next'), 'Départ ' + startLabel); setTxt($('time'), ''); }
+  } else setTxt($('state'), done ? 'arrivée' : t <= 0 ? 'départ' : 'en direct');
   if (view.sel) {
     const s = feed.stateAt(view.sel, t);
-    $('focus-tele').textContent = s.phase === 'system' ? `${(s.speed / 1e3).toFixed(1)} km/s · carburant ${Math.round(s.fuel * 100)} % · intégrité ${Math.round(s.integrity * 100)} %`
-      : s.phase === 'leg' ? `voyage interstellaire ${Math.round(s.f * 100)} % · carburant ${Math.round(s.fuel * 100)} %` : 'arrivé';
+    setTxt($('focus-tele'), s.phase === 'system' ? `${(s.speed / 1e3).toFixed(1)} km/s · carburant ${Math.round(s.fuel * 100)} % · intégrité ${Math.round(s.integrity * 100)} %`
+      : s.phase === 'leg' ? `voyage interstellaire ${Math.round(s.f * 100)} % · carburant ${Math.round(s.fuel * 100)} %` : 'arrivé');
+    setTxt($('focus-enter'), s.phase === 'leg' ? 'Couloir' : 'Vue système');   // en voyage : le bouton ouvre le couloir
   }
 }
 
@@ -281,7 +284,9 @@ const setTv = (on) => { dir.setOn(on); $('tv').classList.toggle('on', on); $('tv
 $('tv').onclick = (e) => { e.stopPropagation(); setTv(!dir.on); };   // activer / couper le mode TV (en pause aussi)
 { let on = true; try { on = localStorage.getItem('fronde.tv') !== '0'; } catch (e) {} setTv(on); }
 // un geste du joueur (hors boutons du mode TV et du commentaire) : la régie lui rend la main un moment
-addEventListener('pointerdown', (e) => { if (e.isTrusted && !(e.target.closest && e.target.closest('#tv, #voice, #lower'))) dir.userTouched(); }, { capture: true });
+// (après le clic, jamais pendant le toucher : iOS annule le clic quand la page change sous le doigt)
+const touched = (e) => { if (e.isTrusted && !(e.target.closest && e.target.closest('#tv, #voice, #lower'))) setTimeout(() => dir.userTouched(), 450); };
+addEventListener('pointerup', touched, { capture: true });
 addEventListener('wheel', (e) => { if (e.isTrusted) dir.userTouched(); }, { capture: true, passive: true });
 const news = mountNews({ E, racer, hh, getTl: () => nar.tl, onReplay: replay });
 // revoir un moment fort : un peu avant, sur le bon racer ; dans la vue système s'il s'est passé dans un système

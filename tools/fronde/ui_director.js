@@ -39,7 +39,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   ok(corr, `pendant une étape : le couloir (${JSON.stringify(await p.evaluate(() => TB.dir.state.target && TB.dir.state.target.kind))})`);
   await p.screenshot({ path: `${OUT}/d3_couloir.png` });
   // un toucher : pause de la régie
-  await p.mouse.click(200, 500); await sleep(300);
+  await p.mouse.click(200, 500); await sleep(900);   // la pause part juste après le clic
   const paused = await p.evaluate(() => TB.dir.state.pausedUntil > performance.now());
   ok(paused && !(await p.evaluate(() => document.getElementById('lower').hidden)), 'un toucher met la régie en pause (bandeau « en pause »)');
   // bouton 📺 : arrêt
