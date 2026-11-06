@@ -29,6 +29,10 @@ const CSS = `
 #p3d .p3-tag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #ff5a4f; }
 #p3d .p3-slow { position: absolute; top: calc(env(safe-area-inset-top) + 44px); left: max(14px, env(safe-area-inset-left)); font: 700 10px 'Space Grotesk', system-ui, sans-serif; letter-spacing: .2em; text-transform: uppercase; color: #05080c; background: #ffd27a; border-radius: 4px; padding: 3px 7px; }
 #p3d .p3-slow[hidden] { display: none; }
+#p3d .p3-call { position: absolute; left: 50%; top: 22%; translate: -50% 0; text-align: center; pointer-events: none; transition: opacity .2s; }
+#p3d .p3-call[hidden] { display: none; }
+#p3d .p3-call b { display: block; font: 700 54px/1 'JetBrains Mono', ui-monospace, monospace; color: #fff; text-shadow: 0 0 18px rgba(255, 90, 79, .65), 0 2px 4px #000; letter-spacing: -.02em; }
+#p3d .p3-call span { display: block; margin-top: 6px; font: 700 11px 'Space Grotesk', system-ui, sans-serif; letter-spacing: .24em; text-transform: uppercase; color: #ff8a6a; text-shadow: 0 1px 3px #000; }
 `;
 const fmtGap = (s, dur) => (s < 1 ? 'au contact' : dur(s));
 
@@ -38,7 +42,7 @@ export function createPlayer({ racer, dur }) {
     if (stage) return true;
     const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
     el = document.createElement('div'); el.id = 'p3d'; el.hidden = true; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Plan 3D');
-    el.innerHTML = `<canvas></canvas><span class="p3-tag">Revoir</span><span class="p3-slow" hidden>Ralenti</span>
+    el.innerHTML = `<canvas></canvas><span class="p3-tag">Revoir</span><span class="p3-slow" hidden>Ralenti</span><div class="p3-call" hidden><b></b><span></span></div>
       <button type="button" class="p3-skip">${svg('play')} Passer</button>
       <div class="p3-bar"><b class="p3-title"></b><div class="p3-card"><i></i><span class="p3-pos"></span><span class="p3-name"></span><span class="p3-gap"></span><span class="p3-tele"></span></div></div>`;
     document.body.appendChild(el);
@@ -57,6 +61,7 @@ export function createPlayer({ racer, dur }) {
   }
   function hud(h) {
     const R = racer[h.racer], q = (s) => el.querySelector(s);
+    const c = q('.p3-call'); c.hidden = !h.callout; if (h.callout) { c.querySelector('b').textContent = h.callout.value; c.querySelector('span').textContent = h.callout.label; }
     q('.p3-title').textContent = h.title;
     q('.p3-card').style.setProperty('--livery', R.livery);
     const pos = q('.p3-pos'); pos.innerHTML = `${h.pos}${h.posFrom ? `<small>${h.posFrom} → ${h.pos}</small>` : '<small>position</small>'}`; pos.classList.toggle('up', !!h.done);
@@ -67,7 +72,7 @@ export function createPlayer({ racer, dur }) {
   }
 
   // joue un scénario ; opts.freeze (essais) : image figée à τ donné
-  P.play = async (script, { freeze = null } = {}) => {
+  P.play = async (script, { freeze = null, onCue = null } = {}) => {
     if (P.playing) return false;
     if (!(await ensure())) return false;
     P.playing = true;
@@ -80,12 +85,15 @@ export function createPlayer({ racer, dur }) {
     await new Promise((done) => {
       const frame = (now) => {
         const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
-        if (freeze != null) τ = freeze; else τ += dt * script.rate(τ);
+        const τ0 = τ; if (freeze != null) τ = freeze; else τ += dt * script.rate(τ);
+        if (onCue && script.cues) for (const c of script.cues) if (τ0 < c.τ && τ >= c.τ) onCue(c, script);
         script.place(τ, a, b);
         const shot = script.camera(τ, a, b, cam);
         // panaches : légère pulsation
         for (const s of [a, b]) s.userData.plume.scale.setScalar(1 + Math.sin(now / 60 + (s === a ? 1 : 0)) * 0.06);
-        stage.render(cam, { dir: new THREE.Vector3(0, 0, 1), speed: shot === 'exterieur' ? 120 : 260 * script.rate(τ), dt });
+        const fx = script.fx ? script.fx(τ, a, b) : null;
+        if (fx && a.userData.bow) { a.userData.bow.material.opacity = fx.bow || 0; a.userData.bow.scale.setScalar((a.userData.half.x / a.userData.k) * (3 + 9 * (fx.bow || 0))); }
+        stage.render(cam, { dir: new THREE.Vector3(0, 0, 1), speed: fx ? fx.speed : 260 * script.rate(τ), dt, fx, fxDt: freeze != null ? 0.016 : dt * script.rate(τ) });
         const h = script.hud(τ), sig = JSON.stringify(h);
         if (sig !== lastHud) { lastHud = sig; hud(h); }
         const slow = script.rate(τ) < 1; el.querySelector('.p3-slow').hidden = !slow;

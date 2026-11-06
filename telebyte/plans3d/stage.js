@@ -116,10 +116,31 @@ export async function createStage(canvas) {
       sp.position.z = -er * (0.2 + i * 0.9); sp.scale.setScalar(er * (2.4 - i * 0.25)); plume.add(sp);
     }
     root.add(plume);
-    g.userData = { def, plume, k };
+    // halo de proue (approche à pleine vitesse : on voit d'abord une lumière qui grossit), éteint par défaut
+    const bow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xcfe0ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 }));
+    bow.position.set((box.min.x + box.max.x) / 2, (box.min.y + box.max.y) / 2, box.max.z); bow.scale.setScalar(size.x * 3); root.add(bow);
+    g.userData = { def, plume, bow, k, half: { x: size.x * k / 2, y: size.y * k / 2 } };   // demi-gabarit à l'écran (frôlements)
     return g;
   }
 
+  // effets du frôlement : éclair au point de passage, gerbe d'étincelles entre les coques
+  const flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xfff0d0, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0 }));
+  flash.scale.setScalar(40); scene.add(flash);
+  const NS = 140, sPos = new Float32Array(NS * 3), sVel = new Float32Array(NS * 3), sAge = new Float32Array(NS).fill(9);
+  const sGeo = new THREE.BufferGeometry(); sGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+  const sparks = new THREE.Points(sGeo, new THREE.PointsMaterial({ color: 0xffc070, size: 2.2, sizeAttenuation: false, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  sparks.frustumCulled = false; scene.add(sparks);
+  let sSeed = 7, sNext = 0; const sR = () => (sSeed = (sSeed * 16807) % 2147483647) / 2147483647;
+  function updateFx(fx, dt) {
+    if (!fx) { flash.material.opacity = 0; sparks.visible = false; return; }
+    flash.position.set(...fx.at); flash.material.opacity = fx.flash * 0.35; flash.scale.setScalar(5 + fx.flash * 9);
+    sparks.visible = true;
+    // émission proportionnelle à fx.sparks ; vie 0,6 s (temps du scénario) ; elles traînent vers l'arrière
+    const emit = Math.round(fx.sparks * 900 * dt);
+    for (let n = 0; n < emit; n++) { const i = sNext++ % NS; sAge[i] = 0; sPos.set([fx.at[0] + (sR() - 0.5) * 1.2, fx.at[1] + (sR() - 0.5) * 1.2, fx.at[2] + (sR() - 0.5) * 6], i * 3); sVel.set([(sR() - 0.5) * 30, (sR() - 0.3) * 24, -40 - sR() * 120], i * 3); }
+    for (let i = 0; i < NS; i++) { sAge[i] += dt; if (sAge[i] > 0.6) { sPos[i * 3 + 1] = 1e6; continue; } for (let k = 0; k < 3; k++) sPos[i * 3 + k] += sVel[i * 3 + k] * dt; }
+    sGeo.attributes.position.needsUpdate = true;
+  }
   // poussière : en repère caméra, vitesse v (unités/s) le long de dir (monde)
   let dustT = 0;
   function updateDust(cam, dir, v, dt) {
@@ -135,9 +156,9 @@ export async function createStage(canvas) {
 
   return {
     renderer, scene, ship,
-    render(cam, { dir = new THREE.Vector3(0, 0, 1), speed = 0, dt = 0 } = {}) {
+    render(cam, { dir = new THREE.Vector3(0, 0, 1), speed = 0, dt = 0, fx = null, fxDt = 0 } = {}) {
       sky.position.copy(cam.position);                      // le ciel est à l'infini
-      updateDust(cam, dir, speed, dt);
+      updateDust(cam, dir, speed, dt); updateFx(fx, fxDt);
       renderer.render(scene, cam);
     },
     resize(w, h) { renderer.setSize(w, h, false); },

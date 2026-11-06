@@ -1,5 +1,5 @@
 // Plans 3D (GDD_PLANS_3D, étape 2) dans le Télébyte (démo hors ligne) : « Revoir » d'un dépassement joue le plan 3D
-// (embarquée, extérieur au ralenti, arrière), bandeau rempli, « Passer », retour au schéma juste après le fait ;
+// (approche, ralenti dans la fente entre les coques avec l'écart en mètres, sillage, face), bandeau rempli, « Passer », retour au schéma juste après le fait ;
 // les autres « Revoir » gardent leur comportement. Captures dans OUT.
 // Usage : THREE_DIR=… OUT=… node tools/fronde/ui_plans3d.js   (serveur statique de la racine du dépôt sur :8766)
 const { chromium, devices } = require('playwright'); const path = require('path'); const T = process.env.THREE_DIR, OUT = process.env.OUT || '.';
@@ -23,8 +23,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   ok(await p.evaluate(() => TB.p3d && TB.p3d.playing), 'Revoir d\'un dépassement : le plan 3D démarre');
   const shots = new Set(); let hud = '';
   // (rendu logiciel lent : on attend que le plan atteigne le passage)
-  for (let i = 0; i < 120 && !shots.has('exterieur'); i++) { await sleep(500); const st = await p.evaluate(() => ({ ...TB.p3d.state, hud: document.querySelector('#p3d .p3-card')?.textContent })); if (st.τ > 0) shots.add(st.shot); hud = st.hud; if (i === 2) await p.screenshot({ path: `${OUT}/t3d_1.png` }); }
-  ok(shots.has('embarquee') && shots.has('exterieur'), `plans vus : ${[...shots].join(', ')}`);
+  let call = '';
+  for (let i = 0; i < 160 && !shots.has('sillage'); i++) { await sleep(400); const st = await p.evaluate(() => ({ ...TB.p3d.state, hud: document.querySelector('#p3d .p3-card')?.textContent, call: document.querySelector('#p3d .p3-call')?.hidden ? '' : document.querySelector('#p3d .p3-call')?.textContent })); if (st.τ > 0) shots.add(st.shot); hud = st.hud; if (st.call) { call = st.call; } if (i === 2) await p.screenshot({ path: `${OUT}/t3d_1.png` }); }
+  ok(shots.has('approche') && shots.has('fente') && shots.has('sillage'), `plans vus : ${[...shots].join(', ')}`);
+  ok(/\d,\d m/.test(call) && /coques/.test(call), `ralenti : écart affiché (${call})`);
   ok(/coque/.test(hud) && /carburant/.test(hud) && /P\d/.test(hud), `bandeau : ${hud.replace(/\s+/g, ' ').slice(0, 90)}`);
   await p.screenshot({ path: `${OUT}/t3d_2.png` });
   // « Passer »

@@ -306,7 +306,9 @@ async function play3d(e) {
     const [{ createPlayer }, { overtakeScript }] = await Promise.all([import('./plans3d/player.js'), import('./plans3d/overtake.js')]);
     p3d = p3d || createPlayer({ racer, dur });
     nar.aside([['A', 'Revoyons ce dépassement !']], 60000);
-    const ok = await p3d.play(overtakeScript(e, { feed, E, racer }));
+    // au plus près, en plein ralenti : le commentateur s'exclame (l'écart en mètres)
+    const onCue = (c, sc) => { if (c.id === 'proche') { const m = String(sc.clearance).replace('.', ','); nar.aside([['A', pick2([`Regardez-moi ça ! ${m} mètres entre les coques !`, `Mais il est fou ! ${m} mètres, à cette vitesse !`, `${m} mètres ! Regardez comme cette course est dangereuse !`])]], 60000); } };
+    const ok = await p3d.play(overtakeScript(e, { feed, E, racer }), { onCue });
     if (!ok) return false;
     if (!(LIVE && following)) { t = Math.min(E.t1, e.t + 60); if (LIVE && t < liveNow() - 1) setFollow(false); }
     if (e.racer && view.sel !== e.racer) view.select(e.racer);
