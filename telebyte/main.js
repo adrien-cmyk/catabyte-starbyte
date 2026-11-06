@@ -306,9 +306,12 @@ async function play3d(e) {
     const [{ createPlayer }, { overtakeScript }] = await Promise.all([import('./plans3d/player.js'), import('./plans3d/overtake.js')]);
     p3d = p3d || createPlayer({ racer, dur });
     nar.aside([['A', 'Revoyons ce dépassement !']], 60000);
-    // au plus près, en plein ralenti : le commentateur s'exclame (l'écart en mètres)
-    const onCue = (c, sc) => { if (c.id === 'proche') { const m = String(sc.clearance).replace('.', ','); nar.aside([['A', pick2([`Regardez-moi ça ! ${m} mètres entre les coques !`, `Mais il est fou ! ${m} mètres, à cette vitesse !`, `${m} mètres ! Regardez comme cette course est dangereuse !`])]], 60000); } };
-    const ok = await p3d.play(overtakeScript(e, { feed, E, racer }), { onCue });
+    // le commentateur, sobre : le plan se comprend sans lui ; il réagit au passage sous la coque, puis à la sortie
+    const onCue = (c) => {
+      if (c.id === 'proche') nar.aside([['A', pick2(['Il plonge dessous !', 'Sous la coque ! Il passe sous la coque !'])]], 60000);
+      if (c.id === 'passe') nar.aside([['A', pick2(['Oh si ! Il est passé !', 'Ça passait pas… et ça passe !'])]], 60000);
+    };
+    const ok = await p3d.play(overtakeScript(e, { feed, E, racer }), { onCue, audio: audioCtx });
     if (!ok) return false;
     if (!(LIVE && following)) { t = Math.min(E.t1, e.t + 60); if (LIVE && t < liveNow() - 1) setFollow(false); }
     if (e.racer && view.sel !== e.racer) view.select(e.racer);
@@ -316,7 +319,11 @@ async function play3d(e) {
   } catch (err) { console.warn('[plans 3D]', err); return false; }
   finally { in3d = false; playing = wasPlaying; nar.endAside(); dir.hold(false); renderStandings(true); renderClock(); }
 }
+// son des plans 3D : le contexte audio s'ouvre dans le geste du joueur (« Revoir »), sinon iOS le laisse muet
+let audioCtx = null;
+function openAudio() { try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; audioCtx = audioCtx || new AC(); if (audioCtx.state === 'suspended') audioCtx.resume(); } catch (e) { audioCtx = null; } }
 function replay(e) {
+  if (e.kind === 'overtake') openAudio();
   if (e.kind === 'overtake' && e.data && e.data.passed && e.data.passed.length) { play3d(e).then((ok) => { if (!ok) replayFlat(e); }); return; }
   replayFlat(e);
 }
