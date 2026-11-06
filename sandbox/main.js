@@ -579,12 +579,14 @@ function autoQuality(f, now) {
   else if (aq.high >= 30 && lod.level > aq.floor) { lod.set(lod.level - 1); aq.high = 0; aq.lockUntil = now + 20000; }
 }
 let pollT = 0;
-let frameN = 0;
+let frameN = 0, tickT = 0;
 function loop(now) {
   frameN++;
   if (now - pollT > 1000) { pollT = now; lod.poll(); }
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   step(dt); render();
+  // intégré au Télébyte : l'instant affiché lui est envoyé (voix off, fil d'actualité, qui vivent dans le Télébyte)
+  if (EMBED && raceLayer && raceLayer.on && now - tickT > 250) { tickT = now; parent.postMessage({ fronde: 1, type: 'tick', t: simT, sel: raceLayer.sel || null, live: !!raceLayer.liveLock }, '*'); }
   fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; hud(); autoQuality(fps, now); }
 }
 renderer.setAnimationLoop(loop);

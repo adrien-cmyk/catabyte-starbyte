@@ -4,6 +4,8 @@
 import { feedFromUrl } from '../sandbox/race/DemoFeed.js';
 import { loadEdition, liveFeed, rpc, tick } from '../sandbox/race/live.js';
 import { UniverseView } from './UniverseView.js';
+import { createNarrator } from './narrator.js';
+import { mountNews } from './news.js';
 
 // flux : ?feed=live → l'édition du serveur (Phase 3) ; ?feed=mock → publication simulée ; sinon la démo hors ligne.
 // En direct sans connexion (ou sans édition), on retombe sur la démo, avec un bandeau.
@@ -49,7 +51,7 @@ try { const ts = sessionStorage.getItem('fronde.t'); if (ts && document.referrer
 /* ── zoom continu univers ↔ système (Phase 2, étape 8) : la vue système est préchargée dans un cadre caché ;
    plonger = zoom accéléré vers le système, éclair, la vue système prend le relais (sa caméra arrive de très haut) ;
    remonter = l'inverse. Sans cadre (chargement raté), on retombe sur le changement de page. ── */
-let sysFrame = null, frameOk = false, inSystem = false, curSysId = null, pending = null;
+let sysFrame = null, frameOk = false, inSystem = false, curSysId = null, pending = null, sysT = null;
 function loadFrame() {
   if (sysFrame) return;
   sysFrame = document.createElement('iframe'); sysFrame.id = 'sysframe'; sysFrame.title = 'Vue système';
@@ -61,10 +63,11 @@ addEventListener('message', (e) => {
   const m = e.data; if (!sysFrame || e.source !== sysFrame.contentWindow || !m || !m.fronde) return;
   if (m.type === 'loaded') { frameOk = true; if (pending) { const p = pending; pending = null; p(); } }
   else if (m.type === 'progress') { loadSet(m.p); clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(curSysId); }, 7000); }   // chaque étape relance la garde
-  else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); loadHide(); inSystem = true; sysFrame.classList.add('on'); }
+  else if (m.type === 'tick') { sysT = m.t; if (LIVE) following = !!m.live; }   // instant affiché par la vue système (voix off, actualité)
+  else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); loadHide(); inSystem = true; sysFrame.classList.add('on'); document.body.classList.add('insys'); }
   else if (m.type === 'surface') {
-    t = Math.min(E.t1, m.t); if (m.sel !== view.sel) { view.sel = m.sel || null; view.onSelect(view.sel); }
-    inSystem = false; sysFrame.classList.remove('on'); renderStandings(true);
+    t = Math.min(E.t1, m.t); sysT = null; if (LIVE) setFollow(t >= liveNow() - Math.max(120, 3 * (LIVE.snap.rate || 1))); if (m.sel !== view.sel) { view.sel = m.sel || null; view.onSelect(view.sel); }
+    inSystem = false; sysFrame.classList.remove('on'); document.body.classList.remove('insys'); renderStandings(true);
   }
 });
 // repli : changement de page classique (le cadre n'a pas répondu)
@@ -151,6 +154,7 @@ $('stages').innerHTML = stageHtml();
 if (feed.onUpdate) feed.onUpdate(() => {
   STAGES = stagesOf(); [...$('stages').children].forEach((b, i) => { const s = STAGES[i]; b.querySelector('span').textContent = (s.known ? '' : '≈ ') + hh(s.tp); });
   slider.max = String(Math.ceil(E.t1)); lastSig = '';
+  if (nar) nar.rebuild();
 });
 // en direct : une étape que la course n'a pas encore quittée s'ouvre sur le direct ; une étape que tous les racers ont
 // quittée s'ouvre en revoir, 30 min avant le passage (hors direct : toujours le passage)
@@ -213,18 +217,61 @@ if (restore) { t = Math.min(restore.t, E.t1); if (restore.sel) view.select(resto
 
 function loop(now) {
   requestAnimationFrame(loop);
-  if (inSystem) { last = now; return; }                           // la vue système intégrée vit seule (et tient l'horloge)
+  if (inSystem) { last = now; if (sysT != null) commentary(sysT); return; }   // la vue système intégrée vit seule (et tient l'horloge)
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   if (LIVE) {
     const nowR = liveNow();
     if (following) t = Math.max(0, Math.min(E.t1, nowR));
+    else if (playing && nowR > 0) { t = Math.min(t + dt * 600, E.t1, nowR); if (t >= Math.min(E.t1, nowR) - 1) setFollow(true); }   // revoir : lecture ×600 jusqu'au direct
     slider.max = String(Math.max(1, Math.ceil(Math.max(0, Math.min(E.t1, nowR)))));
     slider.disabled = nowR <= 0;
   } else if (playing) { t = Math.min(E.t1, t + dt * SPEEDS[speedI]); if (t >= E.t1) { playing = false; $('play').textContent = 'Lecture'; } }
   if (feed.sync) feed.sync(t);                                    // flux publié : plans reçus jusqu'à l'instant affiché
   renderStandings(); renderClock();
   view.update(t, dt);
+  commentary(t);
 }
+// sous-titres juste au-dessus du classement (en bas sur téléphone) ou du pied de page
+function placeSub() {
+  const b = $('board').getBoundingClientRect(), f = document.querySelector('footer').getBoundingClientRect();
+  const top = b.bottom > innerHeight * 0.6 ? b.top : f.top;
+  document.documentElement.style.setProperty('--sub-b', Math.round(innerHeight - top + 8) + 'px');
+}
+addEventListener('resize', placeSub); setTimeout(placeSub, 300); setInterval(placeSub, 2000);
+function commentary(at) {
+  try { news.update(at); nar.update(at, { now: LIVE ? liveNow() : null }); } catch (e) { console.warn('[fronde] commentaire', e); }
+}
+/* ── voix off et fil d'actualité (Phase 4) ── */
+// paris : ceux du serveur en direct ; en démo hors ligne, une cagnotte fictive (tirée du nom de l'édition)
+const demoPools = (() => { let h = 7; for (const c of E.id || 'x') h = (h * 33 + c.charCodeAt(0)) % 9973; const by = {}; let tot = 0; E.racers.forEach((r, i) => { const v = 1500 + ((h * (i + 3) * 7919) % 9000) + (r.risk || 0) * 9000; by[r.id] = Math.round(v / 10) * 10; tot += by[r.id]; }); return { total: tot, by_racer: by, house: 5 }; })();
+const nar = createNarrator({
+  feed, E, racer, hh, dur, sub: $('sub'),
+  pools: () => LIVE ? (LIVE.snap.pools ? { ...LIVE.snap.pools, house: LIVE.snap.edition.house_pct } : null) : demoPools,
+  mine: () => (LIVE && LIVE.snap.my_bets) || [],
+});
+const news = mountNews({ E, racer, hh, getTl: () => nar.tl, onReplay: replay });
+// revoir un moment fort : un peu avant, sur le bon racer ; dans la vue système s'il s'est passé dans un système
+function replay(e) {
+  const inSys = e.sys && ['plan', 'ring', 'periapsis', 'failed', 'damage', 'finale', 'finish'].includes(e.kind);
+  const lead = e.kind === 'plan' || e.kind === 'finale' ? 600 : inSys ? 1500 : 900;
+  t = Math.max(0, e.t - lead); playing = true;
+  if (LIVE) { if (t < liveNow() - 1) setFollow(false); } else $('play').textContent = 'Pause';
+  if (e.racer && view.sel !== e.racer) view.select(e.racer);
+  if (feed.sync) feed.sync(t);
+  renderStandings(true); renderClock();
+  if (inSys) dive(e.sys);
+}
+// commentaire : voix + sous-titres, sous-titres seuls, ou rien (mémorisé) ; le son ne part qu'après un premier toucher
+const VOICE_L = { voix: '🔊', texte: '💬', off: '🔇' }, VOICE_T = { voix: 'voix off et sous-titres', texte: 'sous-titres seuls', off: 'coupé' };
+const setVoice = (m) => { nar.setMode(m); $('voice').textContent = VOICE_L[m]; $('voice').title = 'Commentaire : ' + VOICE_T[m]; $('voice').classList.toggle('off', m === 'off'); $('voice').setAttribute('aria-label', 'Commentaire : ' + VOICE_T[m]); try { localStorage.setItem('fronde.voice', m); } catch (e) {} };
+{ let m = 'voix'; try { m = localStorage.getItem('fronde.voice') || 'voix'; } catch (e) {} setVoice(VOICE_L[m] ? m : 'voix'); }
+$('voice').onclick = () => {
+  nar.unlock(); const m = nar.mode === 'voix' ? 'texte' : nar.mode === 'texte' ? 'off' : 'voix'; setVoice(m);
+  const sb = $('sub'); sb.hidden = false; sb.classList.remove('b'); sb.innerHTML = `<b>Commentaire</b> ${VOICE_T[m]}`;   // ce que fait le bouton, un instant
+  clearTimeout(sb._h); sb._h = setTimeout(() => { if (sb.textContent.startsWith('Commentaire')) sb.hidden = true; }, 1800);
+};
+addEventListener('pointerdown', () => nar.unlock(), { capture: true, once: true });
+
 requestAnimationFrame(loop);
 
 // accès de test (captures)
@@ -232,4 +279,4 @@ import('./bets.js').then((m) => m.mountBets({ feed, LIVE, GAME, rpc, tick, racer
 // la vue système suit les nouveaux instantanés pendant qu'on y est
 if (LIVE) feed.onSnap((snap) => { if (sysFrame && frameOk) sysFrame.contentWindow.postMessage({ fronde: 1, type: 'snap', snap }, '*'); });
 
-window.TB = { live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
+window.TB = { nar, news, replay, live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
