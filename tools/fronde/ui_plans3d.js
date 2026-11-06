@@ -1,5 +1,5 @@
 // Plans 3D (GDD_PLANS_3D, étape 2) dans le Télébyte (démo hors ligne) : « Revoir » d'un dépassement joue le plan 3D
-// (remontée, feinte, passage sous la coque avec la marge, arrachement, place gagnée), bandeau rempli, « Passer », retour au schéma juste après le fait ;
+// (gros plan bref : le flanc du doublé, le poursuivant qui déchire le cadre, sa fuite), bandeau rempli, « Passer », retour au schéma juste après le fait ;
 // les autres « Revoir » gardent leur comportement. Captures dans OUT.
 // Usage : THREE_DIR=… OUT=… node tools/fronde/ui_plans3d.js   (serveur statique de la racine du dépôt sur :8766)
 const { chromium, devices } = require('playwright'); const path = require('path'); const T = process.env.THREE_DIR, OUT = process.env.OUT || '.';
@@ -25,10 +25,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   // (rendu logiciel lent : on attend que le plan atteigne le passage)
   let call = '';
   let gaps = [];
-  for (let i = 0; i < 200 && !shots.has('arrachement'); i++) { await sleep(400); const st = await p.evaluate(() => ({ ...TB.p3d.state, hud: document.querySelector('#p3d .p3-card')?.textContent, call: document.querySelector('#p3d .p3-prox')?.hidden ? '' : document.querySelector('#p3d .p3-prox')?.textContent })); if (st.gap != null) gaps.push(st.gap); if (st.τ > 0) shots.add(st.shot); hud = st.hud; if (st.call) { call = st.call; } if (i === 2) await p.screenshot({ path: `${OUT}/t3d_1.png` }); }
-  ok(shots.has('remontee') && shots.has('dessous') && shots.has('arrachement'), `plans vus : ${[...shots].join(', ')}`);
-  ok(/marge \d,\d m/.test(call), `passage sous la coque : compteur discret (${call})`);
-  ok(gaps.length && Math.min(...gaps) > 0, `aucune interpénétration (marge mini ${gaps.length ? Math.min(...gaps).toFixed(2) : '?'} m)`);
+  for (let i = 0; i < 200 && !shots.has('fuite'); i++) { await sleep(400); const st = await p.evaluate(() => ({ ...TB.p3d.state, hud: document.querySelector('#p3d .p3-card')?.textContent, call: document.querySelector('#p3d .p3-prox')?.hidden ? '' : document.querySelector('#p3d .p3-prox')?.textContent })); if (st.gap != null) gaps.push(st.gap); if (st.τ > 0) shots.add(st.shot); hud = st.hud; if (st.call) { call = st.call; } if (i === 2) await p.screenshot({ path: `${OUT}/t3d_1.png` }); }
+  ok(shots.has('flanc') && shots.has('fuite'), `plans vus : ${[...shots].join(', ')}`);
   ok(/coque/.test(hud) && /carburant/.test(hud) && /P\d/.test(hud), `bandeau : ${hud.replace(/\s+/g, ' ').slice(0, 90)}`);
   await p.screenshot({ path: `${OUT}/t3d_2.png` });
   // « Passer »

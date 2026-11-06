@@ -1,19 +1,10 @@
-// Plan 3D « dépassement » (GDD_PLANS_3D) : un moment de cinéma d'une dizaine de secondes, lisible sans commentaire :
-// « Il revient sur lui… il va passer où ?… ça ne passe pas… OH SI ! ». Une action continue dans un espace cohérent :
-//   1. la remontée (0–2 s)   plan arrière trois quarts du poursuivant, l'adversaire devant lui, la poussée monte ;
-//   2. la feinte (2–3,5 s)   décalage latéral (impulsions des propulseurs), l'adversaire couvre, le poursuivant
-//                            renonce, pique du nez puis plonge sous lui (la rotation précède le déplacement : la masse) ;
-//   3. sous la coque (3,5–5,5 s)  caméra trois quarts latérale basse ; la coque adverse traverse le haut du cadre ;
-//                            marge de quelques mètres, à l'échelle des modèles ; un très court ralenti au plus près ;
-//   4. l'arrachement (5,5–7 s)  creux puis pleine poussée ; il ressort sous le flanc avant, côté caméra, encore désaxé,
-//                            se redresse aux propulseurs (rotation et déplacement distincts) ; côte à côte, le nez
-//                            passe devant, puis le cockpit, puis toute la coque ;
-//   5. la place gagnée (7–10 s)  la caméra s'ouvre : le vainqueur au premier plan, moteurs tendus, l'adversaire qui
-//                            recule dans la profondeur ; le classement change quand le dépassement est acquis.
-// Mise en scène déterministe (hasard initialisé avec event.key) sur le résultat réel de la course : qui double qui,
-// rangs avant/après, coque, carburant. Les vaisseaux sont à leurs vraies dimensions (1 unité = 1 m) ; le lecteur
-// vérifie les volumes à chaque image (stage.boxOf) : aucune coque ne traverse l'autre, ni la caméra.
-//   overtakeScript(event, { feed, E, racer }) → script (voir player.js : setup, rate, place, thrust, puffs, camera,
+// Plan 3D « dépassement » (GDD_PLANS_3D) : un gros plan bref. On ne voit presque pas le dépassement, on le SENT :
+//   1. (0–1,7 s)  gros plan sur le flanc du vaisseau doublé ; sa coque se teinte de bleu : quelque chose arrive derrière ;
+//   2. (1,7–2,1 s) le poursuivant déchire le cadre à quelques mètres de la caméra, la caméra tremble ;
+//   3. (2,1–4,6 s) elle le suit des yeux : il n'est plus qu'un trait de flamme ; le classement change, retour au schéma.
+// Mise en scène déterministe (hasard initialisé avec event.key) sur le résultat réel de la course (qui double qui,
+// rangs avant/après, coque, carburant). Vaisseaux à leurs vraies dimensions (1 unité = 1 m).
+//   overtakeScript(event, { feed, E, racer }) → script (voir player.js : setup, rate, place, thrust, puffAt, camera,
 //                                                       guard, hud, audio, cues, duration)
 
 const clamp01 = (x) => Math.min(1, Math.max(0, x));
@@ -42,153 +33,61 @@ export function overtakeData(e, { feed, E }) {
 
 export function overtakeScript(e, ctx) {
   const d = overtakeData(e, ctx), R = rngOf(e.key || 'x');
-  const s = R() < 0.5 ? -1 : 1;                 // côté de la feinte (loin de la caméra)
-  const cs = -s;                                // côté de la caméra, et de la sortie (le vainqueur vient vers nous)
-  const tremble = R() * 100, marginK = 0.85 + R() * 0.35;
-  const D = 10;
-  // dimensions (posées par setup, à partir des modèles réels)
-  let la = 30, lb = 30, wa = 5, wb = 5, ha = 3, hb = 3, S = 30, under = 8, side2 = 10, margin = 2;
+  const cs = R() < 0.5 ? -1 : 1;               // flanc filmé, et côté où le poursuivant passe
+  const tremble = R() * 100, frac = 0.3 + R() * 0.15;   // caméra vers la poupe : toute la coque devant elle
+  const D = 4.6, TP = 1.85;                     // durée, instant où il passe à hauteur de la caméra
+  let la = 30, lb = 30, wa = 5, wb = 5, ha = 3, hb = 3, cam0 = [0, 0, 0], laneX = 12;
   const script = {
-    data: d, duration: D, side: s, giant: d.giant,
+    data: d, duration: D, side: cs, giant: d.giant,
     setup(a, b) {
       la = a.userData.len; lb = b.userData.len; wa = a.userData.half.x; wb = b.userData.half.x; ha = a.userData.half.y; hb = b.userData.half.y;
-      S = Math.max(la, lb);
-      margin = +(Math.max(1.2, Math.min(3.2, (ha + hb) * 0.18)) * marginK).toFixed(1);   // marge sous la coque (m)
-      under = hb + ha + margin;                 // écart vertical des centres au passage
-      side2 = wa + wb + Math.max(2.5, S * 0.06);  // écart latéral, côte à côte
-      script.margin = margin;
+      // caméra posée contre le flanc de b, à l'arrière du milieu, regard vers l'avant le long de la coque
+      cam0 = [cs * (wb + Math.max(1.6, lb * 0.04)), hb * 0.35, -lb * frac];
+      laneX = cam0[0] + cs * (wa * 0.6 + Math.max(2, la * 0.05));   // il passe juste à côté de la caméra, dans la moitié vide du cadre
     },
-    // très court ralenti au plus près (≈ 0,4 s de scénario à 0,35 : un peu plus d'1 s réelle)
-    rate: (τ) => lerp(1, 0.35, Math.min(smooth(4.2, 4.38, τ), 1 - smooth(4.72, 4.9, τ))),
-
-    // position et attitude de b (le doublé) et a (le poursuivant), dans le repère de b qui file vers +z
+    rate: () => 1,
     pose(τ) {
-      // b : couvre la trajectoire de la feinte (2,5–3,3 s), puis revient doucement ; secoué un instant au passage
-      const bx = s * lerp(0, (wa + wb) * 0.55, smooth(2.45, 3.25, τ) * (1 - smooth(5.0, 7.5, τ)));
-      const wake = bump(5.4, 6.6, τ), j = (k) => Math.sin(τ * 31 + tremble + k) * wake;
-      const B = { x: bx + j(1) * 0.25, y: Math.sin(τ * 0.8) * 0.25 + j(2) * 0.3, z: 0,
-        rx: j(3) * 0.008, ry: s * 0.04 * bump(2.45, 3.6, τ), rz: -s * 0.05 * bump(2.45, 3.6, τ) + j(4) * 0.012 };
-      // a : le long de z, il remonte, se cale sous b, ressort devant et s'arrache
-      const zBehind = -(la / 2 + lb / 2), zStart = zBehind - S * 1.25, zFeint = zBehind - S * 0.18;
-      const zOut = lb / 2 - la * 0.5, zSide = lb / 2 + la / 2 + S * 0.12;   // à 5,5 s, son nez arrive au niveau du nez adverse
-      let z;
-      // (pendant la feinte il reste en retrait ; il n'avance sous la coque qu'une fois descendu)
-      const zWait = zBehind - Math.max(2, S * 0.03);
-      if (τ < 2) z = lerp(zStart, zFeint - S * 0.17, smoother(0, 2.2, τ));
-      else if (τ < 3.5) z = lerp(zFeint - S * 0.17, zWait, smoother(2, 3.5, τ));
-      else if (τ < 5.5) z = lerp(zWait, zOut, smooth(3.5, 5.5, τ) * 0.35 + (τ - 3.5) / 2 * 0.65);
-      else if (τ < 7) z = lerp(zOut, zSide, smooth(5.5, 7.2, τ) * 0.7 + (τ - 5.5) / 1.5 * 0.3);
-      else z = zSide + (τ - 7) * S * 0.35 + (τ - 7) * (τ - 7) * S * 0.28;   // il s'arrache, b recule dans la profondeur
-      // latéral : léger décalage, feinte vers s, retour sous b, sortie côté caméra (cs)
-      const xFeint = bx + s * (wa + wb + 1.5);
-      let x = lerp(s * (wa + wb) * 0.35, xFeint, smooth(2.0, 2.85, τ));
-      x = lerp(x, bx, smooth(2.9, 3.55, τ));                                       // il renonce : se recale sous b
-      x = lerp(x, bx + cs * side2, smooth(5.55, 6.25, τ));                        // ressort côté caméra
-      x = lerp(x, bx + cs * side2 * 0.8, smooth(7.2, 9.5, τ));
-      // vertical : légèrement au-dessus, puis plonge sous b (après avoir piqué du nez), remonte côte à côte
-      let y = lerp(hb * 0.15, -under, smooth(2.95, 3.38, τ));   // déjà bas quand son nez arrive sous la poupe adverse
-      y = lerp(y, B.y, smooth(6.15, 6.85, τ));   // remonte une fois sorti de dessous
-      // attitude : roulis de la feinte, piqué avant la plongée, désaxé à la sortie puis redressé (lacet)
-      const rz = -s * 0.14 * bump(2.0, 3.05, τ) + cs * 0.1 * bump(5.5, 6.5, τ);
-      const rx = 0.16 * bump(2.85, 3.5, τ) - 0.09 * bump(5.95, 6.75, τ);
-      const ry = cs * 0.085 * (smooth(5.35, 5.6, τ) * (1 - smooth(5.9, 6.45, τ)));
-      return { A: { x, y, z, rx, ry, rz }, B };
+      const sh = Math.exp(-Math.max(0, τ - TP) * 3.2) * (τ > TP ? 1 : 0), j = (k) => Math.sin(τ * 43 + tremble + k) * sh;
+      const B = { x: j(1) * 0.15, y: Math.sin(τ * 0.9) * 0.15 + j(2) * 0.2, z: 0, rx: 0, ry: 0, rz: j(3) * 0.01 };
+      // a : vient de loin derrière, passe la caméra à TP, puis file (vitesse relative énorme, en accélération)
+      const v = Math.max(260, la * 9), z = cam0[2] + v * (τ - TP) + (τ > TP ? 120 * (τ - TP) * (τ - TP) : 0);
+      const A = { x: laneX - cs * Math.max(0, τ - TP) * 3, y: cam0[1] + ha + Math.max(1.5, hb * 0.15) - Math.max(0, τ - TP) * 2, z, rx: 0, ry: -cs * 0.02, rz: cs * 0.05 };   // un peu au-dessus de la caméra
+      return { A, B };
     },
     place(τ, a, b) {
       const p = this.pose(τ);
       b.position.set(p.B.x, p.B.y, p.B.z); b.rotation.set(p.B.rx, p.B.ry, p.B.rz);
       a.position.set(p.A.x, p.A.y, p.A.z); a.rotation.set(p.A.rx, p.A.ry, p.A.rz);
     },
-    // poussée : monte pendant la remontée, retenue sous la coque, creux, puis pleine poussée
-    thrust(τ) {
-      let A = lerp(0.45, 1.0, smooth(0, 2.0, τ));
-      A = lerp(A, 0.75, smooth(3.3, 3.8, τ));
-      A = lerp(A, 0.18, smooth(5.15, 5.4, τ));                                   // le creux avant la pleine poussée
-      A = lerp(A, 1.4, smooth(5.45, 5.7, τ));
-      return { A, B: 0.8 };
-    },
-    // propulseurs de manœuvre : [vaisseau, direction (côté qui souffle), début, durée] ; souffler à gauche pousse à droite
-    puffs: [
-      ['a', s > 0 ? 'left' : 'right', 2.02, 0.16], ['a', s > 0 ? 'left' : 'right', 2.3, 0.1],
-      ['b', s > 0 ? 'left' : 'right', 2.5, 0.2],
-      ['a', s > 0 ? 'right' : 'left', 2.88, 0.14], ['a', 'up', 3.02, 0.22], ['a', 'down', 3.48, 0.12],
-      ['a', cs > 0 ? 'left' : 'right', 5.55, 0.14], ['a', cs > 0 ? 'right' : 'left', 6.12, 0.12],
-      ['a', 'down', 6.0, 0.2], ['a', cs > 0 ? 'right' : 'left', 6.32, 0.1],
-    ],
-    puffAt(τ) { const out = []; for (const [w, dir, t0, du] of this.puffs) { const k = bump(t0, t0 + du, τ); if (k > 0) out.push({ w, dir, k }); } return out; },
-
-    // caméra : un plan continu qui accompagne a, avec une légère inertie. Chaque pose donne une DIRECTION (d'où l'on
-    // regarde) et ce qu'il faut garder dans le cadre ; la distance est calculée pour que les deux silhouettes tiennent
-    // dans l'écran (portrait compris), quelles que soient leurs tailles réelles.
-    camPose(τ, aspect = 0.46, vfov = 44) {
-      const p = this.pose(τ), A = p.A, B = p.B;
-      const rA = 0.5 * Math.hypot(la, 2 * wa, 2 * ha), rB = 0.5 * Math.hypot(lb, 2 * wb, 2 * hb);
-      const dAB = Math.hypot(A.x - B.x, A.y - B.y, A.z - B.z);
-      const unionR = (dAB + rA + rB) / 2, uc = (k) => { const t = dAB > 1e-6 ? (unionR - rA) / dAB : 0.5; return [lerp(A.x, B.x, t), lerp(A.y, B.y, t), lerp(A.z, B.z, t)][k]; };
-      const U = [uc(0), uc(1), uc(2)];
-      const gap = [lerp(A.x, B.x, 0.5), (A.y + ha + B.y - hb) / 2, lerp(A.z, B.z, 0.5)];      // l'espace entre les coques
-      const n3 = (v) => { const l = Math.hypot(...v); return v.map((c) => c / l); };
-      const keys = [
-        // 1–2 : arrière trois quarts et au-dessus du poursuivant, l'adversaire devant lui
-        { dir: n3([cs * 0.5, 0.34, -1]), tgt: U, R: unionR, fill: 0.92, fov: 44, port: 0.85 },
-        // la feinte : la caméra descend un peu, toujours derrière
-        { dir: n3([cs * 0.55, 0.12, -1]), tgt: U, R: unionR, fill: 0.88, fov: 44, port: 0.85 },
-        // 3 : sous la coque : trois quarts latéral et bas, un peu en arrière ; on lit les deux silhouettes et la fente
-        { dir: n3([cs * 0.85, -0.42, -0.55]), tgt: gap, R: unionR, fill: 0.82, fov: 40, port: 0.85 },
-        // 4 : de côté, côte à côte : le nez, puis le cockpit, puis toute la coque passent devant
-        { dir: n3([cs * 1, 0.32, -0.25]), tgt: U, R: unionR, fill: 0.95, fov: 38, port: 1 },   // de côté : les coques traversent la largeur, tout doit tenir
-        // 5 : devant, trois quarts : le vainqueur au premier plan, moteurs tendus, l'autre qui recule dans la profondeur
-        { dir: n3([cs * 0.6, 0.24, 0.8]), tgt: [lerp(A.x, B.x, 0.12), lerp(A.y, B.y, 0.12), lerp(A.z, B.z, 0.12)], R: Math.max(rA * 1.9, Math.min(unionR * 0.75, rA * 4)), fill: 1, fov: 46, port: 1 },
-      ];
-      let w = [1, smooth(1.9, 2.6, τ), smooth(2.95, 3.6, τ), smooth(5.4, 6.0, τ), smooth(7.0, 7.9, τ)];
-      for (let i = 1; i < w.length; i++) for (let j = 0; j < i; j++) w[j] *= 1 - w[i];
-      const sum = w.reduce((x, y) => x + y, 0), dir = [0, 0, 0], tgt = [0, 0, 0]; let dist = 0, fov = 0;
-      keys.forEach((k, i) => {
-        const f = w[i] / sum; if (!f) return;
-        const vf = k.fov * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * aspect), half = Math.min(vf, hf) / 2;
-        const dk = (k.R / Math.sin(half)) * k.fill * (aspect < 1 ? k.port : 1);   // portrait : un peu plus serré quand les coques fuient en profondeur
-        for (let c = 0; c < 3; c++) { dir[c] += k.dir[c] * f; tgt[c] += k.tgt[c] * f; }
-        dist += dk * f; fov += k.fov * f;
-      });
-      const nd = n3(dir);
-      return { pos: [tgt[0] + nd[0] * dist, tgt[1] + nd[1] * dist, tgt[2] + nd[2] * dist], look: tgt, fov };
-    },
+    thrust: (τ) => ({ A: 1.35, B: 0.75 }),
+    puffAt: () => [],
     camera(τ, a, b, cam) {
-      const asp = cam.aspect || 0.46;
-      const c = this.camPose(τ, asp), l = this.camPose(Math.max(0, τ - 0.08), asp).look;   // inertie : on regarde un peu en retard
-      const thr = this.thrust(τ).A, vib = 0.03 + 0.1 * Math.max(0, thr - 0.9);        // vibrations très discrètes
-      const n = (k) => (Math.sin(τ * 37 + tremble + k) * 0.6 + Math.sin(τ * 61 + tremble * 2 + k) * 0.4) * vib;
-      cam.position.set(c.pos[0] + n(1), c.pos[1] + n(2), c.pos[2] + n(3)); cam.lookAt(l[0], l[1], l[2]);
-      if (Math.abs(cam.fov - c.fov) > 0.01) { cam.fov = c.fov; cam.updateProjectionMatrix(); }
-      return τ < 3.3 ? 'remontee' : τ < 5.5 ? 'dessous' : τ < 7.2 ? 'arrachement' : 'place';
+      const p = this.pose(τ), A = p.A;
+      const sh = τ > TP - 0.05 ? Math.exp(-(τ - TP + 0.05) * 3) : 0, n = (k) => (Math.sin(τ * 47 + tremble + k) * 0.6 + Math.sin(τ * 71 + k * 2) * 0.4) * (0.02 + sh * 0.5);
+      cam.position.set(cam0[0] + n(1), cam0[1] + n(2), cam0[2] + n(3));
+      // regard : le long de la coque, puis il accroche le poursuivant qui s'éloigne (avec retard : on « le cherche »)
+      // le long de la coque, légèrement tourné vers elle : la coque d'un côté, le vide (où il va passer) de l'autre
+      const hull = [cs * wb * 0.15, cam0[1] * 0.6, cam0[2] + Math.max(40, lb * 0.9)], follow = smooth(TP + 0.05, TP + 0.75, τ);
+      const az = Math.min(A.z, cam0[2] + 1600), ax = lerp(cam0[0], A.x, 0.9);
+      cam.lookAt(lerp(hull[0], ax, follow), lerp(hull[1], A.y, follow), lerp(hull[2], az, follow));
+      const fov = lerp(52, 40, smooth(TP + 0.3, D, τ));
+      if (Math.abs(cam.fov - fov) > 0.01) { cam.fov = fov; cam.updateProjectionMatrix(); }
+      return τ < TP - 0.15 ? 'flanc' : τ < TP + 0.3 ? 'passage' : 'fuite';
     },
-    // après placement : contrôle des volumes (aucune interpénétration) et mesure de la marge réelle
-    guard(τ, a, b, boxOf) {
-      let bA = boxOf(a), bB = boxOf(b);
-      if (bA.intersectsBox(bB)) {
-        // sous la coque : on descend a ; ailleurs : on l'écarte sur le côté
-        if (τ > 3.2 && τ < 6.2 && a.position.y < b.position.y) a.position.y -= bA.max.y - bB.min.y + 0.4;
-        else { const dir = Math.sign(a.position.x - b.position.x) || cs; a.position.x += dir * (Math.min(bA.max.x, bB.max.x) - Math.max(bA.min.x, bB.min.x) + 0.4); }
-        bA = boxOf(a);
-      }
-      const overlapZ = bA.max.z > bB.min.z && bA.min.z < bB.max.z, overlapX = bA.max.x > bB.min.x && bA.min.x < bB.max.x;
-      const gapY = bB.min.y - bA.max.y;
-      return { gap: overlapZ && overlapX && gapY > 0 ? gapY : null, passed: bA.min.z > bB.max.z - la * 0.02 };
-    },
+    guard(τ, a, b, boxOf) { const bA = boxOf(a), bB = boxOf(b); return { gap: null, passed: bA.min.z > bB.max.z || τ > TP + 0.6 }; },
     hud(τ, g) {
-      const crit = τ > 3.35 && τ < 6.3;                                    // passage critique : presque rien à l'écran
-      const done = !!(g && g.passed) || τ > 7.6;
+      const done = !!(g && g.passed);
       return {
-        title: `Dépassement${d.where ? ' · ' + d.where : ''}`, racer: d.A, other: d.B, done, hideCard: crit,
+        title: `Dépassement${d.where ? ' · ' + d.where : ''}`, racer: d.A, other: d.B, done, hideCard: τ > 0.9 && τ < TP + 0.7,
         pos: done ? `P${d.rankAfter}` : `P${d.rankBefore}`, posFrom: done ? `P${d.rankBefore}` : null,
         gap: done ? { label: 'devant', value: d.gapAfter } : { label: 'derrière', value: d.gapBefore },
-        integrity: d.integrity, fuel: d.fuel, lead: d.lead,
-        proximity: g && g.gap != null && τ > 3.5 && τ < 5.7 ? g.gap : null,
+        integrity: d.integrity, fuel: d.fuel, lead: d.lead, proximity: null,
       };
     },
-    // son : grondement de la propulsion, vibration structurelle, impulsions sèches, creux avant la pleine poussée
-    audio(τ) { const t = this.thrust(τ).A; return { rumble: Math.min(1, 0.25 + t * 0.55), hz: 70 + t * 160, vib: Math.max(0, t - 0.6) * 0.6 }; },
-    cues: [{ τ: 4.4, id: 'proche' }, { τ: 5.75, id: 'passe' }],
+    // son : la poussée qui monte derrière, le souffle au passage, puis elle s'éloigne
+    audio(τ) { const near = Math.exp(-Math.pow((τ - TP) / 0.35, 2)), app = smooth(0.3, TP, τ) * (τ < TP ? 1 : Math.exp(-(τ - TP) * 1.2));
+      return { rumble: Math.min(1, 0.2 + app * 0.5 + near * 0.6), hz: 60 + app * 120 + near * 260, vib: near * 0.8 }; },
+    cues: [{ τ: TP + 0.25, id: 'passe' }],
   };
   return script;
 }

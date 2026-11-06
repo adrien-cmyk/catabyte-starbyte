@@ -307,10 +307,7 @@ async function play3d(e) {
     p3d = p3d || createPlayer({ racer, dur });
     nar.aside([['A', 'Revoyons ce dépassement !']], 60000);
     // le commentateur, sobre : le plan se comprend sans lui ; il réagit au passage sous la coque, puis à la sortie
-    const onCue = (c) => {
-      if (c.id === 'proche') nar.aside([['A', pick2(['Il plonge dessous !', 'Sous la coque ! Il passe sous la coque !'])]], 60000);
-      if (c.id === 'passe') nar.aside([['A', pick2(['Oh si ! Il est passé !', 'Ça passait pas… et ça passe !'])]], 60000);
-    };
+    const onCue = (c) => { if (c.id === 'passe') nar.aside([['A', pick2(['Ohhh ! Il est passé !', 'Il le passe comme une balle !', 'Et c\'est fait ! Dépassement !'])]], 60000); };
     const ok = await p3d.play(overtakeScript(e, { feed, E, racer }), { onCue, audio: audioCtx });
     if (!ok) return false;
     if (!(LIVE && following)) { t = Math.min(E.t1, e.t + 60); if (LIVE && t < liveNow() - 1) setFollow(false); }

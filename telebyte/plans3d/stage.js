@@ -200,7 +200,7 @@ export async function createStage(canvas, { giant = 'amber' } = {}) {
           e.outer.forEach((sp, i) => { const L = e.r * (1.2 + v * 4.6) * fl; sp.position.z = -L * (0.12 + i * 0.16); sp.scale.setScalar(e.r * (2.6 - i * 0.24) * (0.8 + v * 0.35)); sp.material.opacity = (0.75 - i * 0.08) * Math.min(1, 0.35 + v * 0.7); });
           e.core.forEach((sp, i) => { sp.position.z = -e.r * (0.2 + i * 0.45) * (0.8 + v); sp.scale.setScalar(e.r * (1.5 - i * 0.3) * (0.7 + v * 0.5)); sp.material.opacity = Math.min(1, 0.2 + v * 0.75) * (1 - i * 0.2); });
         }
-        eLight.intensity = v * v * size.z * 18;
+        eLight.intensity = v * v * Math.max(size.z, 40) * 26; eLight.distance = Math.max(size.z * 2.4, 60 + v * 90);   // à pleine poussée, la lueur porte loin
       },
       // bouffée d'un propulseur (dir : left | right | up | down) ; k : 0..1 (enveloppe donnée par le scénario)
       puff(dir, k) { for (const sp of puffs) if (sp.userData.dir === dir) { sp.material.opacity = k * 0.9; sp.scale.setScalar(Math.max(0.6, H.x * 0.35) * (0.6 + k * 1.6)); } },
