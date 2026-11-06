@@ -45,7 +45,8 @@ export function buildTimeline(feed) {
     }
     // carburant : seuils franchis (états annoncés par le moteur)
     for (const ev of tr.events || []) {
-      for (const th of [0.3, 0.15]) if (ev.fuel < th && fuelWarn > th) { fuelWarn = th; push({ t: ev.t, kind: 'fuel', racer: r.id, prio: th < 0.2 ? 4 : 3, data: { fuel: ev.fuel } }); }
+      const th = ev.fuel < 0.15 ? 0.15 : ev.fuel < 0.3 ? 0.3 : 1;   // un seul avis par état, même si deux seuils sont franchis d'un coup
+      if (th < fuelWarn) { fuelWarn = th; push({ t: ev.t, kind: 'fuel', racer: r.id, prio: th < 0.2 ? 4 : 3, data: { fuel: ev.fuel } }); }
     }
     // événements du moteur (partie A) : repris tels quels
     for (const h of tr.happenings || []) push({ ...h, racer: h.racer || r.id, prio: h.prio || 4, data: h.data || {} });

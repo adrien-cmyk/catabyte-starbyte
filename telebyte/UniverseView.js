@@ -57,6 +57,7 @@ export class UniverseView {
     this._stars();
     this._route();
     this._markers();
+    this._hazards();                                               // après les marqueurs (qui vident la couche HTML)
     // caméra : survol incliné ; glisser = se déplacer, molette / pincement = zoom
     const xs = this.nodes.map((n) => n.p[0]), zs = this.nodes.map((n) => n.p[2]);
     this.center = [(Math.min(...xs) + Math.max(...xs)) / 2, 0, (Math.min(...zs) + Math.max(...zs)) / 2];
@@ -138,6 +139,31 @@ export class UniverseView {
       for (let k = 1; k < 14; k++) { const q = pts2[Math.round(k / 14 * 80)]; const sp = sprite(GLOW.soft, 260, 0xff9a6a, 0.07); sp.position.set(q.x, -4, q.z); S.add(sp); }
     }
   }
+  // carte des dangers (moteur v2, publique avant la course) : ceinture d'astéroïdes le long d'une étape (le raccourci
+  // passe dedans) et risque d'éruption stellaire ; une éruption en cours s'allume
+  _hazards() {
+    const H = this.feed.hazards, N = this.nodes; this.hz = [];
+    if (!H || !H.legs) return;
+    H.legs.forEach((L, k) => {
+      if (!N[k + 1]) return;
+      const a = N[k].iX, b = N[k + 1].iE, at = (f) => this.curve.getPoint((a + (b - a) * f) / (this.nPts - 1));
+      const p0 = at(0.3), p1 = at(0.66), dir = [p1.x - p0.x, p1.z - p0.z], l = Math.hypot(...dir), nrm = [-dir[1] / l, dir[0] / l];
+      const hz = { k, belt: L.belt, flare: L.flare, nrm, mid: at(0.48), at };
+      if (L.belt) {
+        // nuage de rochers : points gris en bande, du côté intérieur
+        const n = 170, pos = new Float32Array(n * 3); let sd = 11 + k * 7; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+        for (let i = 0; i < n; i++) { const q = at(0.26 + R() * 0.46), off = (R() - 0.4) * 230; pos.set([q.x + nrm[0] * off, -2, q.z + nrm[1] * off], i * 3); }
+        const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        this.scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xb8a58a, size: 1.5, sizeAttenuation: false, transparent: true, opacity: 0.4, depthWrite: false })));
+      }
+      const glow = sprite(GLOW.soft, 2200, 0xffa040, 0); glow.position.set(N[k].p[0], -6, N[k].p[2]); this.scene.add(glow); hz.glow = glow;
+      const el = document.createElement('span'); el.className = 'tb-hz';
+      el.innerHTML = (L.belt ? `<em>⁂</em> ceinture −${Math.round(L.belt.gain * 100)} %<br>` : '') + `<em class="fl">☀</em> éruption · risque <b>${L.flare}</b>`;
+      el.title = (L.belt ? 'Ceinture d\'astéroïdes : raccourci possible, chocs possibles. ' : '') + 'Risque d\'éruption stellaire : ' + L.flare;
+      this.overlay.prepend(el); hz.el = el;                     // sous les racers
+      this.hz.push(hz);
+    });
+  }
   // position (scène) d'un racer d'après son état dans le flux : abscisse sur la courbe du parcours
   _placeOf(id, t) {
     const st = this.feed.stateAt(id, t), tr = this.feed.tracks[id], E = this.feed.edition;
@@ -146,6 +172,9 @@ export class UniverseView {
     else if (st.phase === 'leg') {
       const k = E.systems.findIndex((s) => s.id === st.legFrom);
       u = this.nodes[k].iX + (this.nodes[k + 1].iE - this.nodes[k].iX) * st.f;
+      // raccourci par la ceinture : le racer passe dans le nuage de rochers
+      const leg = tr.segs.find((s) => s.kind === 'leg' && s.from.id === st.legFrom), hz = this.hz && this.hz.find((h) => h.k === k);
+      if (leg && leg.belt && hz) { const w = Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, (st.f - 0.22) / 0.56)))) * 55, v = this.curve.getPoint(Math.min(1, Math.max(0, u / (this.nPts - 1)))); return [v.x + hz.nrm[0] * w, v.y, v.z + hz.nrm[1] * w]; }
     } else {
       const sysId = st.phase === 'done' ? E.systems[E.systems.length - 1].id : st.system;
       const k = E.systems.findIndex((s) => s.id === sysId), n = this.nodes[k];
@@ -234,6 +263,15 @@ export class UniverseView {
     const W = this.host.clientWidth, H = this.host.clientHeight, v = new THREE.Vector3();
     const proj = (p) => { v.set(p[0], p[1], p[2]).project(c); return [(v.x * 0.5 + 0.5) * W, (-v.y * 0.5 + 0.5) * H, v.z < 1]; };
     this.nodes.forEach((n, i) => { const [x, y] = proj(n.p); this.sysLabels[i].style.transform = `translate(${x | 0}px, ${(y + 18) | 0}px)`; });
+    for (const h of this.hz || []) {
+      const [x, y] = proj([h.mid.x - h.nrm[0] * 150, 0, h.mid.z - h.nrm[1] * 150]);   // de l'autre côté du nuage
+      const hw = (h.el._w || (h.el._w = h.el.offsetWidth)) / 2 + 4;   // jamais coupée par le bord de l'écran
+      h.el.style.transform = `translate(${Math.min(W - hw, Math.max(hw, x)) | 0}px, ${y | 0}px)`;
+      // éruption en cours sur cette étape (un fait déjà arrivé) : le halo s'allume et l'étiquette le dit
+      let on = false; for (const r of this.feed.racers) for (const e of (this.feed.tracks[r.id].happenings || [])) if (e.kind === 'flare' && t >= e.t && t <= e.t + (e.data.dur || 0) && e.sys === this.nodes[h.k + 1].sys.id) on = true;
+      if (on !== h.on) { h.on = on; h.el.classList.toggle('on', on); }
+      h.glow.material.opacity = on ? 0.3 + 0.12 * Math.sin(performance.now() / 300) : 0;
+    }
     const placed = [];
     this.feed.racers.forEach((r, i) => {
       const p = this._placeOf(r.id, t), [x, y] = proj(p), el = this.racerEls[i];

@@ -63,7 +63,7 @@ addEventListener('message', (e) => {
   const m = e.data; if (!sysFrame || e.source !== sysFrame.contentWindow || !m || !m.fronde) return;
   if (m.type === 'loaded') { frameOk = true; if (pending) { const p = pending; pending = null; p(); } }
   else if (m.type === 'progress') { loadSet(m.p); clearTimeout(watch); watch = setTimeout(() => { if (!inSystem) fallbackEnter(curSysId); }, 7000); }   // chaque étape relance la garde
-  else if (m.type === 'tick') { sysT = m.t; if (LIVE) following = !!m.live; }   // instant affiché par la vue système (voix off, actualité)
+  else if (m.type === 'tick') { sysT = m.t; if (LIVE && following !== !!m.live) setFollow(!!m.live); }   // instant affiché par la vue système (voix off, actualité)
   else if (m.type === 'ready') { if (inSystem) return; clearTimeout(watch); loadHide(); inSystem = true; sysFrame.classList.add('on'); document.body.classList.add('insys'); }
   else if (m.type === 'surface') {
     t = Math.min(E.t1, m.t); sysT = null; if (LIVE) setFollow(t >= liveNow() - Math.max(120, 3 * (LIVE.snap.rate || 1))); if (m.sel !== view.sel) { view.sel = m.sel || null; view.onSelect(view.sel); }
@@ -119,12 +119,12 @@ let setFollow = () => {};
 if (LIVE) {
   $('speed').hidden = true;
   setFollow = (on) => { following = on; $('play').textContent = on ? '● Direct' : 'Revenir au direct'; $('play').classList.toggle('live', on); };
-  $('play').onclick = () => setFollow(true);
+  $('play').onclick = () => { setFollow(true); playing = true; };
   // revoir : le curseur sort du direct ; le ramener au bout y revient ; avant le départ, rien à revoir (curseur inactif)
   slider.addEventListener('input', () => {
     const nowR = liveNow();
     if (nowR <= 0) { slider.value = '0'; t = 0; return; }
-    t = Math.min(+slider.value, nowR);
+    t = Math.min(+slider.value, nowR); playing = false;              // revoir au curseur : l'image reste sur l'instant choisi
     setFollow(t >= nowR - Math.max(120, nowR * 0.01));
   });
   setFollow(true); t = Math.max(0, Math.min(liveNow(), E.t1));
@@ -239,7 +239,8 @@ function placeSub() {
 }
 addEventListener('resize', placeSub); setTimeout(placeSub, 300); setInterval(placeSub, 2000);
 function commentary(at) {
-  try { news.update(at); nar.update(at, { now: LIVE ? liveNow() : null }); } catch (e) { console.warn('[fronde] commentaire', e); }
+  const now = LIVE ? liveNow() : null;
+  try { news.update(now != null && now < 0 ? -1 : at); nar.update(at, { now }); } catch (e) { console.warn('[fronde] commentaire', e); }
 }
 /* ── voix off et fil d'actualité (Phase 4) ── */
 // paris : ceux du serveur en direct ; en démo hors ligne, une cagnotte fictive (tirée du nom de l'édition)
@@ -252,7 +253,7 @@ const nar = createNarrator({
 const news = mountNews({ E, racer, hh, getTl: () => nar.tl, onReplay: replay });
 // revoir un moment fort : un peu avant, sur le bon racer ; dans la vue système s'il s'est passé dans un système
 function replay(e) {
-  const inSys = e.sys && ['plan', 'ring', 'periapsis', 'failed', 'damage', 'finale', 'finish'].includes(e.kind);
+  const inSys = e.sys && ['plan', 'ring', 'periapsis', 'failed', 'damage', 'finale', 'finish', 'moon'].includes(e.kind);
   const lead = e.kind === 'plan' || e.kind === 'finale' ? 600 : inSys ? 1500 : 900;
   t = Math.max(0, e.t - lead); playing = true;
   if (LIVE) { if (t < liveNow() - 1) setFollow(false); } else $('play').textContent = 'Pause';

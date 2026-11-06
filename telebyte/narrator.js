@@ -28,7 +28,7 @@ export function names(r) {
   return { le, Le: le[0].toUpperCase() + le.slice(1), du, au, il: g === 'f' ? 'elle' : 'il', Il: g === 'f' ? 'Elle' : 'Il', e: g === 'f' ? 'e' : '' };
 }
 // pilotes (couleur seulement)
-const PILOTS = { sentinelle: 'la commandante Ysée Marr', cuirasse: 'le vieux Brannoc', mule: 'Tobbe et ses dockers', fulgurant: 'Kaï Varon' };
+const PILOTS = { sentinelle: 'la commandante Ysée Marr', cuirasse: 'le vieux Brannoc', mule: 'Tobbe le docker', fulgurant: 'Kaï Varon' };
 const PROFILE = {
   sentinelle: 'la régulière, jamais très loin, toujours dangereuse',
   cuirasse: 'une coque blindée, lourde, qui encaisse tout',
@@ -78,7 +78,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
   const nar = { mode: 'voix', log: [], tl: [] };
   let lastT = null, lastReal = 0, rate = 1, queue = [], speaking = null, nextFill = 0, faitI = Math.floor(rnd() * FAITS.length), fillI = 0;
-  const said = new Set();
+  const said = new Map();                                        // fait déjà dit → son instant
 
   nar.rebuild = () => { nar.tl = buildTimeline(feed); };
   nar.rebuild();
@@ -104,8 +104,8 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
         ...(d.dmg > 0.1 ? [['B', `Avec une coque pareille, ses étapes vont être plus lentes. Il faudra voir ${n.il === 'il' ? 's\'il' : 'si elle'} ose encore plonger.`]] : [])];
       case 'exit': return [['A', `${n.Le} quitte ${S} à ${km(d.vOut)} km/s.`]];
       case 'leg': return d.last
-        ? [['A', `Dernière étape pour ${n.le} : cap sur ${sysName(d.to)}, la grande finale ! Arrivée dans ${dur(d.dur)}.`]]
-        : [['A', `Cap sur ${sysName(d.to)} pour ${n.le} : ${dur(d.dur)} de voyage interstellaire.`]];
+        ? [['A', `Dernière étape pour ${n.le} : cap sur ${sysName(d.to)}, la grande finale !`]]
+        : [['A', pick([`Cap sur ${sysName(d.to)} pour ${n.le}, place au voyage interstellaire.`, `${n.Le} file vers ${sysName(d.to)}. Une vingtaine d'heures de vide devant ${n.il === 'il' ? 'lui' : 'elle'}.`])]];
       case 'fuel': return [['A', `Le réservoir ${n.du} descend à ${pct(d.fuel)} %.`], ['B', d.fuel < 0.2 ? 'C\'est très juste. Plus aucune grosse poussée possible.' : 'Il va devoir économiser pour la finale.']];
       case 'overtake': {
         const who = d.passed.map((x) => N[x].le).join(' et ');
@@ -123,6 +123,21 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
         const win = nar.tl.find((x) => x.kind === 'finish' && x.data.place === 1);
         return [['A', `${n.Le} termine ${d.place}e${win ? `, à ${dur(e.t - win.t)} du vainqueur` : ''}.`]];
       }
+      // événements du moteur v2 (Phase 4, partie A)
+      case 'moon': return [['A', pick([`${n.Le} va chercher ${d.moon} ! Assistance gravitationnelle, ${n.il} rase la lune !`, `Quelle audace ! ${n.Le} frôle ${d.moon} pour voler un peu de vitesse !`])],
+        ['B', d.dmg ? `Ça rapporte ${d.gain} m/s… mais ${n.il} a pris des débris de plein fouet, coque à ${pct(feed.stateAt(e.racer, e.t + 1).integrity)} %.` : `${d.gain} m/s gagnés gratuitement. Du grand pilotage.`]];
+      case 'belt': return [['A', `${n.Le} coupe par la ceinture d'astéroïdes ! Le raccourci de tous les dangers !`],
+        ['B', `${Math.round(d.gain * 100)} % de trajet en moins, mais il faut slalomer entre les rochers pendant des heures.`]];
+      case 'beltHit': return [['A', pick([`Choc ! ${n.Le} percute un astéroïde !`, `Impact pour ${n.le} dans la ceinture ! Ça a tapé fort !`])],
+        ['B', `Coque à ${pct(d.integrity)} %. ${d.integrity < 0.6 ? 'Là, ça devient inquiétant.' : 'Ça tient, pour l\'instant.'}`]];
+      case 'failure': return [['A', `Panne de propulsion à bord ${n.du} ! ${n.Il} dérive dans le vide !`],
+        ['B', `Les mécaniciens sont dehors, en scaphandre. Ça va lui coûter ${dur(d.lost)}, au moins.`]];
+      case 'repair': return [['A', `${n.Le} coupe les moteurs : arrêt réparation en plein vide.`],
+        ['B', `${dur(d.lost)} perdues, mais une coque remise à ${pct(d.integrity)} %. Le choix de la sagesse.`]];
+      case 'flare': return d.prudent
+        ? [['A', `Éruption stellaire ! ${n.Le} se met à l'abri derrière son bouclier.`], ['B', `Prudent. ${n.Il} perd ${dur(d.lost)}, mais l'électronique est sauve.`]]
+        : [['A', `Éruption stellaire ! ${n.Le} fonce à travers la tempête de particules !`], ['B', d.lost ? `Aïe, l'électronique a grillé : ${dur(d.lost)} pour tout redémarrer.` : `Ça passe ! Coque à ${pct(d.integrity)} %, mais pas une seconde de perdue.`]];
+      case 'fuelSave': return [['A', `${n.Le} passe en mode économie : réservoir presque vide, ${n.il} réduit la poussée.`]];
       default: if (e.text) return [['A', e.text], ...(e.comment ? [['B', e.comment]] : [])];
     }
     return [];
@@ -149,7 +164,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     }
     if (kind === 'tele') {
       if (s.phase === 'system' && s.speed) return [['A', `${n.Le} file à ${km(s.speed)} km/s à ${sysName(s.system)}, réservoir à ${pct(s.fuel)} %, coque à ${pct(s.integrity)} %.`]];
-      if (s.phase === 'leg') { const leg = feed.tracks[id].segs.find((x) => x.kind === 'leg' && t >= x.t0 && t <= x.t1); return [['A', `${n.Le} est en plein vide interstellaire : ${pct(s.f)} % de l'étape vers ${sysName(s.legTo)}${leg ? `, arrivée dans ${dur(leg.t1 - t)}` : ''}. Réservoir à ${pct(s.fuel)} %.`]]; }
+      if (s.phase === 'leg') return [['A', `${n.Le} est en plein vide interstellaire, en route vers ${sysName(s.legTo)}. Réservoir à ${pct(s.fuel)} %, coque à ${pct(s.integrity)} %.`]];
       return null;
     }
     if (kind === 'vecu') {
@@ -161,7 +176,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     if (kind === 'paris') return betLine(rows);
     if (kind === 'finale') {
       const last = E.systems[E.systems.length - 1], s0 = feed.stateAt(lead.id, t);
-      if (s0.phase === 'leg' && s0.legTo === last.id) return [['B', `La grande finale approche : à ${last.name}, l'arrivée se joue à la périapse. ${N[lead.id].Le} y sera le premier, mais rien n'est fait.`]];
+      if (s0.phase === 'leg' && s0.legTo === last.id) return [['B', `La grande finale approche : à ${last.name}, l'arrivée se joue à la périapse. ${N[lead.id].Le} mène la danse, mais rien n'est fait.`]];
       if (s0.phase === 'system' && s0.system === last.id) return [['A', `On est dans la grande finale à ${last.name} ! Chaque seconde compte !`]];
       return null;
     }
@@ -206,7 +221,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   }
   if (synth) { chooseVoices(); try { synth.addEventListener('voiceschanged', chooseVoices); } catch (e) { synth.onvoiceschanged = chooseVoices; } }
   const speakable = (s) => s.replace(/(\d)['’\u202f\u00a0 ](?=\d{3}\b)/g, '$1').replace(/km\/s/g, 'kilomètres par seconde').replace(/(\d+) h (\d+)/g, '$1 heures $2').replace(/(\d+) h\b/g, '$1 heures')
-    .replace(/(\d+) min\b/g, '$1 minutes').replace(/(\d+) s\b/g, '$1 secondes').replace(/ CG\b/g, ' crédits').replace(/(\d) %/g, '$1 pour cent').replace(/(\d+)e place/g, '$1ème place').replace(/\bJ\+(\d+)/g, 'jour $1,')
+    .replace(/(\d+) min\b/g, '$1 minutes').replace(/(\d+) s\b/g, '$1 secondes').replace(/ CG\b/g, ' crédits').replace(/(\d) %/g, '$1 pour cent').replace(/\b1re\b/g, 'première').replace(/\b(\d+)e\b/g, '$1ème').replace(/\bJ\+(\d+)/g, 'jour $1,')
     .replace(/\b([A-ZÀÂÉÈÊÎÔÛÇ]{2,})\b/g, (w) => w[0] + w.slice(1).toLowerCase());   // capitales : lues comme des mots, pas épelées
   function showSub(who, text) {
     if (!sub) return;
@@ -228,7 +243,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
         u.rate = SPK[who].rate * (rate > 1000 ? 1.12 : 1); u.pitch = SPK[who].pitch; u.volume = 1;
         const me = speaking; me.voice = true; me.until = at + Math.max(minMs, 25000);   // garde : si onend ne vient jamais
         u.onend = u.onerror = () => { if (speaking === me) speaking = { until: performance.now() + 350, voice: false }; };
-        synth.speak(u);
+        nar._u = u; synth.speak(u);                         // référence gardée : sinon Chrome peut perdre onend
       } catch (e) { /* pas de voix : sous-titres seuls */ }
     }
   }
@@ -244,49 +259,67 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     if (m === 'off') { queue = []; showSub('A', ''); }
     speaking = null;
   };
-  const enqueue = (lines, prio, real) => {
-    lines.forEach((l, i) => queue.push({ line: l, prio: prio - i * 0.01, at: real, seq: queue.length + i }));
+  // une entrée de file = les phrases d'un même fait, dites d'affilée ; seq : ordre d'arrivée (compteur global)
+  let seqN = 0, moving = false, lastMove = 0, rateT = null, rateReal = 0;
+  const enqueue = (lines, prio, real, t = null) => {
+    if (!lines || !lines.length) return;
+    queue.push({ lines, prio, at: real, t, seq: seqN++ });
     queue.sort((a, b) => b.prio - a.prio || a.seq - b.seq);
     if (queue.length > 5) queue.length = 5;
   };
+  const hush = () => { queue = []; if (synth && nar.mode === 'voix') try { synth.cancel(); } catch (e) {} speaking = null; };
 
   nar.update = (t, { now = null } = {}) => {
     const real = performance.now();
+    if (now != null && now < 0) t = -1;                            // avant le départ : rien de la course n'a eu lieu
     if (nar.mode === 'off') { lastT = t; lastReal = real; return; }
     const dtR = Math.max(1e-3, (real - (lastReal || real)) / 1000);
     if (lastT == null) {
-      lastT = t; lastReal = real; nextFill = real + 2500;
-      if (t > 60) enqueue(recap(t), 3, real);
-    } else {
-      const dt = t - lastT, jump = dt < -1 || dt > Math.max(1800, rate * dtR * 6 + 600);
-      if (!jump && dt > 0) rate = rate * 0.9 + (dt / dtR) * 0.1;
+      lastT = t < 60 ? -1 : t; lastReal = real; rateT = t; rateReal = real; nextFill = real + 2500;   // au départ : le départ est annoncé
+      if (t >= 60) enqueue(recap(t), 3, real);
+    }
+    {
+      const dt = t - lastT;
+      // saut : retour en arrière, bond en avant, ou onglet revenu après une absence (jugé avec la vitesse d'avant)
+      const jump = dt < -1 || dt > Math.max(1800, rate * Math.min(dtR, 1) * 6 + 600) || (dtR > 3 && dt > 600);
+      // vitesse de la course affichée : mesurée entre deux changements de l'instant (la vue système ne l'envoie que
+      // tous les quarts de seconde) ; immobile plus d'une seconde et demie = pause
+      if (dt !== 0) {
+        if (!jump && rateT != null && real > rateReal) { const r = (t - rateT) / ((real - rateReal) / 1000); if (dt > 0 && r > 0) rate = moving ? rate * 0.7 + r * 0.3 : r; }
+        rateT = t; rateReal = real; moving = true; lastMove = real;
+      } else if (real - lastMove > 1500) moving = false;
       if (jump) {
-        queue = []; if (synth && nar.mode === 'voix') try { synth.cancel(); } catch (e) {}
-        speaking = null; enqueue(recap(t), 3, real);
+        hush();
+        if (dt < 0) for (const [k, kt] of said) if (kt > t) said.delete(k);   // on revoit : ces faits seront redits
+        enqueue(recap(t), 3, real, t);
       } else if (dt > 0) {
         // faits survenus depuis la dernière image ; en lecture rapide, seulement les plus forts
         const minPrio = rate > 1500 ? 4 : rate > 250 ? 3 : 1;
         for (const e of nar.tl) {
           if (e.t <= lastT) continue; if (e.t > t) break;
           if (e.prio < minPrio || said.has(e.key)) continue;
-          said.add(e.key); enqueue(linesFor(e, t), e.prio, real);
+          said.set(e.key, e.t); enqueue(linesFor(e, t), e.prio, real, e.t);
         }
       }
       lastT = t; lastReal = real;
     }
-    // vieilles phrases abandonnées (la course est passée à autre chose)
-    queue = queue.filter((q) => real - q.at < (q.prio >= 5 ? 30000 : 16000));
+    // vieilles phrases abandonnées : trop attendu (temps réel), ou la course est loin devant (temps de course)
+    queue = queue.filter((q) => q.prio === Infinity || (real - q.at < (q.prio >= 5 ? 30000 : 16000) && (q.t == null || t - q.t < (q.prio >= 5 ? 3 : 1.5) * 3600)));
     if (speaking && real < speaking.until) return;
     if (speaking && !speaking.voice) showSub('A', '');
     speaking = null;
-    if (queue.length) { const q = queue.shift(); say(q.line); nextFill = real + fillGap(now); return; }
+    if (queue.length) {
+      const q = queue.shift(); say(q.lines[0]);
+      if (q.lines.length > 1) queue.unshift({ ...q, lines: q.lines.slice(1), prio: Infinity });   // la suite du même fait, tout de suite
+      nextFill = real + fillGap(now); return;
+    }
     if (real >= nextFill) {
       const L = filler(t, now); nextFill = real + fillGap(now);
       if (L) enqueue(L, 1, real);
     }
   };
   const fillGap = (now) => {
-    const slow = rate < 30 || (now != null && now < 0);           // direct (×1) ou avant-course : on laisse respirer
+    const slow = !moving || rate < 30 || (now != null && now < 0);   // pause, direct (×1) ou avant-course : on laisse respirer           // direct (×1) ou avant-course : on laisse respirer
     return (slow ? 35000 + rnd() * 40000 : 7000 + rnd() * 6000);
   };
   let recapAt = -1e9;

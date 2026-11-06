@@ -19,7 +19,8 @@ export { choosePlan, PLAN_LABEL } from './engine.js';
 export class RaceFeed {
   constructor({ systems = RACE_SYSTEMS, racers = RACERS, pilot = PILOT, result }) {
     this.systems = systems; this.racers = racers; this.pilot = pilot;
-    this.tracks = result.tracks;                        // racerId → { segs, cps, finish, events }
+    this.tracks = result.tracks;                        // racerId → { segs, cps, finish, events, happenings }
+    this.hazards = result.hazards || pilot.hazards || null;   // v2 : carte des dangers (ceintures, éruptions)
     this.edition = { id: pilot.id, name: pilot.name, seed: pilot.seed, systems, racers, t0: 0, t1: result.t1 };
   }
   _seg(id, t) { const tr = this.tracks[id]; return tr.segs.find((s) => t >= s.t0 && t <= s.t1) || (t < 0 ? tr.segs[0] : tr.segs[tr.segs.length - 1]); }

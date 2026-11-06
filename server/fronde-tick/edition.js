@@ -7,7 +7,7 @@
 //   · course simulée une fois avec le moteur partagé : plans des pilotes (publiés au fil de la course) et résultat.
 // Les systèmes, racers et paramètres complets sont enregistrés avec l'édition : le jeu rejoue avec EXACTEMENT ces
 // données (pas avec les siennes), ce qui garde la course identique même si le jeu évolue entre-temps.
-import { runRace, planOf, rngOf, RACE_SYSTEMS, RACERS, PILOT, ENGINE_HASH } from './engine.js';
+import { runRace, planOf, rngOf, hazardsOf, RACE_SYSTEMS, RACERS, PILOT, ENGINE_HASH } from './engine.js';
 
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const hex = (buf) => [...new Uint8Array(buf)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -56,7 +56,8 @@ export async function prepareEdition(now = Date.now(), seed = null, opts = {}) {
   const R = rngOf(seed + '|parcours'), systems = RACE_SYSTEMS.slice();
   for (let i = systems.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [systems[i], systems[j]] = [systems[j], systems[i]]; }
   const name = opts.test ? `Course d'essai · ${opts.minutes || 30} min` : `Grande Fronde · dimanche ${d} ${MONTHS[m]} ${y}`;
-  const pilot = { ...PILOT, id, name, seed };
+  // carte des dangers (ceintures, risque d'éruption) : publique, tirée de la graine (v2)
+  const pilot = { ...PILOT, id, name, seed, ...((PILOT.v || 1) >= 2 ? { hazards: hazardsOf(systems, seed) } : {}) };
   const res = runRace({ systems, racers: RACERS, pilot });
   if (!res.complete) throw new Error('race_incomplete');
   const finish = Object.fromEntries(RACERS.map((r) => [r.id, res.tracks[r.id].finish]));

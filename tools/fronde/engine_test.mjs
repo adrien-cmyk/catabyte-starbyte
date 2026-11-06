@@ -3,6 +3,8 @@
 //   2. rejeu à partir des plans sérialisés (JSON, ce que publie le serveur) : même empreinte ;
 //   3. rejeu partiel (plans du premier système seulement) : chaque racer s'arrête à l'entrée du deuxième ;
 //   4. (option SERVER=chemin) la copie serveur générée donne les mêmes empreintes.
+// Deux versions du moteur : v1 (éditions créées avant la Phase 4 : pilot sans v, références engine_ref.json, qui ne
+// doivent JAMAIS changer) et v2 (événements de course : engine_ref_v2.json).
 // Usage : node tools/fronde/engine_test.mjs [--update]
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -11,25 +13,36 @@ const here = new URL('.', import.meta.url);
 const E = await import(new URL('../../sandbox/race/engine.js', here));
 const D = await import(new URL('../../sandbox/race/raceData.js', here));
 const sha = (s) => createHash('sha256').update(s).digest('hex').slice(0, 16);
-const REF = new URL('engine_ref.json', here), update = process.argv.includes('--update');
-const ref = existsSync(REF) ? JSON.parse(readFileSync(REF, 'utf8')) : {};
-const out = {}; let fail = 0;
+const update = process.argv.includes('--update');
+let fail = 0;
 const ok = (c, m) => { if (!c) { fail++; console.log('ÉCHEC', m); } };
-for (let i = 1; i <= 40; i++) {
-  const seed = i === 1 ? 'fronde-222' : 'test-' + i, pilot = { ...D.PILOT, seed }, args = { systems: D.RACE_SYSTEMS, racers: D.RACERS, pilot };
-  const full = E.runRace(args), d = sha(E.digest(full)); out[seed] = d;
-  ok(full.complete, `${seed} : course incomplète`);
-  if (ref[seed] && !update) ok(ref[seed] === d, `${seed} : empreinte ${d} ≠ référence ${ref[seed]} (le moteur a changé)`);
-  const plans = JSON.parse(JSON.stringify(E.plansMap(full.revealed.map((x) => ({ ...x, plan: E.planOf(x.plan) })))));
-  ok(sha(E.digest(E.runRace({ ...args, plans }))) === d, `${seed} : le rejeu des plans diffère`);
-  const first = Object.fromEntries(Object.entries(plans).filter(([k]) => k.endsWith('|' + D.RACE_SYSTEMS[0].id)));
-  const part = E.runRace({ ...args, plans: first });
-  ok(!part.complete && D.RACERS.every((r) => part.tracks[r.id].segs.filter((s) => s.kind === 'system').length === 1), `${seed} : rejeu partiel incorrect`);
+const outs = {};
+for (const v of [1, 2]) {
+  const REF = new URL(v === 1 ? 'engine_ref.json' : 'engine_ref_v2.json', here);
+  const ref = existsSync(REF) ? JSON.parse(readFileSync(REF, 'utf8')) : {};
+  const out = outs[v] = {};
+  for (let i = 1; i <= 40; i++) {
+    const seed = i === 1 ? 'fronde-222' : 'test-' + i, pilot = { ...D.PILOT, seed, v }, args = { systems: D.RACE_SYSTEMS, racers: D.RACERS, pilot };
+    if (v === 1) delete pilot.v;                                   // une édition d'avant : pilote sans version
+    const full = E.runRace(args), d = sha(E.digest(full)); out[seed] = d;
+    ok(full.complete, `v${v} ${seed} : course incomplète`);
+    if (ref[seed] && !(update && v === 2)) ok(ref[seed] === d, `v${v} ${seed} : empreinte ${d} ≠ référence ${ref[seed]} (le moteur a changé)`);
+    // rejeu à partir des plans publiés (JSON) ; en v2 sans la graine : le pilote public porte la carte des dangers
+    const plans = JSON.parse(JSON.stringify(E.plansMap(full.revealed.map((x) => ({ ...x, plan: E.planOf(x.plan) })))));
+    const pub = { ...pilot }; delete pub.seed; if (v === 2) pub.hazards = full.hazards;
+    const re = E.runRace({ ...args, pilot: pub, plans });
+    ok(sha(E.digest(re)) === d, `v${v} ${seed} : le rejeu des plans diffère`);
+    if (v === 2) ok(JSON.stringify(D.RACERS.map((r) => re.tracks[r.id].happenings)) === JSON.stringify(D.RACERS.map((r) => full.tracks[r.id].happenings)), `v2 ${seed} : faits de course du rejeu différents`);
+    const first = Object.fromEntries(Object.entries(plans).filter(([k]) => k.endsWith('|' + D.RACE_SYSTEMS[0].id)));
+    const part = E.runRace({ ...args, pilot: pub, plans: first });
+    ok(!part.complete && D.RACERS.every((r) => part.tracks[r.id].segs.filter((s) => s.kind === 'system').length === 1), `v${v} ${seed} : rejeu partiel incorrect`);
+  }
+  if (v === 2 && (update || !existsSync(REF))) { writeFileSync(REF, JSON.stringify(out, null, 1) + '\n'); console.log('références v2 écrites', Object.keys(out).length); }
 }
+const out = outs[2];
 if (process.env.SERVER) {
   const S = await import(pathToFileURL(process.env.SERVER).href);
   for (const seed of Object.keys(out)) { const pilot = { ...D.PILOT, seed }; ok(sha(S.digest(S.runRace({ systems: S.RACE_SYSTEMS, racers: S.RACERS, pilot }))) === out[seed], `${seed} : la copie serveur diffère`); }
 }
-if (update || !existsSync(REF)) { writeFileSync(REF, JSON.stringify(out, null, 1) + '\n'); console.log('références écrites', Object.keys(out).length); }
-console.log(fail ? `${fail} échec(s)` : `ok : 40 éditions, rejeu complet et partiel identiques${process.env.SERVER ? ', copie serveur identique' : ''}`);
+console.log(fail ? `${fail} échec(s)` : `ok : 40 éditions v1 (inchangées) et 40 v2, rejeu complet et partiel identiques${process.env.SERVER ? ', copie serveur identique' : ''}`);
 process.exit(fail ? 1 : 0);

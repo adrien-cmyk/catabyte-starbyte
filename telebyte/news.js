@@ -5,7 +5,7 @@
 import { upTo } from './timeline.js';
 import { names } from './narrator.js';
 
-const ICON = { overtake: '⇄', failed: '⚠', damage: '⚠', finish: '🏁', finale: '★', plan: '↘', ring: '◌', fuel: '⛽', start: '▶', periapsis: '◉', leg: '→', exit: '↗' };
+const ICON = { moon: '☾', belt: '⁂', beltHit: '⚠', failure: '⚠', repair: '🔧', flare: '☀', fuelSave: '⛽', overtake: '⇄', failed: '⚠', damage: '⚠', finish: '🏁', finale: '★', plan: '↘', ring: '◌', fuel: '⛽', start: '▶', periapsis: '◉', leg: '→', exit: '↗' };
 
 export function headline(e, E, racer) {
   const n = e.racer ? names(racer[e.racer]) : null, nm = n ? n.Le : '', S = e.sys ? (E.systems.find((s) => s.id === e.sys) || {}).name : '', d = e.data || {};
@@ -20,6 +20,13 @@ export function headline(e, E, racer) {
     case 'fuel': return `Réservoir ${n.du} à ${Math.round(d.fuel * 100)} %`;
     case 'ring': return null;
     case 'periapsis': return d.plan === 'plongée' ? `${nm} frôle ${S} à ${(d.v / 1e3).toFixed(1).replace('.', ',')} km/s` : null;
+    case 'moon': return `${nm} rase ${d.moon} : +${d.gain} m/s${d.dmg ? ', débris' : ''}`;
+    case 'belt': return `${nm} coupe par la ceinture d'astéroïdes`;
+    case 'beltHit': return `Choc dans la ceinture : ${n.le}, coque à ${Math.round(d.integrity * 100)} %`;
+    case 'failure': return `Panne de propulsion à bord ${n.du}`;
+    case 'repair': return `${nm} s'arrête pour réparer`;
+    case 'flare': return d.prudent ? `Éruption stellaire : ${n.le} s'abrite` : d.lost ? `Éruption : électronique grillée ${n.du}` : `Éruption : ${n.le} passe en force`;
+    case 'fuelSave': return `${nm} en mode économie de carburant`;
     default: return e.title || null;
   }
 }
