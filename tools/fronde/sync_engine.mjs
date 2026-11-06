@@ -28,7 +28,7 @@ for (const [id, file] of MODS) {
   if (/^export\s/m.test(s)) throw new Error(`${file} : forme d'export non gérée`);
   parts.push(`// ── ${file} ──\n__m.${id} = (() => {\n${s}\nreturn { ${[...new Set(names)].join(', ')} };\n})();`);
 }
-const api = ['runRace', 'digest', 'planOf', 'plansMap', 'choosePlan', 'passSystem', 'rngOf', 'hazardsOf', 'FLARE_P', 'PLAN_LABEL', 'FUEL_PER_DV', 'FUEL_PER_LEG', 'V_REF'];
+const api = ['runRace', 'digest', 'planOf', 'plansMap', 'choosePlan', 'passSystem', 'rngOf', 'rng2', 'hazardsOf', 'FLARE_P', 'ENGINE_V', 'PLAN_LABEL', 'FUEL_PER_DV', 'FUEL_PER_LEG', 'V_REF'];
 const data = ['RACE_SYSTEMS', 'RACERS', 'PILOT', 'gmOfGiant', 'sphereGM'];
 // références d'autocontrôle (5 graines) : la fonction serveur vérifie qu'elle calcule les mêmes courses que le jeu
 const ref = JSON.parse(readFileSync(new URL('tools/fronde/engine_ref_v2.json', root), 'utf8'));   // le serveur crée des éditions v2

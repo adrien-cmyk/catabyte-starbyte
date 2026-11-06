@@ -55,7 +55,7 @@ export const RACERS = [
 
 // format de la course pilote (brief §5) : 72 h simulées, 3 systèmes, étapes interstellaires entre eux
 export const PILOT = {
-  id: 'pilote-1', name: 'Grande Fronde · course pilote', seed: 'fronde-291',   // démo (moteur v2) : lune, ceinture et chocs, éruption, panne, réparation, arrivée à 4 min 30
+  id: 'pilote-1', name: 'Grande Fronde · course pilote', seed: 'fronde-52',    // démo (moteur v2) : lune, ceinture et chocs, éruption, panne, réparation ; 3 racers en 17 min
   legHours: 20.5,                              // durée de référence d'une étape interstellaire
   entryR: 9,                                   // entrée et sortie d'un système à 9 rayons de géante
   nominalHours: 76,                            // durée annoncée d'une édition (la vraie fin reste secrète jusqu'à l'arrivée)

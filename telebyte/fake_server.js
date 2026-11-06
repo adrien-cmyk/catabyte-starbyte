@@ -4,7 +4,7 @@
 // (maison 5 %, remboursement si personne sur le vainqueur), encaissement unique, graine révélée à l'arrivée.
 // Temps raccourci : paris ouverts COUNTDOWN secondes, puis la course passe RATE fois plus vite que le temps réel.
 // Des parieurs fictifs misent aussi, pour que les cotes vivent. Rien ne quitte la page.
-import { runRace, planOf } from '../sandbox/race/engine.js';
+import { runRace, planOf, hazardsOf } from '../sandbox/race/engine.js';
 import { RACE_SYSTEMS, RACERS, PILOT } from '../sandbox/race/raceData.js';
 
 const HOUSE = 5, CAP = 5000;
@@ -15,6 +15,7 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Math.random(
 export async function createFakeServer({ credits = () => 0, countdown: COUNTDOWN = 90, rate: RATE = 720 } = {}) {
   const seed = hex(crypto.getRandomValues(new Uint8Array(32)).buffer);
   const pilot = { ...PILOT, id: 'repetition', name: 'Grande Fronde · répétition', seed };
+  if ((PILOT.v || 1) >= 2) pilot.hazards = hazardsOf(RACE_SYSTEMS, seed);   // carte publique des dangers, comme le serveur
   const full = runRace({ systems: RACE_SYSTEMS, racers: RACERS, pilot });
   const finish = Object.fromEntries(RACERS.map((r) => [r.id, full.tracks[r.id].finish]));
   const winner = Object.entries(finish).sort((a, b) => a[1] - b[1])[0][0];

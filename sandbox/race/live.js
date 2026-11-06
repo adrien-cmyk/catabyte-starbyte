@@ -4,6 +4,7 @@
 // de la session du joueur (localStorage « starbyte_auth », même origine que le jeu).
 // Configurable pour les essais : window.FRONDE_SB = { url, key } (serveur local), window.FRONDE_TOKEN (jeton).
 import { ServerFeed } from './DemoFeed.js';
+import { ENGINE_V } from './engine.js';
 
 const DEFAULT = { url: 'https://elupnpdcblztpfywnhjl.supabase.co', key: 'sb_publishable_tXGrQIROzH2DwBrny1GcHQ_iKJKoBOQ' };
 // réglages d'essai : cette page, sinon la page du jeu qui l'a ouverte (même origine)
@@ -48,6 +49,8 @@ export class LiveSource {
 export async function loadEdition() {
   let snap = await rpc('mp_fronde_edition', {});
   if (!snap.edition && snap.next_needed) { try { await tick(); } catch (e) { console.warn('[fronde] création', e); } snap = await rpc('mp_fronde_edition', {}); }
+  // une édition simulée par un moteur plus récent que cette page (page en cache) : on ne la rejoue pas de travers
+  if (snap.edition && ((snap.edition.pilot && snap.edition.pilot.v) || 1) > ENGINE_V) throw new Error('engine_outdated');
   return snap.edition ? snap : null;
 }
 

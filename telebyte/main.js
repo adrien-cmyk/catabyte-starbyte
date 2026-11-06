@@ -6,6 +6,7 @@ import { loadEdition, liveFeed, rpc, tick } from '../sandbox/race/live.js';
 import { UniverseView } from './UniverseView.js';
 import { createNarrator } from './narrator.js';
 import { mountNews } from './news.js';
+import { mountCorridor } from './corridor.js';
 
 // flux : ?feed=live → l'édition du serveur (Phase 3) ; ?feed=mock → publication simulée ; sinon la démo hors ligne.
 // En direct sans connexion (ou sans édition), on retombe sur la démo, avec un bandeau.
@@ -20,7 +21,7 @@ if (FEED_Q === 'demo-live') {
 }
 if (FEED_Q === 'live' || FEED_Q === 'demo-live') {
   try { const snap = await loadEdition(); if (snap) { feed = liveFeed(snap); LIVE = feed.live; } else liveErr = 'aucune édition'; }
-  catch (e) { liveErr = e.message === 'not_signed_in' ? 'connecte-toi dans le jeu' : 'serveur injoignable'; console.warn('[fronde]', e); }
+  catch (e) { liveErr = e.message === 'not_signed_in' ? 'connecte-toi dans le jeu' : e.message === 'engine_outdated' ? 'nouvelle version : recharge la page' : 'serveur injoignable'; console.warn('[fronde]', e); }
 }
 if (!feed) feed = feedFromUrl(FEED_Q === 'live' || FEED_Q === 'demo-live' ? '' : location.search);
 // le jeu (même origine) ouvre le Télébyte en superposition et expose sa passerelle : CG, mise en accord avec le serveur
@@ -68,6 +69,7 @@ addEventListener('message', (e) => {
   else if (m.type === 'surface') {
     t = Math.min(E.t1, m.t); sysT = null; if (LIVE) setFollow(t >= liveNow() - Math.max(120, 3 * (LIVE.snap.rate || 1))); if (m.sel !== view.sel) { view.sel = m.sel || null; view.onSelect(view.sel); }
     inSystem = false; sysFrame.classList.remove('on'); document.body.classList.remove('insys'); renderStandings(true);
+    if (m.then === 'corridor') cor.open(null, t, view.sel);
   }
 });
 // repli : changement de page classique (le cadre n'a pas répondu)
@@ -134,7 +136,7 @@ if (!FEED_Q) { const a = document.createElement('button'); a.id = 'try-bets'; a.
 if (FEED_Q === 'demo-live') { const a = document.createElement('div'); a.id = 'offline'; a.textContent = 'Répétition · partie fictive · course accélérée'; document.body.appendChild(a); }
 if (liveErr) { const b = document.createElement('div'); b.id = 'offline'; b.textContent = `Hors direct (${liveErr}) : course de démonstration`; document.body.appendChild(b); }
 $('focus-clear').onclick = () => view.overview();
-$('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); dive(s.phase === 'system' || s.phase === 'start' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id); };
+$('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); if (s.phase === 'leg') return cor.open(null, t, view.sel); dive(s.phase === 'system' || s.phase === 'start' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id); };
 $('edition').textContent = E.name;
 $('route').textContent = E.systems.map((s) => s.name).join(' → ');
 
@@ -148,11 +150,11 @@ function stagesOf() {
   });
 }
 let STAGES = stagesOf();
-const stageHtml = () => STAGES.map((s, i) => `<button type="button" data-i="${i}" aria-label="Voir le passage à ${s.sys.name}"><b>${s.sys.name}</b><span>${s.known ? '' : '≈ '}${hh(s.tp)}</span></button>`).join('');
+const stageHtml = () => STAGES.map((s, i) => (i ? `<button type="button" class="leg" data-leg="${i - 1}" aria-label="Couloir ${STAGES[i - 1].sys.name} vers ${s.sys.name}"></button>` : '') + `<button type="button" data-i="${i}" aria-label="Voir le passage à ${s.sys.name}"><b>${s.sys.name}</b><span>${s.known ? '' : '≈ '}${hh(s.tp)}</span></button>`).join('');
 $('stages').innerHTML = stageHtml();
 // flux publié : à chaque plan reçu, étapes et durée de la course se précisent
 if (feed.onUpdate) feed.onUpdate(() => {
-  STAGES = stagesOf(); [...$('stages').children].forEach((b, i) => { const s = STAGES[i]; b.querySelector('span').textContent = (s.known ? '' : '≈ ') + hh(s.tp); });
+  STAGES = stagesOf(); [...$('stages').querySelectorAll('button[data-i]')].forEach((b, i) => { const s = STAGES[i]; b.querySelector('span').textContent = (s.known ? '' : '≈ ') + hh(s.tp); });
   slider.max = String(Math.ceil(E.t1)); lastSig = '';
   if (nar) nar.rebuild();
 });
@@ -163,8 +165,9 @@ const stageLeft = (i, at) => E.racers.every((r) => {
   const k = st.phase === 'done' ? Infinity : st.phase === 'leg' ? idx(st.legTo) - 0.5 : st.phase === 'start' ? -1 : idx(st.system);
   return k > i;
 });
-for (const b of $('stages').children) b.onclick = () => {
-  const i = +b.dataset.i, s = STAGES[i];
+for (const b of $('stages').querySelectorAll('button[data-leg]')) b.onclick = () => { if (cor.isOpen && cor.k === +b.dataset.leg) cor.close(); else cor.open(+b.dataset.leg, t, view.sel); };
+for (const b of $('stages').querySelectorAll('button[data-i]')) b.onclick = () => {
+  cor.close(); const i = +b.dataset.i, s = STAGES[i];
   if (LIVE) {
     const nowR = liveNow();
     if (nowR > 0 && stageLeft(i, nowR)) { t = Math.max(0, Math.min(s.tp - 1800, nowR)); setFollow(false); }
@@ -195,7 +198,9 @@ function renderStandings(force = false) {
 }
 function renderClock() {
   $('time').textContent = hh(t);
-  { let cur = 0; STAGES.forEach((s, i) => { if (t >= s.t0) cur = i; }); [...$('stages').children].forEach((b, i) => b.classList.toggle('now', i === cur)); }
+  { let cur = 0; STAGES.forEach((s, i) => { if (t >= s.t0) cur = i; }); const lk = cor.legNow(t, null); const inLeg = lk >= 0 && E.racers.every((r) => feed.stateAt(r.id, t).phase !== 'system');
+    for (const b of $('stages').querySelectorAll('button[data-i]')) b.classList.toggle('now', !inLeg && +b.dataset.i === cur);
+    for (const b of $('stages').querySelectorAll('button[data-leg]')) b.classList.toggle('now', inLeg && +b.dataset.leg === lk); }
   slider.value = String(Math.round(t));
   const ev = feed.nextEvent(t);
   $('next').textContent = ev ? `${ev.label} · ${racer[ev.racer].name} dans ${dur(ev.t - t)}` : 'course terminée';
@@ -228,7 +233,7 @@ function loop(now) {
   } else if (playing) { t = Math.min(E.t1, t + dt * SPEEDS[speedI]); if (t >= E.t1) { playing = false; $('play').textContent = 'Lecture'; } }
   if (feed.sync) feed.sync(t);                                    // flux publié : plans reçus jusqu'à l'instant affiché
   renderStandings(); renderClock();
-  view.update(t, dt);
+  if (cor.isOpen) cor.update(t, dt, view.sel); else view.update(t, dt);
   commentary(t);
 }
 // sous-titres juste au-dessus du classement (en bas sur téléphone) ou du pied de page
@@ -236,6 +241,7 @@ function placeSub() {
   const b = $('board').getBoundingClientRect(), f = document.querySelector('footer').getBoundingClientRect();
   const top = b.bottom > innerHeight * 0.6 ? b.top : f.top;
   document.documentElement.style.setProperty('--sub-b', Math.round(innerHeight - top + 8) + 'px');
+  document.documentElement.style.setProperty('--corr-b', Math.round(innerHeight - top + 66) + 'px');   // le couloir s'arrête au-dessus des sous-titres
 }
 addEventListener('resize', placeSub); setTimeout(placeSub, 300); setInterval(placeSub, 2000);
 function commentary(at) {
@@ -250,6 +256,7 @@ const nar = createNarrator({
   pools: () => LIVE ? (LIVE.snap.pools ? { ...LIVE.snap.pools, house: LIVE.snap.edition.house_pct } : null) : demoPools,
   mine: () => (LIVE && LIVE.snap.my_bets) || [],
 });
+const cor = mountCorridor({ feed, E, racer, hh, dur, onSelect: (id) => { if (view.sel !== id) view.select(id); } });
 const news = mountNews({ E, racer, hh, getTl: () => nar.tl, onReplay: replay });
 // revoir un moment fort : un peu avant, sur le bon racer ; dans la vue système s'il s'est passé dans un système
 function replay(e) {
@@ -260,7 +267,9 @@ function replay(e) {
   if (e.racer && view.sel !== e.racer) view.select(e.racer);
   if (feed.sync) feed.sync(t);
   renderStandings(true); renderClock();
-  if (inSys) dive(e.sys);
+  const LEG = ['belt', 'beltHit', 'failure', 'repair', 'flare', 'fuelSave', 'leg'];
+  if (inSys) { cor.close(); dive(e.sys); }
+  else if (LEG.includes(e.kind)) { const k = E.systems.findIndex((s) => s.id === e.sys) - 1; if (k >= 0) cor.open(k, t, e.racer || null); }   // fait d'étape : le couloir
 }
 // commentaire : voix + sous-titres, sous-titres seuls, ou rien (mémorisé) ; le son ne part qu'après un premier toucher
 const VOICE_L = { voix: '🔊', texte: '💬', off: '🔇' }, VOICE_T = { voix: 'voix off et sous-titres', texte: 'sous-titres seuls', off: 'coupé' };
@@ -280,4 +289,4 @@ import('./bets.js').then((m) => m.mountBets({ feed, LIVE, GAME, rpc, tick, racer
 // la vue système suit les nouveaux instantanés pendant qu'on y est
 if (LIVE) feed.onSnap((snap) => { if (sysFrame && frameOk) sysFrame.contentWindow.postMessage({ fronde: 1, type: 'snap', snap }, '*'); });
 
-window.TB = { nar, news, replay, live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
+window.TB = { nar, news, replay, cor, live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };

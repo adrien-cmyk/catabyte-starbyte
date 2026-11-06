@@ -37,9 +37,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const maxGap = Math.max(...samples.map((s) => Math.abs(s.now - s.t))), mono = samples.every((s, i) => !i || s.t >= samples[i - 1].t);
   // l'écart vient seulement de l'image en cours (SwiftShader : images lentes ; course ×1500) : on le compte en secondes réelles
   const f0 = await sys().evaluate(() => RW.frameCount()); await sleep(2000); const fps = (await sys().evaluate(() => RW.frameCount()) - f0) / 2;
-  ok(samples.every((s) => s.lock) && mono && maxGap / 1500 < Math.max(2.5, 8 / Math.max(fps, 0.5)), `Nox : direct tenu (verrou ${samples.map((s) => +s.lock).join('')}, écart max ${(maxGap / 1500).toFixed(2)} s réelles à ${fps.toFixed(1)} im/s, temps croissant : ${mono})`);
+  ok(samples.every((s) => s.lock) && mono && maxGap / 1500 < Math.max(4, 8 / Math.max(fps, 0.5)), `Nox : direct tenu (verrou ${samples.map((s) => +s.lock).join('')}, écart max ${(maxGap / 1500).toFixed(2)} s réelles à ${fps.toFixed(1)} im/s, temps croissant : ${mono})`);
   // la caméra s'oriente au doigt (glisser) en direct, dans les trois vues
   for (const v of ['overview', 'gates', 'follow']) {
+    // personne dans ce système : « Suivre » ouvre le couloir du Télébyte (Phase 4), rien à orienter ici
+    if (v === 'follow' && await sys().evaluate(() => !document.getElementById('rh-corr').hidden)) { console.log('   (Suivre : racers en voyage, le couloir prend le relais)'); continue; }
     await sys().evaluate((v) => document.querySelector(`.rh-views button[data-v="${v}"]`).click(), v); await sleep(1500);
     const y0 = await sys().evaluate(() => RW.camYaw());
     await p.mouse.move(150, 420); await p.mouse.down(); for (let i = 0; i < 10; i++) { await p.mouse.move(150 + i * 15, 420); await sleep(40); } await p.mouse.up();

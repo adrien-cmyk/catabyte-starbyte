@@ -37,6 +37,9 @@
   #race .rh-live.replay { color: #ffd27a; cursor: pointer; }
   #race .rh-live.replay::before { background: #ffd27a; }
   #race #rh-speed:disabled { opacity: .55; }
+  #race #rh-corr { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; padding: 6px 8px; border: 1px solid rgba(255, 201, 160, .35); border-radius: 8px; font-size: 11px; color: #ffc9a0; }
+  #race #rh-corr[hidden] { display: none; }
+  #race #rh-corr button { font: 600 11px -apple-system, system-ui, sans-serif; color: #05080c; background: #ffc9a0; border: 0; border-radius: 6px; padding: 5px 9px; cursor: pointer; white-space: nowrap; }
   #race .rh-live::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #ff5a4f; margin-right: 5px; }
   #race b#rh-sys { display: block; margin-top: 8px; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
   #race .rh-time { display: block; font: 600 18px ui-monospace, 'SF Mono', monospace; font-variant-numeric: tabular-nums; margin: 2px 0 6px; }

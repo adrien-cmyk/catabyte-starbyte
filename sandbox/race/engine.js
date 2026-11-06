@@ -24,8 +24,7 @@
 //     courte, chocs possibles ;
 //   · éruption stellaire (risque annoncé sur la carte ; l'heure reste secrète) : s'abriter (temps perdu) ou foncer
 //     (coque, électronique) ;
-//   · panne de propulsion en étape (plus probable coque abîmée), arrêt de réparation (temps contre intégrité) ;
-//   · réservoir presque vide : étape en économie.
+//   · panne de propulsion en étape (plus probable coque abîmée), arrêt de réparation (temps contre intégrité).
 // Chaque événement est aussi un fait de course (tracks[id].happenings) pour la voix off et le fil d'actualité.
 // Positions en repère local du système (géante au centre, plan équatorial XZ). Unités SI.
 import { propagate, sampleAt, hyperbolicApproach } from '../core/Gravity.js';
@@ -57,6 +56,21 @@ function bodiesOf(sys) {
 export function rngOf(str) {
   let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+// v2 : hasard à 128 bits d'état (cyrb128 → sfc32) : la course dépend de toute la graine, pas de 32 bits
+export function rng2(str) {
+  let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;
+  for (let i = 0; i < str.length; i++) {
+    const k = str.charCodeAt(i);
+    h1 = h2 ^ Math.imul(h1 ^ k, 597399067); h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+    h3 = h4 ^ Math.imul(h3 ^ k, 951274213); h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+  }
+  h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067); h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+  h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213); h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+  let a = (h1 ^ h2 ^ h3 ^ h4) >>> 0, b = (h2 ^ h1) >>> 0, c = (h3 ^ h1) >>> 0, d = (h4 ^ h1) >>> 0;
+  const next = () => { a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0; let t = (a + b) | 0; a = b ^ (b >>> 9); b = (c + (c << 3)) | 0; c = (c << 21) | (c >>> 11); d = (d + 1) | 0; t = (t + d) | 0; c = (c + t) | 0; return (t >>> 0) / 4294967296; };
+  for (let i = 0; i < 12; i++) next();
+  return next;
 }
 export const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 export const FUEL_PER_DV = 1 / 9000, FUEL_PER_LEG = 0.12;            // part du réservoir par m/s de poussée, par étape
@@ -134,6 +148,7 @@ export function passSystem(sys, plan, tStart, entryR = 9) {
   const vOut = Math.sqrt(Math.max(1, ve * ve - 2 * GM / re));
   return { samples, cps, tp: tPer, rp: rm, hit: S.hit || null, tpPlanned: tp, vOut, plan };
 }
+export const ENGINE_V = 2;                                           // version la plus récente que ce moteur sait rejouer
 export const V_REF = 1.55e4;                                          // vitesse de sortie de référence (étape de legHours)
 
 
@@ -142,20 +157,25 @@ const LABELS = { entry: 'entrée', ring: 'plan des anneaux', periapsis: 'périap
 // carte publique des dangers d'une édition (v2) : ceinture d'astéroïdes et risque d'éruption sur chaque étape
 export const FLARE_P = { faible: 0.2, moyen: 0.45, 'élevé': 0.75 };
 export function hazardsOf(systems, seed) {
-  const R = rngOf(`${seed}|dangers`);
+  const R = rng2(`${seed}|dangers`);
   return { legs: systems.slice(0, -1).map((s, k) => {
-    const belt = R() < 0.7 ? { gain: +(0.08 + R() * 0.06).toFixed(3) } : null, x = R();
+    const belt = R() < 0.7 ? { gain: +(0.03 + R() * 0.03).toFixed(3) } : null, x = R();
     return { from: s.id, to: systems[k + 1].id, belt, flare: x < 0.35 ? 'faible' : x < 0.75 ? 'moyen' : 'élevé' };
   }) };
 }
 const MIN = 60;
 // décisions et tirages v2 d'un passage (et de l'étape qui suit) : seulement quand les pilotes décident
 function decideV2(r, sys, k, last, plan, S, sl, ctx) {
-  const R = rngOf(`${ctx.seed}|${r.id}|${sys.id}|v2`), ag = plan.ag, ev = {};
+  const R = rng2(`${ctx.seed}|${r.id}|${sys.id}|v2`), ag = plan.ag, ev = {};
   // assistance d'une lune : les audacieux, s'il y a des lunes, jamais dans le dernier système (l'arrivée est à la périapse)
-  if (!last && sys.moons.length && R() < 0.15 + ag * 0.55) {
-    const m = sys.moons[Math.floor(R() * sys.moons.length)];
-    ev.moon = { id: m.id, gain: Math.round((260 + R() * 380) * Math.min(1.4, m.r / 1.3e6)), dmg: R() < 0.22 + ag * 0.25 ? +((0.03 + R() * 0.04) * (r.tough || 1)).toFixed(4) : 0 };
+  // (la lune la plus proche de la trajectoire, avant la périapse ; trop loin, ou seulement à l'entrée : pas d'assistance)
+  if (!last && sys.moons.length && R() < 0.2 + ag * 0.6) {
+    let best = null; for (const m of sys.moons) { const a = moonApproach(sys, sl.samples, sl.tp, m.id); if (!best || a.d < best.a.d) best = { m, a }; }
+    const u1 = R(), u2 = R(), u3 = R();
+    if (best && best.a.i > 0 && best.a.d < 2.6e8) {
+      const near = clamp(1.45 - best.a.d / 2.2e8, 0.35, 1.2);
+      ev.moon = { id: best.m.id, t: Math.round(Math.min(best.a.t, sl.tpPlanned - 600)), d: Math.round(best.a.d / 1e3), gain: Math.round((260 + u1 * 380) * Math.min(1.4, best.m.r / 1.3e6) * near), dmg: u2 < 0.22 + ag * 0.25 ? +((0.03 + u3 * 0.04) * (r.tough || 1)).toFixed(4) : 0 };
+    }
   }
   if (last) return ev;
   const hz = ctx.hazards.legs[k] || {}, L = {};
@@ -169,12 +189,12 @@ function decideV2(r, sys, k, last, plan, S, sl, ctx) {
   }
   // éruption : une par étape au plus, à la même heure pour tous (fixée par le premier racer qui part sur l'étape)
   const fl = ctx.flares;
-  if (!(k in fl)) { const Rf = rngOf(`${ctx.seed}|eruption|${k}`); fl[k] = Rf() < (FLARE_P[hz.flare] || 0) ? { t: null, u: Rf(), dur: (2 + Rf() * 2.5) * 3600 } : null; }
+  if (!(k in fl)) { const Rf = rng2(`${ctx.seed}|eruption|${k}`); fl[k] = Rf() < (FLARE_P[hz.flare] || 0) ? { t: null, u: Rf(), dur: (2 + Rf() * 2.5) * 3600 } : null; }
   if (fl[k]) L.flare = { prudent: ag < 0.45 || integ < 0.7, u: R() };   // l'issue dépend de l'heure (posée à l'application)
   // panne de propulsion en étape, plus probable avec une coque abîmée
-  if (R() < 0.06 + (1 - integ) * 0.35) L.failure = { f: +(0.15 + R() * 0.7).toFixed(3), lost: Math.round((25 + R() * 45) * MIN) };
+  if (R() < 0.06 + (1 - integ) * 0.35) L.failure = { f: +(0.15 + R() * 0.7).toFixed(3), lost: Math.round((15 + R() * 25) * MIN) };
   // arrêt de réparation : coque très abîmée et pilote raisonnable
-  if (integ < 0.72 && (ag < 0.6 || integ < 0.55)) L.repair = { f: 0.5, lost: Math.round((40 + R() * 40) * MIN), gain: +(0.12 + R() * 0.06).toFixed(3) };
+  if (integ < 0.72 && (ag < 0.6 || integ < 0.55)) L.repair = { f: 0.5, lost: Math.round((25 + R() * 25) * MIN), gain: +(0.12 + R() * 0.06).toFixed(3) };
   ev.leg = L;
   return ev;
 }
@@ -182,15 +202,15 @@ function decideV2(r, sys, k, last, plan, S, sl, ctx) {
 function moonApproach(sys, samples, tp, moonId) {
   const { list } = bodiesOf(sys), i = sys.moons.findIndex((m) => m.id === moonId), b = list[i + 1], o = [0, 0, 0];
   let best = null;
-  for (const s of samples) { if (s.t > tp) break; b.pos(s.t, o); const d = Math.hypot(s.p[0] - o[0], s.p[1] - o[1], s.p[2] - o[2]); if (!best || d < best.d) best = { t: s.t, d }; }
-  return best || { t: samples[0].t, d: Infinity };
+  samples.forEach((s, i) => { if (s.t > tp) return; b.pos(s.t, o); const d = Math.hypot(s.p[0] - o[0], s.p[1] - o[1], s.p[2] - o[2]); if (!best || d < best.d) best = { t: s.t, d, i }; });
+  return best || { t: samples[0].t, d: Infinity, i: 0 };
 }
 const planKey = (racerId, sysId) => `${racerId}|${sysId}`;
 
 // plans : { 'racer|système': plan } pour rejouer ; sinon les pilotes décident (et la surchauffe est tirée)
 export function runRace({ systems, racers, pilot, plans = null, memo = null }) {
   const V2 = (pilot.v || 1) >= 2;
-  const hazards = V2 ? (pilot.hazards || hazardsOf(systems, pilot.seed)) : null, flares = {};
+  const hazards = V2 ? (pilot.hazards || (pilot.seed ? hazardsOf(systems, pilot.seed) : null)) : null, flares = {};
   const revealed = [];                                         // [{ racer, sys, t, plan }] dans l'ordre des entrées
   // simulation système par système, tous les racers ensemble : à chaque entrée, les pilotes voient la course
   const tracks = {};
@@ -204,7 +224,7 @@ export function runRace({ systems, racers, pilot, plans = null, memo = null }) {
         plan = plans[planKey(r.id, sys.id)];
         if (!plan) { S.stopped = true; S.waiting = { sys, t: S.t }; return; }   // entrée connue (fin d'étape), plan pas encore publié
       } else {
-        const R = rngOf(`${pilot.seed}|${r.id}|${sys.id}`);
+        const R = (V2 ? rng2 : rngOf)(`${pilot.seed}|${r.id}|${sys.id}`);
         plan = choosePlan(r, sys, { gap: S.t - t0, rank: rank + 1, n: racers.length, fuel: S.fuel, integrity: S.integrity, last, legsLeft: systems.length - 1 - k }, R);
         // une plongée peut mal tourner : surchauffe → la poussée est coupée à mi-course, la coque prend cher. Plus le
         // passage est rasant et la coque déjà abîmée, plus c'est probable (tirage déterministe de l'édition)
@@ -224,6 +244,7 @@ export function runRace({ systems, racers, pilot, plans = null, memo = null }) {
       const rpR = sl.rp / sys.R, ring = sl.cps.find((c) => c.kind === 'ring');
       let dmg = Math.max(0, 1.08 - rpR) * 2.6 + (ring && ring.inRing ? 0.03 + 0.04 * plan.ag : 0) + (plan.failed ? 0.07 : 0);
       dmg *= r.tough || 1;                                    // robustesse de la coque (lourd : encaisse ; sport : fragile)
+      const integ0 = S.integrity;
       S.integrity = Math.max(0.3, S.integrity - dmg); seg.damage = dmg;
       S.events.push({ t: sl.tpPlanned, fuel: S.fuel, integrity: S.integrity });
       S.t = seg.t1;
@@ -234,10 +255,12 @@ export function runRace({ systems, racers, pilot, plans = null, memo = null }) {
         ev = plan.ev || {};
         const HP = S.happenings;
         if (ev.moon) {
-          const a = moonApproach(sys, sl.samples, sl.tp, ev.moon.id), m = sys.moons.find((x) => x.id === ev.moon.id);
+          const m = sys.moons.find((x) => x.id === ev.moon.id), tm = ev.moon.t;
           vOut += ev.moon.gain;
-          HP.push({ t: a.t, kind: 'moon', sys: sys.id, prio: 4, data: { moon: m ? m.name.split(' · ')[0] : ev.moon.id, gain: ev.moon.gain, dmg: ev.moon.dmg, d: a.d } });
-          if (ev.moon.dmg) { S.integrity = Math.max(0.3, S.integrity - ev.moon.dmg); S.events[S.events.length - 1].integrity = S.integrity; S.events.push({ t: a.t, fuel: S.fuel + plan.dv * FUEL_PER_DV, integrity: S.integrity }); }
+          // la lune vient avant la périapse : son état ne compte que ses propres débris (la chauffe de la périapse vient après)
+          const im = Math.max(0.3, integ0 - ev.moon.dmg);
+          HP.push({ t: tm, kind: 'moon', sys: sys.id, prio: 4, data: { moon: m ? m.name.split(' · ')[0] : ev.moon.id, gain: ev.moon.gain, dmg: ev.moon.dmg, d: ev.moon.d, integrity: im } });
+          if (ev.moon.dmg) { S.integrity = Math.max(0.3, S.integrity - ev.moon.dmg); S.events[S.events.length - 1].integrity = S.integrity; S.events.push({ t: tm, fuel: S.fuel + plan.dv * FUEL_PER_DV, integrity: im }); }
         }
       }
       if (!last) {
@@ -249,30 +272,28 @@ export function runRace({ systems, racers, pilot, plans = null, memo = null }) {
         if (L) {
           const HP = S.happenings, base = dur;
           if (L.belt) { dur *= 1 - L.belt.gain; HP.push({ t: legT0 + 60, kind: 'belt', sys: systems[k + 1].id, prio: 4, data: { gain: L.belt.gain, saved: base - dur } }); }
-          if (S.fuel - FUEL_PER_LEG < 0.12) { dur *= 1.05; HP.push({ t: legT0 + 120, kind: 'fuelSave', sys: systems[k + 1].id, prio: 3, data: {} }); }
           const pure = dur;                                      // durée de vol, avant les temps perdus
           if (L.belt) for (const h of L.belt.hits) marks.push([legT0 + h.f * pure, -h.dmg, { kind: 'beltHit', prio: 4, data: { dmg: h.dmg } }]);
           if (L.failure) marks.push([legT0 + L.failure.f * pure, 0, { kind: 'failure', prio: 4, data: { lost: L.failure.lost } }, L.failure.lost]);
           if (L.repair) marks.push([legT0 + L.repair.f * pure, L.repair.gain, { kind: 'repair', prio: 3, data: { lost: L.repair.lost, gain: L.repair.gain } }, L.repair.lost]);
           if (L.flare) {
             // l'heure de l'éruption : posée par le premier racer parti sur l'étape (pilotes) ; relue dans le plan (rejeu)
-            if (!plans) { const F = flares[k]; if (F.t == null) F.t = legT0 + (0.25 + F.u * 0.5) * pure; L.flare.t = Math.round(F.t); L.flare.dur = Math.round(F.dur); }
+            if (!plans) { const F = flares[k]; if (F.t == null) F.t = legT0 + (0.25 + F.u * 0.9) * pure; L.flare.t = Math.round(F.t); L.flare.dur = Math.round(F.dur); }   // fenêtre jusqu'au-delà de l'étape du premier : le peloton aussi
             const tf = L.flare.t, f = (tf - legT0) / pure;
             if (f > 0 && f < 1) {                                // l'éruption tombe pendant son étape
-              const lost = L.flare.prudent ? Math.round((25 + L.flare.u * 25) * MIN) : L.flare.u < 0.3 ? Math.round((60 + L.flare.u * 120) * MIN) : 0;
+              const lost = L.flare.prudent ? Math.round((12 + L.flare.u * 18) * MIN) : L.flare.u < 0.3 ? Math.round((30 + L.flare.u * 100) * MIN) : 0;
               const dmg = L.flare.prudent ? 0 : +((0.03 + L.flare.u * 0.05) * (r.tough || 1)).toFixed(4);
-              marks.push([tf, -dmg, { kind: 'flare', prio: 4, data: { prudent: L.flare.prudent, lost, dmg, dur: L.flare.dur } }, lost]);
-            } else if (f >= 1 && f < 1 + (L.flare.dur || 0) / pure) marks.push([tf, 0, { kind: 'flareMiss', prio: 2, data: {} }]);
+              marks.push([tf, -dmg, { kind: 'flare', prio: 4, data: { prudent: L.flare.prudent, lost, dmg, dur: L.flare.dur } }, lost, true]);
+            }
           }
-          marks.sort((a, b) => a[0] - b[0]);
-          // les temps perdus décalent la suite de l'étape
+          // les temps perdus décalent la suite de l'étape (pas l'éruption : même heure pour tous)
           let shift = 0;
-          for (const m of marks) {
-            const t = m[0] + shift;
+          const rel = marks.filter((m) => !m[4]).sort((a, b) => a[0] - b[0]), abs = marks.filter((m) => m[4]), seq = [];
+          while (rel.length || abs.length) { const take = !abs.length || (rel.length && rel[0][0] + shift <= abs[0][0]) ? rel.shift() : abs.shift(); seq.push([take[4] ? take[0] : take[0] + shift, take]); shift += take[3] || 0; }
+          for (const [t, m] of seq) {
             if (m[1]) { S.integrity = clamp(S.integrity + m[1], 0.3, 1); }
             S.events.push({ t, fuel: legFuel, integrity: S.integrity });
-            if (m[2].kind !== 'flareMiss') HP.push({ t, sys: systems[k + 1].id, ...m[2], data: { ...m[2].data, integrity: S.integrity } });
-            shift += m[3] || 0;
+            HP.push({ t, sys: systems[k + 1].id, ...m[2], data: { ...m[2].data, integrity: S.integrity } });
           }
           dur += shift;
         }

@@ -317,6 +317,7 @@ raceLayer = new RaceLayer({
   scene, frame, feed: feedFromUrl(),                                // ?feed=mock : course publiée au fil de l'eau
   giant: () => giant, sys: () => curSys, fleet: () => ensureFleet(),
   hud: document.getElementById('race'), labels: document.getElementById('race-labels'),
+  corridor: EMBED ? () => embedSurface('corridor') : null,          // intégré au Télébyte : la vue couloir des étapes
   setTime: (t) => { simT = t; if (raceLayer && raceLayer.feed && raceLayer.feed.live) { const L = raceLayer.feed.live.source; raceLayer.liveLock = t >= L.now() - 3 * (L.snap.rate || 1) - 60; } }, getTime: () => simT, setSpeed: (x) => { timeScale = x; },
   follow: (id) => { const P = RACER_PROFILES[RACERS.find((r) => r.id === id).ship]; cam.setTarget(targets['racer:' + id], { dur: 2.2, dist: Math.max(P.length * 3, 400) }); },
   views: { overview: () => trackPack(2), gates: () => VIEWS['course-portes']() },
@@ -630,8 +631,8 @@ function useSnap(snap) {
 /* ── mode intégré : le Télébyte pilote cette vue par messages (Phase 2, étape 8) ──
    enter { sys, t, sel } : on entre dans le système, caméra lancée de loin qui plonge (amortie) sur le peloton ou le racer ;
    la vue répond ready, puis vit seule ; en remontant (geste ou « ← Télébyte ») elle renvoie surface { t, sel } et se met en veille. */
-function embedSurface() {
-  parent.postMessage({ fronde: 1, type: 'surface', t: simT, sel: raceLayer.sel || null, sys: curSys.id }, '*');
+function embedSurface(then = null) {
+  parent.postMessage({ fronde: 1, type: 'surface', t: simT, sel: raceLayer.sel || null, sys: curSys.id, then }, '*');
   renderer.setAnimationLoop(null);
 }
 if (EMBED) {

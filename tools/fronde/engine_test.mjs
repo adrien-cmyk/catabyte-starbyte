@@ -41,6 +41,8 @@ for (const v of [1, 2]) {
 }
 const out = outs[2];
 if (process.env.SERVER) {
+  // v1 aussi : la copie serveur doit savoir rejouer les éditions d'avant
+  { const S1 = await import(pathToFileURL(process.env.SERVER).href); for (const seed of Object.keys(outs[1])) { const pilot = { ...D.PILOT, seed }; delete pilot.v; ok(sha(S1.digest(S1.runRace({ systems: S1.RACE_SYSTEMS, racers: S1.RACERS, pilot }))) === outs[1][seed], `v1 ${seed} : la copie serveur diffère`); } }
   const S = await import(pathToFileURL(process.env.SERVER).href);
   for (const seed of Object.keys(out)) { const pilot = { ...D.PILOT, seed }; ok(sha(S.digest(S.runRace({ systems: S.RACE_SYSTEMS, racers: S.RACERS, pilot }))) === out[seed], `${seed} : la copie serveur diffère`); }
 }
