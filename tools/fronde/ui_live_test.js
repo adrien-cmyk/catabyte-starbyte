@@ -18,7 +18,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   if (T) await ctx.route(/cdn\.jsdelivr\.net\/npm\/three@0\.186\.0\//, (r) => r.fulfill({ path: path.join(T, new URL(r.request().url()).pathname.replace(/^\/npm\/three@0\.186\.0\//, '')), contentType: 'application/javascript' }));
   await ctx.addInitScript(() => { try { localStorage.setItem('fronde.tv', '0'); } catch (e) {} });   // mode TV coupé : l'essai pilote lui-même
-  await ctx.addInitScript(() => { try { for (const k of ['repetition', 'essai']) localStorage.setItem('fronde.racers.' + k, '1'); localStorage.setItem('sb_fronde_hello', '9'); const S = Storage.prototype.getItem; Storage.prototype.getItem = function (k) { return /^fronde\.racers\./.test(k) ? '1' : S.call(this, k); }; } catch (e) {} });   // fiche des racers déjà vue : l'essai pilote lui-même
+  await ctx.addInitScript(() => { try { for (const k of ['repetition', 'essai']) localStorage.setItem('fronde.racers.' + k, '1'); localStorage.setItem('sb_fronde_hello', '9'); localStorage.setItem('fronde.voice2', 'texte'); const S = Storage.prototype.getItem; Storage.prototype.getItem = function (k) { return /^fronde\.racers\./.test(k) ? '1' : S.call(this, k); }; } catch (e) {} });   // fiche des racers déjà vue : l'essai pilote lui-même
   const p = await ctx.newPage();
   p.on('pageerror', (e) => console.log('PAGEERR', e.message.slice(0, 300)));
   p.on('console', (m) => { if (m.type() === 'error') console.log('CON', m.text().slice(0, 200)); });

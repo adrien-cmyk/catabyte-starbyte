@@ -5,6 +5,7 @@ import { feedFromUrl } from '../sandbox/race/DemoFeed.js';
 import { loadEdition, liveFeed, rpc, tick } from '../sandbox/race/live.js';
 import { UniverseView } from './UniverseView.js';
 import { createNarrator } from './narrator.js';
+import { createVoice } from './voice.js';
 import { mountNews } from './news.js';
 import { mountCorridor } from './corridor.js';
 import { createDirector } from './director.js';
@@ -272,8 +273,11 @@ function commentary(at) {
 /* ── voix off et fil d'actualité (Phase 4) ── */
 // paris : ceux du serveur en direct ; en démo hors ligne, une cagnotte fictive (tirée du nom de l'édition)
 const demoPools = (() => { let h = 7; for (const c of E.id || 'x') h = (h * 33 + c.charCodeAt(0)) % 9973; const by = {}; let tot = 0; E.racers.forEach((r, i) => { const v = 1500 + ((h * (i + 3) * 7919) % 9000) + (r.risk || 0) * 9000; by[r.id] = Math.round(v / 10) * 10; tot += by[r.id]; }); return { total: tot, by_racer: by, house: 5 }; })();
+// voix des commentateurs : vraies voix ElevenLabs (telebyte/voice.js) ; dans le jeu, le son passe par la page du jeu
+// (même origine), autorisée par le toucher sur le drapeau
+const voiceHost = (() => { try { return window.parent !== window && window.parent.SBFronde ? window.parent : window; } catch (e) { return window; } })();
 const nar = createNarrator({
-  feed, E, racer, hh, dur, sub: $('sub'),
+  feed, E, racer, hh, dur, sub: $('sub'), voice: createVoice({ host: voiceHost, generate: (FEED_Q === 'live' && !!LIVE) || !!window.FRONDE_VOICE_GENERATE }),   // FRONDE_VOICE_GENERATE : essais
   pools: () => LIVE ? (LIVE.snap.pools ? { ...LIVE.snap.pools, house: LIVE.snap.edition.house_pct } : null) : demoPools,
   mine: () => (LIVE && LIVE.snap.my_bets) || [],
 });
@@ -346,11 +350,11 @@ function replayFlat(e) {
 }
 // commentaire : voix + sous-titres, sous-titres seuls, ou rien (mémorisé) ; le son ne part qu'après un premier toucher
 const VOICE_L = { voix: svg('speaker'), texte: svg('captions'), off: svg('muted') }, VOICE_T = { voix: 'voix off et sous-titres', texte: 'sous-titres seuls', off: 'coupé' };
-const setVoice = (m) => { nar.setMode(m); $('voice').innerHTML = VOICE_L[m]; $('voice').title = 'Commentaire : ' + VOICE_T[m]; $('voice').classList.toggle('off', m === 'off'); $('voice').setAttribute('aria-label', 'Commentaire : ' + VOICE_T[m]); try { localStorage.setItem('fronde.voice', m); } catch (e) {} };
-// voix off désactivée pour l'instant (07/11 : la synthèse du téléphone sonne trop « VoiceOver » ; de vraies voix viendront) :
-// sous-titres seuls ou coupé ; une préférence « voix » mémorisée devient « sous-titres »
-const VOICE_ON = false;
-{ let m = 'texte'; try { m = localStorage.getItem('fronde.voice') || 'texte'; } catch (e) {} if (!VOICE_ON && m === 'voix') m = 'texte'; setVoice(VOICE_L[m] ? m : 'texte'); }
+const setVoice = (m) => { nar.setMode(m); $('voice').innerHTML = VOICE_L[m]; $('voice').title = 'Commentaire : ' + VOICE_T[m]; $('voice').classList.toggle('off', m === 'off'); $('voice').setAttribute('aria-label', 'Commentaire : ' + VOICE_T[m]); try { localStorage.setItem('fronde.voice2', m); } catch (e) {} };
+// voix : vraies voix ElevenLabs depuis le 07/11 (la synthèse du téléphone sonnait trop « VoiceOver ») ; VOICE_ON = false
+// remet les sous-titres seuls (une préférence « voix » mémorisée devient alors « sous-titres »)
+const VOICE_ON = true;
+{ let m = VOICE_ON ? 'voix' : 'texte'; try { m = localStorage.getItem('fronde.voice2') || m; } catch (e) {} if (!VOICE_ON && m === 'voix') m = 'texte'; setVoice(VOICE_L[m] ? m : 'texte'); }
 $('voice').onclick = () => {
   if (VOICE_ON) nar.unlock(); const m = VOICE_ON ? (nar.mode === 'voix' ? 'texte' : nar.mode === 'texte' ? 'off' : 'voix') : (nar.mode === 'off' ? 'texte' : 'off'); setVoice(m);
   const sb = $('sub'); sb.hidden = false; sb.classList.remove('b'); sb.innerHTML = `<b>Commentaire</b> ${VOICE_T[m]}`;   // ce que fait le bouton, un instant

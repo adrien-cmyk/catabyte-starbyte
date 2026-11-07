@@ -34,7 +34,8 @@ const STUB = () => {
   ok(s1.log.length >= 2, `la voix off parle dès la lecture (${s1.log.length} phrases en 9 s, t = ${(s1.t / 3600).toFixed(1)} h)`);
   // voix off désactivée pour l'instant (main.js VOICE_ON) : sous-titres seuls, aucune synthèse vocale
   const voiceOn = await p.evaluate(() => TB.nar.mode === 'voix');
-  if (voiceOn) ok(s1.spoken.length >= 1 && s1.spoken.some((x) => x.voice === 'Thomas') , `synthèse vocale appelée (${s1.spoken.length} phrases, voix ${[...new Set(s1.spoken.map((x) => x.voice))].join(', ')})`);
+  // vraies voix (ElevenLabs, fichiers) : jamais la synthèse du téléphone ; ici, hors ligne, sous-titres
+  if (voiceOn) ok(!s1.spoken.filter((x) => x.text.trim()).length && !!s1.sub, `voix : plus de synthèse du téléphone (${s1.spoken.length}), sous-titres « ${(s1.sub || '').slice(0, 40)}… »`);
   else ok(!s1.spoken.filter((x) => x.text.trim()).length && !!s1.sub, `voix désactivée : sous-titres seuls (${s1.spoken.length} phrase parlée, sous-titre « ${(s1.sub || '').slice(0, 40)}… »)`);
   ok(!!s1.news && /Dernière minute/.test(s1.news), `bandeau « dernière minute » : ${s1.news}`);
   await p.screenshot({ path: `${OUT}/c1_voix.png` });

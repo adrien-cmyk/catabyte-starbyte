@@ -2,10 +2,11 @@
 //   Arno Vasseur — le commentateur, emporté ; Mila Korsh — la consultante, ancienne pilote de fronde, posée.
 // Ils racontent la course à partir de la chronologie (timeline.js : seulement ce qui est déjà arrivé à l'instant
 // affiché), comblent les temps morts (point course, télémétrie, vécu des pilotes, faits divers, paris, grande
-// finale) et parlent avec la synthèse vocale du navigateur (Web Speech, voix françaises). Sous-titres à l'écran.
+// finale). Sous-titres à l'écran ; voix : de vraies voix ElevenLabs (telebyte/voice.js, option voice), seulement pour
+// les phrases réutilisables (faits de course, anecdotes) ; l'heure et les chiffres du moment restent en sous-titres.
 //
 //   const nar = createNarrator({ feed, E, racer, hh, dur, pools: () => ({ total, by_racer, house }) | null,
-//                                mine: () => [{ racer, stake }], sub: élément des sous-titres })
+//                                mine: () => [{ racer, stake }], sub: élément des sous-titres, voice: createVoice() })
 //   nar.update(t, { now })     à chaque image (t : instant affiché ; now : présent du direct, < 0 avant le départ)
 //   nar.setMode('voix' | 'texte' | 'off'), nar.mode, nar.unlock() (premier toucher : iOS n'autorise le son qu'après)
 //   nar.rebuild()              quand le flux change (nouveaux plans publiés)
@@ -68,7 +69,7 @@ const VECU_LEG = [
 ];
 
 const NB = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze'];
-export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mine = () => [], sub = null }) {
+export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mine = () => [], sub = null, voice = null }) {
   const N = Object.fromEntries(E.racers.map((r) => [r.id, names(r)]));
   const P = (id) => PILOTS[id] || 'son pilote';
   const sysName = (id) => (E.systems.find((s) => s.id === id) || { name: id }).name;
@@ -76,7 +77,12 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   const pct = (x) => Math.round(x * 100);
   const fmt = (n) => Math.round(n).toLocaleString('fr-CH');
   let seed = 0; for (const c of E.id || 'fronde') seed = (seed * 31 + c.charCodeAt(0)) >>> 0;
-  const rnd = () => { seed = (seed + 0x6D2B79F5) >>> 0; let x = seed; x = Math.imul(x ^ (x >>> 15), x | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+  const rnd0 = () => { seed = (seed + 0x6D2B79F5) >>> 0; let x = seed; x = Math.imul(x ^ (x >>> 15), x | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+  // les phrases d'un fait sont tirées de son identifiant, pas du fil de la soirée : chaque joueur entend les mêmes
+  // phrases (un seul fichier de voix, lu une fois, partagé)
+  let rndOver = null;
+  const rnd = () => (rndOver ? rndOver() : rnd0());
+  const seeded = (key) => { let h = 2166136261; for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h = (h + 0x6D2B79F5) >>> 0; let x = h; x = Math.imul(x ^ (x >>> 15), x | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; };
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
   const nar = { mode: 'voix', log: [], tl: [] };
   let lastT = null, lastReal = 0, rate = 1, queue = [], speaking = null, nextFill = 0, faitI = Math.floor(rnd() * FAITS.length), fillI = 0;
@@ -86,7 +92,8 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   nar.rebuild();
 
   /* ── ce que disent les commentateurs pour chaque fait ── */
-  function linesFor(e, t) {
+  function linesFor(e, t) { rndOver = seeded(e.key || e.kind + e.t); try { return linesFor0(e, t); } finally { rndOver = null; } }
+  function linesFor0(e, t) {
     const n = e.racer ? N[e.racer] : null, d = e.data, S = e.sys ? sysName(e.sys) : '';
     switch (e.kind) {
       case 'start': return [['A', pick([`Et c'est parti pour la Grande Fronde ! Quatre vaisseaux, ${NB[E.systems.length] || E.systems.length} systèmes, une seule trajectoire parfaite !`, 'Top départ ! La Grande Fronde est lancée, et quelle ambiance dans les tribunes !'])],
@@ -157,16 +164,17 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     }
     return null;
   }
+  const nv = (L) => L && L.map((l) => [l[0], l[1], false]);   // phrase du moment (heure, chiffres) : sous-titre seul, pas de voix
   function fillOf(kind, t, rows, lead) {
     const id = pick(rows.filter((r) => !r.done)).id, n = N[id], s = feed.stateAt(id, t);
     if (kind === 'recap') {
       if (rows.length < 2) return null;
       const second = rows[1];
-      return [['A', `Point course à ${hh(t)} : ${N[lead.id].le} en tête${second.gap > 1 ? `, ${N[second.id].le} à ${dur(second.gap)}` : `, ${N[second.id].le} dans son sillage`}.`]];
+      return nv([['A', `Point course à ${hh(t)} : ${N[lead.id].le} en tête${second.gap > 1 ? `, ${N[second.id].le} à ${dur(second.gap)}` : `, ${N[second.id].le} dans son sillage`}.`]]);
     }
     if (kind === 'tele') {
-      if (s.phase === 'system' && s.speed) return [['A', `${n.Le} file à ${km(s.speed)} km/s à ${sysName(s.system)}, réservoir à ${pct(s.fuel)} %, coque à ${pct(s.integrity)} %.`]];
-      if (s.phase === 'leg') return [['A', `${n.Le} est en plein vide interstellaire, en route vers ${sysName(s.legTo)}. Réservoir à ${pct(s.fuel)} %, coque à ${pct(s.integrity)} %.`]];
+      if (s.phase === 'system' && s.speed) return nv([['A', `${n.Le} file à ${km(s.speed)} km/s à ${sysName(s.system)}, réservoir à ${pct(s.fuel)} %, coque à ${pct(s.integrity)} %.`]]);
+      if (s.phase === 'leg') return nv([['A', `${n.Le} est en plein vide interstellaire, en route vers ${sysName(s.legTo)}. Réservoir à ${pct(s.fuel)} %, coque à ${pct(s.integrity)} %.`]]);
       return null;
     }
     if (kind === 'vecu') {
@@ -175,7 +183,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
       return null;
     }
     if (kind === 'fait') { const f = FAITS[(faitI++) % FAITS.length]; return [['A', 'Un petit fait divers en passant.'], ['B', f]]; }
-    if (kind === 'paris') return betLine(rows);
+    if (kind === 'paris') return nv(betLine(rows));
     if (kind === 'finale') {
       const last = E.systems[E.systems.length - 1], s0 = feed.stateAt(lead.id, t);
       if (s0.phase === 'leg' && s0.legTo === last.id) return [['B', `La grande finale approche : à ${last.name}, l'arrivée se joue à la périapse. ${N[lead.id].Le} mène la danse, mais rien n'est fait.`]];
@@ -203,31 +211,12 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   function preRace(left) {
     const i = (fillI++) % (E.racers.length + 3);
     if (i < E.racers.length) { const r = E.racers[i]; return [['A', `Présentation : ${N[r.id].le}.`], ['B', `${PROFILE[r.id] ? PROFILE[r.id][0].toUpperCase() + PROFILE[r.id].slice(1) : 'Un outsider à surveiller'}. Aux commandes : ${P(r.id)}.`]]; }
-    if (i === E.racers.length) return [['A', `Départ dans ${dur(left)} ! Au programme : ${E.systems.map((s) => s.name).join(', puis ')}. Et l'arrivée à la périapse de ${E.systems[E.systems.length - 1].name}.`]];
-    if (i === E.racers.length + 1) return betLine(feed.standingsAt(0)) || [['B', 'Les paris sont ouverts jusqu\'au départ. Choisissez bien votre vaisseau.']];
+    if (i === E.racers.length) return nv([['A', `Départ dans ${dur(left)} ! Au programme : ${E.systems.map((s) => s.name).join(', puis ')}. Et l'arrivée à la périapse de ${E.systems[E.systems.length - 1].name}.`]]);
+    if (i === E.racers.length + 1) return nv(betLine(feed.standingsAt(0))) || [['B', 'Les paris sont ouverts jusqu\'au départ. Choisissez bien votre vaisseau.']];
     return [['B', FAITS[(faitI++) % FAITS.length]]];
   }
 
-  /* ── file de parole et synthèse vocale ── */
-  // dans le jeu, le Télébyte vit dans un cadre : sur iPhone, une voix lancée depuis un cadre reste muette tant que le
-  // toucher n'a pas eu lieu dans ce cadre même. On parle donc par la page du jeu (même origine), que le toucher sur le
-  // drapeau a déjà autorisée (assets/fronde-bridge.js : SBFronde.speechReady). Hors du jeu : la page elle-même.
-  const host = (() => { const me = typeof window !== 'undefined' ? window : globalThis; try { const w = me.parent; return w && w !== me && w.speechSynthesis && w.SBFronde ? w : me; } catch (e) { return me; } })();
-  const synth = typeof host.speechSynthesis !== 'undefined' ? host.speechSynthesis : null;
-  const Utt = host.SpeechSynthesisUtterance || (typeof SpeechSynthesisUtterance !== 'undefined' ? SpeechSynthesisUtterance : null);
-  const gameReady = () => { try { return !!(host.SBFronde && host.SBFronde.speechReady && host !== globalThis.window); } catch (e) { return false; } };
-  let voices = { A: null, B: null };
-  function chooseVoices() {
-    if (!synth) return;
-    const fr = synth.getVoices().filter((v) => /^fr/i.test(v.lang));
-    if (!fr.length) return;
-    const pref = (re) => fr.find((v) => re.test(v.name));
-    const frFR = fr.filter((v) => /fr[-_]FR/i.test(v.lang));
-    const pool = frFR.length ? frFR : fr;
-    voices.A = pref(/thomas|nicolas|daniel|henri|paul|mathieu|male|homme/i) || pool[0];
-    voices.B = pref(/am[ée]lie|audrey|marie|aur[ée]lie|virginie|julie|denise|female|femme/i) || pool.find((v) => v !== voices.A) || pool[0];
-  }
-  if (synth) { chooseVoices(); try { synth.addEventListener('voiceschanged', chooseVoices); } catch (e) { synth.onvoiceschanged = chooseVoices; } }
+  /* ── file de parole : sous-titres, et vraies voix (telebyte/voice.js, ElevenLabs) ── */
   const speakable = (s) => s.replace(/(\d)['’\u202f\u00a0 ](?=\d{3}\b)/g, '$1').replace(/km\/s/g, 'kilomètres par seconde').replace(/(\d+) h (\d+)/g, '$1 heures $2').replace(/(\d+) h\b/g, '$1 heures')
     .replace(/(\d+) min\b/g, '$1 minutes').replace(/(\d+) s\b/g, '$1 secondes').replace(/ CG\b/g, ' crédits').replace(/(\d) %/g, '$1 pour cent').replace(/\b1re\b/g, 'première').replace(/\b(\d+)e\b/g, '$1ème').replace(/\bJ\+(\d+)/g, 'jour $1,')
     .replace(/\b([A-ZÀÂÉÈÊÎÔÛÇ]{2,})\b/g, (w) => w[0] + w.slice(1).toLowerCase());   // capitales : lues comme des mots, pas épelées
@@ -235,80 +224,48 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     if (!sub) return;
     if (nar.mode === 'off' || !text) { sub.hidden = true; return; }
     // voix voulue mais pas encore autorisée par le téléphone : on le dit (un toucher suffit)
-    const hint = nar.mode === 'voix' && synth && !audioOk ? ` <small class="hint">${svg('muted')} touche l'écran pour le son</small>` : '';
+    const hint = nar.mode === 'voix' && voice && !audioOk ? ` <small class="hint">${svg('muted')} touche l'écran pour le son</small>` : '';
     sub.hidden = false; sub.innerHTML = `<b>${SPK[who].name}</b> ${text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])}${hint}`;
     sub.classList.toggle('b', who === 'B');
   }
   function say(line) {
-    const [who, text] = line, at = performance.now();
+    const [who, text, canVoice] = line, at = performance.now();
     nar.log.push({ who, text, t: lastT, at });
     if (nar.log.length > 400) nar.log.shift();
     showSub(who, text); lastLine = text;
     const minMs = 1200 + text.length * 55;                  // durée de lecture d'un sous-titre (et repli sans voix)
     speaking = { until: at + minMs, voice: false };
-    if (!unlocked && gameReady()) unlocked = true;                // le jeu a déjà eu le geste : on parle tout de suite
-    if (nar.mode === 'voix' && synth && unlocked) {
-      try {
-        const u = new Utt(speakable(text));
-        u.lang = 'fr-FR'; if (voices[who]) u.voice = voices[who];
-        u.rate = SPK[who].rate * (rate > 1000 ? 1.12 : 1); u.pitch = SPK[who].pitch; u.volume = 1;
-        const me = speaking; me.voice = true; me.until = at + Math.max(minMs, 25000);   // garde : si onend ne vient jamais
-        u.onend = u.onerror = () => { if (speaking === me) speaking = { until: performance.now() + 350, voice: false }; };
-        // la voix n'a pas démarré (téléphone qui bloque le son) : on retombe sur la durée du sous-titre, sans attendre 25 s
-        setTimeout(() => { if (speaking === me && !me.started) { me.voice = false; me.until = at + minMs; } }, 2000);
-        u.onstart = () => { me.started = true; if (!audioOk) { audioOk = true; showSub(who, text); } };
-        try { synth.resume(); } catch (e) {}                // iOS : la synthèse reste parfois en pause après un passage en arrière-plan
-        nar._u = u; synth.speak(u);                         // référence gardée : sinon Chrome peut perdre onend
-      } catch (e) { /* pas de voix : sous-titres seuls */ }
+    // vraie voix (ElevenLabs) si la phrase est prête ; sinon le sous-titre seul, à son rythme
+    if (nar.mode === 'voix' && voice && canVoice !== false && voice.unlocked) {
+      const st = voice.status(who, speakable(text));
+      if (st.state === 'ready') {
+        const me = speaking; me.voice = true; me.until = at + 30000;   // garde : si la fin du son ne vient jamais
+        const h = voice.play(st.url, () => { if (speaking === me) speaking = { until: performance.now() + 450, voice: false }; });
+        // le son n'a pas démarré (lecture refusée) : on retombe sur la durée du sous-titre
+        setTimeout(() => { if (speaking === me && !h.started()) { me.voice = false; me.until = at + minMs; } else if (h.started() && !audioOk) { audioOk = true; showSub(who, text); } }, 1500);
+      }
     }
   }
-  // iOS n'autorise la voix qu'à partir d'un vrai geste (fin de toucher, clic) : on retente à chaque geste tant qu'aucune
-  // phrase n'a réellement démarré, en disant tout de suite la phrase affichée (ou un mot d'accueil)
-  let unlocked = false, audioOk = false, lastLine = '', keep = null;
-  // iPhone : le bouton silencieux coupe la voix des pages ; une piste audio (muette) en lecture fait passer la page en
-  // mode « lecture », que ce bouton ne coupe pas. Jouée au premier geste, en boucle tant que la voix est active.
-  const silentWav = () => {
-    const n = 4000, b = new Uint8Array(44 + n), w = (o, str) => { for (let i = 0; i < str.length; i++) b[o + i] = str.charCodeAt(i); }, d = new DataView(b.buffer);
-    w(0, 'RIFF'); d.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true);
-    d.setUint32(24, 8000, true); d.setUint32(28, 8000, true); d.setUint16(32, 1, true); d.setUint16(34, 8, true); w(36, 'data'); d.setUint32(40, n, true);
-    b.fill(128, 44); let bin = ''; for (const x of b) bin += String.fromCharCode(x); return 'data:audio/wav;base64,' + btoa(bin);
-  };
-  const keepAlive = (on) => {
-    try {
-      if (on) { if (!keep) { keep = new (host.Audio || Audio)(silentWav()); keep.loop = true; keep.setAttribute('playsinline', ''); } if (keep.paused) keep.play().catch(() => {}); }
-      else if (keep && !keep.paused) keep.pause();
-    } catch (e) {}
-  };
-  nar.unlock = () => {
-    if (!synth || nar.mode !== 'voix') return;
-    keepAlive(true);
-    if (audioOk) return;
-    unlocked = true;
-    try {
-      synth.cancel(); try { synth.resume(); } catch (e) {}
-      const u = new Utt(speakable(lastLine && sub && !sub.hidden ? lastLine : 'Bienvenue sur le Télébyte !'));
-      u.lang = 'fr-FR'; if (voices.A) u.voice = voices.A; u.rate = SPK.A.rate; u.pitch = SPK.A.pitch;
-      u.onstart = () => { audioOk = true; if (sub && !sub.hidden) { const h = sub.querySelector('.hint'); if (h) h.remove(); } };
-      nar._u0 = u; synth.speak(u);
-      if (speaking) speaking.until = Math.max(speaking.until, performance.now() + 2500);
-    } catch (e) {}
-  };
+  // iPhone : le son n'est autorisé qu'à partir d'un vrai geste (fin de toucher, clic)
+  let audioOk = false, lastLine = '';
+  nar.unlock = () => { if (voice && nar.mode === 'voix') voice.unlock(); };
   Object.defineProperty(nar, 'audioOk', { get: () => audioOk });
   nar.setMode = (m) => {
-    nar.mode = m; if (m !== 'voix') keepAlive(false);
-    if (m !== 'voix' && synth) try { synth.cancel(); } catch (e) {}
+    nar.mode = m;
+    if (m !== 'voix' && voice) voice.stop();
     if (m === 'off') { queue = []; showSub('A', ''); }
     speaking = null;
   };
   // une entrée de file = les phrases d'un même fait, dites d'affilée ; seq : ordre d'arrivée (compteur global)
-  let seqN = 0, moving = false, lastMove = 0, rateT = null, rateReal = 0;
+  let seqN = 0, moving = false, lastMove = 0, rateT = null, rateReal = 0, nextPrep = 0;
   const enqueue = (lines, prio, real, t = null) => {
     if (!lines || !lines.length) return;
+    if (voice && nar.mode === 'voix') for (const l of lines) if (l[2] !== false) voice.prepare(l[0], speakable(l[1]));
     queue.push({ lines, prio, at: real, t, seq: seqN++ });
     queue.sort((a, b) => b.prio - a.prio || a.seq - b.seq);
     if (queue.length > 5) queue.length = 5;
   };
-  const hush = () => { queue = []; if (synth && nar.mode === 'voix') try { synth.cancel(); } catch (e) {} speaking = null; };
+  const hush = () => { queue = []; if (voice) voice.stop(); speaking = null; };
 
   // un aparté (ralenti du réalisateur) : une phrase, puis on laisse passer le rejeu sans commenter ni « faire le point »
   let quietUntil = 0;
@@ -359,9 +316,18 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     if (speaking && !speaking.voice) showSub('A', '');
     speaking = null;
     if (queue.length) {
+      const h0 = queue[0].lines[0];
+      if (voice && nar.mode === 'voix' && voice.unlocked && h0[2] !== false && real - queue[0].at < 4000 && voice.status(h0[0], speakable(h0[1])).state === 'pending') return;
       const q = queue.shift(); say(q.lines[0]);
       if (q.lines.length > 1) queue.unshift({ ...q, lines: q.lines.slice(1), prio: Infinity });   // la suite du même fait, tout de suite
       nextFill = real + fillGap(now); return;
+    }
+    // voix : les phrases des faits des 15 prochaines minutes de course sont préparées d'avance (fichier trouvé, ou lu
+    // une fois par le serveur), pour partir sans attente ; rien n'est montré ni dit avant l'heure
+    if (voice && nar.mode === 'voix' && real >= nextPrep && rate < 120) {   // en direct (×1) ou presque ; pas en lecture rapide
+      nextPrep = real + 5000; let n = 0;
+      for (const e of nar.tl) { if (e.t <= t) continue; if (e.t > t + 900 || n >= 6) break; if (said.has(e.key)) continue; n++;
+        for (const l of linesFor(e, e.t) || []) if (l[2] !== false) voice.prepare(l[0], speakable(l[1])); }
     }
     if (real >= nextFill) {
       const L = filler(t, now); nextFill = real + fillGap(now);
@@ -379,7 +345,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     recapAt = real;
     if (rows.every((r) => r.done)) { const w = nar.tl.find((x) => x.kind === 'finish' && x.data.place === 1); return w ? [['A', `Course terminée : victoire ${N[w.racer].du} !`]] : []; }
     const a = rows[0], b = rows[1];
-    return [['A', `On vous retrouve à ${hh(t)} de course : ${N[a.id].le} en tête${b ? `, ${N[b.id].le} à ${b.gap > 1 ? dur(b.gap) : 'quelques secondes'}` : ''}.`]];
+    return nv([['A', `On vous retrouve à ${hh(t)} de course : ${N[a.id].le} en tête${b ? `, ${N[b.id].le} à ${b.gap > 1 ? dur(b.gap) : 'quelques secondes'}` : ''}.`]]);
   }
   nar._linesFor = linesFor;                                       // essais : toutes les phrases d'une course
   return nar;

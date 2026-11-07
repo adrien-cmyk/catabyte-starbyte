@@ -17,6 +17,7 @@ function opt(k) {
   return null;
 }
 const cfg = () => opt('FRONDE_SB') || DEFAULT;
+export const sbConfig = () => cfg();                                   // adresse et clé publiques (voix des commentateurs)
 export function token() {
   if (opt('FRONDE_TOKEN')) return opt('FRONDE_TOKEN');
   try { const a = JSON.parse(localStorage.getItem('starbyte_auth') || 'null'); return a && (a.access_token || (a.currentSession && a.currentSession.access_token)); } catch (e) { return null; }
