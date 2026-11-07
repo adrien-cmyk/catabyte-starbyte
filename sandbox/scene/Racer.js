@@ -129,7 +129,7 @@ export class Trail {
         uniform vec3 uColor; uniform float uGain, uNear; varying float vAge, vSide, vD, vFace;
         void main(){
           #include <logdepthbuf_fragment>
-          float a = pow(1.0 - clamp(vAge, 0.0, 1.0), 2.2) * (1.0 - vSide * vSide) * smoothstep(0.0, 0.03, vAge);
+          float a = pow(1.0 - clamp(vAge, 0.0, 1.0), 2.2) * (1.0 - vSide * vSide) * smoothstep(0.0, 0.14, vAge);   // naît en fondu derrière le vaisseau
           a *= smoothstep(uNear * 0.3, uNear, vD);                  // la caméra traverse la piste : le ruban s'efface près d'elle
           a *= smoothstep(0.12, 0.45, vFace);                        // vu en enfilade, le ruban se déploierait dans tout l'écran : il s'efface
           gl_FragColor = vec4(uColor * a * uGain, 1.0);
@@ -159,7 +159,7 @@ export class Trail {
       let sx = ty * a[2] - tz * a[1], sy = tz * a[0] - tx * a[2], sz = tx * a[1] - ty * a[0];
       const sl = Math.hypot(sx, sy, sz) || 1, age = (now - e.t) / this.life;
       F[i * 2] = F[i * 2 + 1] = sl / ((Math.hypot(tx, ty, tz) * Math.hypot(a[0], a[1], a[2])) || 1);   // sinus de l'angle tangente / regard
-      const w = this.width * (1 + age * 5) / sl;
+      const w = this.width * (1 + age * 5) * Math.pow(Math.min(1, Math.max(0, age) / 0.12), 0.6) / sl;   // pointe fine au départ, puis s'élargit
       sx *= w; sy *= w; sz *= w;
       P.set([a[0] - sx, a[1] - sy, a[2] - sz, a[0] + sx, a[1] + sy, a[2] + sz], i * 6);
       A[i * 2] = A[i * 2 + 1] = i >= n ? 2 : age;
