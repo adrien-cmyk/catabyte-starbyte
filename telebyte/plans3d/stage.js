@@ -211,6 +211,7 @@ export async function createStage(canvas, { giant = 'amber' } = {}) {
         const fl = 1 + Math.sin(time * 41) * 0.04 + Math.sin(time * 67) * 0.03;
         for (const e of engines) {
           e.plume.update(time, Math.min(1, v), 0.55 + v * 0.45, Math.min(1, v * 1.4));   // longueur et éclat suivent la poussée
+          e.plume.group.scale.z *= Math.min(1, size.z * 1.1 / (e.r * 62));   // jamais plus long qu'environ le vaisseau (petites coques, grosses tuyères)
           e.outer.forEach((sp, i) => { const L = e.r * (1.2 + v * 4.6) * fl; sp.position.z = -L * (0.12 + i * 0.16); sp.scale.setScalar(e.r * (2.6 - i * 0.24) * (0.8 + v * 0.35)); sp.material.opacity = (0.75 - i * 0.08) * Math.min(1, 0.35 + v * 0.7); });
           e.core.forEach((sp, i) => { sp.position.z = -e.r * (0.2 + i * 0.45) * (0.8 + v); sp.scale.setScalar(e.r * (1.5 - i * 0.3) * (0.7 + v * 0.5)); sp.material.opacity = Math.min(1, 0.2 + v * 0.75) * (1 - i * 0.2); });
         }
