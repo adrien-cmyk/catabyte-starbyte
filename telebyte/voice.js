@@ -11,7 +11,7 @@
 import { token, sbConfig } from '../sandbox/race/live.js';
 
 // mêmes valeurs que la fonction serveur (server/fronde-voice/index.ts) : l'empreinte d'une phrase doit être identique
-export const VOICES = { model: 'eleven_multilingual_v2', v: 1, A: 'RlynaiseqcfHE3bZpqe4', B: 'Fgf7ZfILlUOkErHkkl2Y' };
+export const VOICES = { model: 'eleven_multilingual_v2', v: 2, A: 'RlynaiseqcfHE3bZpqe4', B: 'Fgf7ZfILlUOkErHkkl2Y' };
 const BUCKET = 'fronde-voix';
 const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 export async function voiceKey(who, text) {

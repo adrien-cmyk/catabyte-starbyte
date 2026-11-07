@@ -5,6 +5,8 @@
 //   POST { who: 'A' | 'B', text }  → { url, cached }        (joueur connecté ; A : Arno, B : Mila)
 //   POST { action: 'selftest' }     → la clé et les deux voix répondent-elles ? (sans dépenser de caractères ; bouton
 //                                     « Test » du tableau de bord, sans session de joueur)
+//   POST { action: 'selftest', essai: true } → en plus, un court extrait par voix (≈ 150 caractères), à écouter : liens
+//                                     dans la réponse (pour régler le ton avant de publier)
 // Garde-fous (la facture ne peut pas déraper) : 400 caractères par phrase, plafond mensuel global de caractères lus
 // (FRONDE_VOICE_MONTH_CAP, 90 000 par défaut) et plafond par joueur et par jour (FRONDE_VOICE_USER_DAY_CAP, 6 000) ;
 // au-delà, le Télébyte garde les sous-titres. Les phrases déjà lues ne coûtent plus rien.
@@ -20,12 +22,13 @@ const CORS = {
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 // mêmes valeurs que le Télébyte (telebyte/voice.js : VOICES) — l'empreinte d'une phrase doit être identique
-const MODEL = 'eleven_multilingual_v2', V = 1;
+const MODEL = 'eleven_multilingual_v2', V = 2;   // v2 (07/11) : plus d'élan, débit plus rapide
 const VOICE: Record<string, string> = { A: 'RlynaiseqcfHE3bZpqe4', B: 'Fgf7ZfILlUOkErHkkl2Y' };
-// réglages d'expression : peu de stabilité et du style = plus d'élan (commentateur de stade) ; Mila un peu plus posée
+// réglages d'expression : peu de stabilité et beaucoup de style = de l'élan, de l'excitation (commentateurs de stade) ;
+// débit accéléré (speed : 0,7 à 1,2) ; Mila un peu plus posée qu'Arno, mais vive
 const SETTINGS: Record<string, unknown> = {
-  A: { stability: 0.3, similarity_boost: 0.8, style: 0.55, use_speaker_boost: true },
-  B: { stability: 0.42, similarity_boost: 0.8, style: 0.35, use_speaker_boost: true },
+  A: { stability: 0.22, similarity_boost: 0.75, style: 0.85, use_speaker_boost: true, speed: 1.15 },
+  B: { stability: 0.3, similarity_boost: 0.78, style: 0.7, use_speaker_boost: true, speed: 1.1 },
 };
 const BUCKET = 'fronde-voix';
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -47,7 +50,20 @@ Deno.serve(async (req) => {
       const j = await r.json().catch(() => null);
       out[who === 'A' ? 'arno' : 'mila'] = r.ok ? { ok: true, name: j?.name } : { ok: false, status: r.status, detail: j?.detail?.message || j?.detail || null };
     }
-    return json({ ok: Object.values(out).every((x: any) => x.ok), model: MODEL, voices: out });
+    const okAll = Object.values(out).every((x: any) => x.ok);
+    if (okAll && body?.essai) {
+      const admin = createClient(url, service, { auth: { persistSession: false } });
+      const SAMPLE: Record<string, string> = { A: 'Et c\'est parti pour la Grande Fronde ! Ohhh ! Le Fulgurant plonge au ras de la géante ! Incroyable !', B: 'Il a du courage. Ou pas de rétroviseur.' };
+      for (const [w, text] of Object.entries(SAMPLE)) {
+        const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE[w]}?output_format=mp3_44100_128`, { method: 'POST', headers: { 'xi-api-key': KEY, 'Content-Type': 'application/json', Accept: 'audio/mpeg' }, body: JSON.stringify({ text, model_id: MODEL, voice_settings: SETTINGS[w] }) });
+        const key = w === 'A' ? 'arno' : 'mila';
+        if (!r.ok) { (out[key] as any).essai = { ok: false, status: r.status, detail: (await r.text().catch(() => '')).slice(0, 200) }; continue; }
+        const path = `essai-v${V}-${w}.mp3`;
+        await admin.storage.from(BUCKET).upload(path, new Uint8Array(await r.arrayBuffer()), { contentType: 'audio/mpeg', upsert: true, cacheControl: '60' });
+        (out[key] as any).essai = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+      }
+    }
+    return json({ ok: okAll, model: MODEL, version: V, voices: out });
   }
 
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');

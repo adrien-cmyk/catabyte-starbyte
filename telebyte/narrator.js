@@ -55,6 +55,39 @@ const FAITS = [
   'Le chef mécanicien de la Sentinelle n\'a pas dormi depuis le départ. Il dit que c\'est normal.',
   'Une flotte de tankers a ralenti pour laisser passer la course. Les klaxons, c\'est eux.',
 ];
+// échanges pour rire (07/11 : « qu'ils blaguent un peu, on doit sentir l'excitation ») : Arno lance, Mila répond
+const BLAGUES = [
+  ['Mila, tu as déjà plongé au ras d\'une géante ?', 'Une fois. J\'ai perdu mes sourcils et mon permis. Dans cet ordre.'],
+  ['On me dit en régie que le café est froid !', 'Arno, on est dans l\'espace. Tout est froid. Sauf toi quand tu commentes.'],
+  ['Si je pilotais là-dedans, je gagnerais en deux heures !', 'Si tu pilotais là-dedans, on te chercherait encore autour de Kerath.'],
+  ['Tu paries sur qui, toi, Mila ?', 'Sur celui qui ne t\'écoute pas. Ça marche à tous les coups.'],
+  ['Les pilotes dorment pendant les étapes ?', 'Ils dorment. Toi, tu commentes. Chacun son métier.'],
+  ['J\'ai vu une plongée tellement rasante qu\'elle a laissé une trace sur la géante !', 'C\'était un nuage, Arno. Mais c\'était un beau nuage.'],
+  ['Mila, c\'est quoi le secret d\'une bonne fronde ?', 'Viser juste, pousser fort, et ne jamais regarder le thermomètre.'],
+  ['Il paraît que le Kerath Lourd a une machine à café à bord !', 'Une machine à café blindée. Comme le reste.'],
+  ['On m\'annonce cent mille spectateurs sur les lunes !', 'Et autant de parieurs qui regrettent déjà leur choix.'],
+  ['Qu\'est-ce que tu emmènes, toi, pour soixante-douze heures de course ?', 'Un oreiller, des barres de céréales, et des bouchons d\'oreilles pour toi.'],
+  ['La Mule, c\'est un nom de champion, ça ?', 'C\'est un nom de cargo têtu. Et les cargos têtus finissent toujours par arriver.'],
+  ['Kaï Varon a dit qu\'il n\'avait jamais peur !', 'Kaï Varon a dit aussi que la ceinture d\'astéroïdes, c\'était « juste du gravier ».'],
+  ['Mila, ton meilleur souvenir de pilote ?', 'Le jour où j\'ai doublé trois vaisseaux d\'un coup. Le pire : le lendemain, à l\'infirmerie.'],
+  ['Je sens que ça va être serré jusqu\'au bout !', 'Tu dis ça à chaque course, Arno. Et à chaque fois tu as raison, c\'est agaçant.'],
+  ['Si ça continue, je descends piloter moi-même !', 'Excellente idée. On gagnera enfin un peu de silence en cabine.'],
+  ['Les astéroïdes, c\'est dangereux, finalement ?', 'Seulement quand on les touche. Le problème, c\'est qu\'ils sont nombreux.'],
+];
+// petite pique de Mila (ou cri d'Arno) après les gros faits : tirée du fait, la même pour tous
+const PIQUES = {
+  overtake: ['Il ne lui a même pas dit bonjour !', 'Ça, c\'est ce qu\'on appelle un dépassement poli. Enfin, presque.', 'Doublé ! Il va falloir s\'habituer à la vue de dos !'],
+  plan: ['Les ingénieurs se rongent les ongles jusqu\'au coude.', 'Il a du courage. Ou pas de rétroviseur.'],
+  periapsis: ['Je sens la chaleur d\'ici, et je suis à trois systèmes !', 'Ça, c\'est une trajectoire qu\'on montre dans les écoles de pilotage !'],
+  moon: ['Il a failli rayer la lune. Il faudra repeindre !', 'La lune n\'a rien demandé, elle !'],
+  belt: ['Le raccourci préféré des fous et des génies. On saura bientôt lequel.', 'Gravier, astéroïdes : à cette vitesse, c\'est pareil !'],
+  beltHit: ['Ça va laisser des traces sur la carrosserie !', 'Le mécanicien va adorer sa soirée.'],
+  failure: ['Quelqu\'un a essayé d\'éteindre et de rallumer ?', 'Le pire moment pour une panne. Il n\'y a jamais de bon moment, remarquez.'],
+  repair: ['Arrêt au stand… sans stand !', 'Clé à molette, ruban adhésif, et beaucoup de prières.'],
+  flare: ['Crème solaire indice cinq mille, obligatoire !', 'L\'étoile a décidé de participer à la course !'],
+  failed: ['Ça sent le chaud dans le cockpit !', 'Trop près, trop vite, trop chaud. La règle des trois « trop ».'],
+};
+const CRIS = ['Ohhh !', 'Incroyable !', 'Mais quelle folie !', 'Regardez-moi ça !', 'Oh là là !'];   // Arno, sur les moments forts
 const VECU_SYS = [
   (n, p) => `À bord ${n.du}, ${p} serre les dents : chaque vibration se sent jusque dans les os.`,
   (n, p) => `Message radio ${n.du} : « Ça chauffe, mais elle tient ! »`,
@@ -85,6 +118,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   const seeded = (key) => { let h = 2166136261; for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h = (h + 0x6D2B79F5) >>> 0; let x = h; x = Math.imul(x ^ (x >>> 15), x | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; };
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
   const nar = { mode: 'voix', log: [], tl: [] };
+  let blagueI = Math.floor(rnd0() * BLAGUES.length);
   let lastT = null, lastReal = 0, rate = 1, queue = [], speaking = null, nextFill = 0, faitI = Math.floor(rnd() * FAITS.length), fillI = 0;
   const said = new Map();                                        // fait déjà dit → son instant
 
@@ -92,7 +126,17 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   nar.rebuild();
 
   /* ── ce que disent les commentateurs pour chaque fait ── */
-  function linesFor(e, t) { rndOver = seeded(e.key || e.kind + e.t); try { return linesFor0(e, t); } finally { rndOver = null; } }
+  function linesFor(e, t) {
+    rndOver = seeded(e.key || e.kind + e.t);
+    try {
+      let L = linesFor0(e, t); if (!L || !L.length) return L;
+      const strong = (e.prio || 0) >= 4 && e.kind !== 'start' && e.kind !== 'finish';
+      if (strong && L[0][0] === 'A' && rnd() < 0.5 && !/^(Oh|Incroyable|Mais quelle|Regardez|Choc|Attention|Panne|Quelle)/.test(L[0][1])) L = [['A', pick(CRIS) + ' ' + L[0][1], L[0][2]], ...L.slice(1)];
+      const pq = PIQUES[e.kind === 'plan' && e.data && e.data.plan !== 'plongée' ? '' : e.kind];
+      if (pq && rnd() < 0.55 && L.length < 3) L = [...L, [L[L.length - 1][0] === 'B' ? 'A' : 'B', pick(pq)]];
+      return L;
+    } finally { rndOver = null; }
+  }
   function linesFor0(e, t) {
     const n = e.racer ? N[e.racer] : null, d = e.data, S = e.sys ? sysName(e.sys) : '';
     switch (e.kind) {
@@ -157,7 +201,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     if (now != null && now < 0) return preRace(-now);
     const rows = feed.standingsAt(t), lead = rows[0], done = rows.every((r) => r.done);
     if (done) { const w = nar.tl.find((x) => x.kind === 'finish' && x.data.place === 1); return w ? [['A', `Rappel du résultat : victoire ${N[w.racer].du}. Rendez-vous dans trois semaines pour la prochaine Grande Fronde !`]] : null; }
-    const kinds = ['recap', 'tele', 'vecu', 'fait', 'paris', 'tele', 'finale', 'vecu'];
+    const kinds = ['recap', 'blague', 'vecu', 'fait', 'paris', 'blague', 'tele', 'finale', 'vecu', 'blague'];
     for (let k = 0; k < kinds.length; k++) {
       const kind = kinds[(fillI++) % kinds.length], L = fillOf(kind, t, rows, lead);
       if (L) return L;
@@ -184,6 +228,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     }
     if (kind === 'fait') { const f = FAITS[(faitI++) % FAITS.length]; return [['A', 'Un petit fait divers en passant.'], ['B', f]]; }
     if (kind === 'paris') return nv(betLine(rows));
+    if (kind === 'blague') { const b = BLAGUES[(blagueI++) % BLAGUES.length]; return [['A', b[0]], ['B', b[1]]]; }
     if (kind === 'finale') {
       const last = E.systems[E.systems.length - 1], s0 = feed.stateAt(lead.id, t);
       if (s0.phase === 'leg' && s0.legTo === last.id) return [['B', `La grande finale approche : à ${last.name}, l'arrivée se joue à la périapse. ${N[lead.id].Le} mène la danse, mais rien n'est fait.`]];
@@ -209,7 +254,8 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
       : [['B', `Si ${N[long].le} gagne, ceux qui y ont cru touchent ${odds.toFixed(1).replace('.', ',')} fois leur mise. Le coup de poker de la soirée.`]];
   }
   function preRace(left) {
-    const i = (fillI++) % (E.racers.length + 3);
+    const i = (fillI++) % (E.racers.length + 4);
+    if (i === E.racers.length + 3) { const b = BLAGUES[(blagueI++) % BLAGUES.length]; return [['A', b[0]], ['B', b[1]]]; }
     if (i < E.racers.length) { const r = E.racers[i]; return [['A', `Présentation : ${N[r.id].le}.`], ['B', `${PROFILE[r.id] ? PROFILE[r.id][0].toUpperCase() + PROFILE[r.id].slice(1) : 'Un outsider à surveiller'}. Aux commandes : ${P(r.id)}.`]]; }
     if (i === E.racers.length) return nv([['A', `Départ dans ${dur(left)} ! Au programme : ${E.systems.map((s) => s.name).join(', puis ')}. Et l'arrivée à la périapse de ${E.systems[E.systems.length - 1].name}.`]]);
     if (i === E.racers.length + 1) return nv(betLine(feed.standingsAt(0))) || [['B', 'Les paris sont ouverts jusqu\'au départ. Choisissez bien votre vaisseau.']];
