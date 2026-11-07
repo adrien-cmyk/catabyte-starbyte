@@ -706,6 +706,7 @@ window.RW = {
   frameCount: () => frameN,
   live: () => ({ lock: !!raceLayer.liveLock, t: simT, now: raceLayer.feed.live ? raceLayer.feed.live.source.now() : null, pill: document.querySelector('#race .rh-live')?.textContent, speed: document.querySelector('#rh-speed')?.textContent }),
   camYaw: () => cam.goal.yaw + (cam.chase ? cam.u.yaw : 0),
+  camU: (yaw, pitch = null) => { cam.u.yaw = yaw; if (pitch != null) cam.u.pitch = pitch; },   // essais : la caméra de poursuite tourne comme au doigt
   camDiag: () => ({ tr: !!cam.tr, D: cam.distance, R: giant.R, view: raceLayer._view, chase: cam.chase, maxD: cam.maxDist, dir: director.active }),
   coursePortes: () => VIEWS['course-portes'](), course: (o) => courseView(o || {}), advanceRace: (dt) => { simT += dt; }, raceSelect: (id) => raceLayer.select(id),
   leader: () => { const f = ensureFleet(), rows = raceLayer.feed.standingsAt(simT); const r = rows.find((x) => f.find((rc) => rc.def.id === x.id && rc.inSys)); return r ? r.id : null; },
