@@ -1,7 +1,7 @@
 // Plans 3D du Télébyte (GDD_PLANS_3D) : le décor commun.
 //   · vaisseaux de course à leurs VRAIES dimensions (1 unité = 1 m), modèles allégés (telebyte/plans3d/models), coques
 //     vernies à arêtes franches, reflets de studio ;
-//   · moteurs : flamme bleue à cœur blanc qui s'allonge avec la poussée, lumière bleue qui éclaire la coque ;
+//   · moteurs : flamme à la teinte du tracé du racer, cœur blanc, qui s'allonge avec la poussée ; sa lumière éclaire la coque ;
 //   · propulseurs de manœuvre : brèves bouffées blanches sur les flancs, le dessus, le dessous ;
 //   · environnement identifiable : la géante du système et ses anneaux à l'horizon (ciel à l'infini, calculé dans un
 //     shader : aucune profondeur à gérer), débris d'anneau qui défilent (parallaxe, sensation de vitesse) ;
@@ -11,6 +11,9 @@
 //   st.render(cam, { speed, dt }) ; st.resize(w, h) ; st.setPixelRatio(r) ; st.boxOf(ship) ; st.setGiant(type)
 import { THREE, SB3D } from '../../sandbox/lib/sb3d-shim.js';
 import { GIANTS } from '../../sandbox/presets/giants.js';
+import { RACERS } from '../../sandbox/race/raceData.js';
+import { createPlume, plumeColors } from '../../sandbox/scene/Racer.js';   // le même panache que la vue système
+const LIVERY = Object.fromEntries(RACERS.map((r) => [r.id, r.livery]));   // flammes à la teinte du tracé du racer
 
 const [{ toCreasedNormals }, { RoomEnvironment }] = await Promise.all([
   import('three/addons/utils/BufferGeometryUtils.js'),
@@ -22,7 +25,7 @@ export const SHIPS = {
   sentinelle: { file: 'racer07_shot.glb.gz', name: 'Racer 07' },
   fulgurant: { file: 'fulgur07_shot.glb.gz', name: 'Fulgur 07' },
   mule: { file: 'bidon52_shot.glb.gz', name: 'Bidon 52' },
-  cuirasse: { file: 'monoreactor88_shot.glb.gz', name: 'Monoreactor 88' },
+  cuirasse: { file: 'monoreactor88_shot.glb.gz', name: 'Monoreactor 88', bell: 0.4 },   // grande cloche : flamme à 40 % de la largeur
 };
 const BASE = window.FRONDE_PLANS3D_BASE || new URL('./models/', import.meta.url).href;
 
@@ -174,21 +177,26 @@ export async function createStage(canvas, { giant = 'amber' } = {}) {
       const c = b.getCenter(new THREE.Vector3()), r = Math.max(0.4, Math.max(b.max.x - b.min.x, b.max.y - b.min.y) * 0.5);
       nozzles.push({ c, r });
     }
+    if (def.bell) for (const n of nozzles) n.r = Math.max(n.r, size.x * def.bell);   // cœur lumineux plus petit que la cloche
     if (!nozzles.length) nozzles.push({ c: new THREE.Vector3(0, 0, -size.z / 2), r: Math.max(0.6, size.x * 0.12) });
     // une « tuyère » trop large (plusieurs moteurs dans un seul maillage) : deux flammes, à gauche et à droite
     const noz = nozzles.slice(0, 4).flatMap((n) => (n.r > size.x * 0.3 ? [-1, 1].map((sx) => ({ c: n.c.clone().add(new THREE.Vector3(sx * n.r * 0.5, 0, 0)), r: n.r * 0.45 })) : [n]));
+    const liv = new THREE.Color(LIVERY[id] || '#5c8cff'), hue = {}; liv.getHSL(hue);
+    const coreCol = new THREE.Color(0xffffff).lerp(liv, 0.12);
     const engines = noz.map((n) => {
       const grp = new THREE.Group(); grp.position.copy(n.c); grp.position.z = Math.min(n.c.z, -size.z * 0.42); g.add(grp);
       const outer = [], core = [];
       for (let i = 0; i < 7; i++) {
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tGlow, color: new THREE.Color().setHSL(0.6, 1, 0.55 + i * 0.02), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8 - i * 0.09 }));
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tGlow, color: new THREE.Color().setHSL(hue.h, 1, 0.5 + i * 0.03), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8 - i * 0.09 }));
         grp.add(sp); outer.push(sp);
       }
-      for (let i = 0; i < 3; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tCore, color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.95 })); grp.add(sp); core.push(sp); }
-      return { grp, outer, core, r: n.r };
+      for (let i = 0; i < 3; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tCore, color: coreCol, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.95 })); grp.add(sp); core.push(sp); }
+      // panache conique à la teinte du racer (gaines additives, cœur blanc), derrière la flamme de tuyère
+      const plume = createPlume(n.r, plumeColors(LIVERY[id] || '#5c8cff')); grp.add(plume.group);
+      return { grp, outer, core, r: n.r, plume };
     });
-    // lumière bleue des moteurs : la coque (et l'autre vaisseau, s'il est proche) en reçoit les reflets
-    const eLight = new THREE.PointLight(0x5c8cff, 0, size.z * 2.4, 1.6); eLight.position.set(0, 0, -size.z * 0.62); g.add(eLight);
+    // lumière des moteurs (teinte du racer) : la coque (et l'autre vaisseau, s'il est proche) en reçoit les reflets
+    const eLight = new THREE.PointLight(new THREE.Color().setHSL(hue.h, 1, 0.6), 0, size.z * 2.4, 1.6); eLight.position.set(0, 0, -size.z * 0.62); g.add(eLight);
     // propulseurs de manœuvre : flancs, dessus, dessous (avant et arrière), bouffées brèves
     const H = { x: size.x / 2, y: size.y / 2, z: size.z / 2 }, puffs = [];
     const anchor = { left: [-1, 0, 0], right: [1, 0, 0], up: [0, 1, 0], down: [0, -1, 0], front: [0, 0, 1] };
@@ -202,6 +210,7 @@ export async function createStage(canvas, { giant = 'amber' } = {}) {
       thrust(v, time = 0) {
         const fl = 1 + Math.sin(time * 41) * 0.04 + Math.sin(time * 67) * 0.03;
         for (const e of engines) {
+          e.plume.update(time, Math.min(1, v), 0.55 + v * 0.45, Math.min(1, v * 1.4));   // longueur et éclat suivent la poussée
           e.outer.forEach((sp, i) => { const L = e.r * (1.2 + v * 4.6) * fl; sp.position.z = -L * (0.12 + i * 0.16); sp.scale.setScalar(e.r * (2.6 - i * 0.24) * (0.8 + v * 0.35)); sp.material.opacity = (0.75 - i * 0.08) * Math.min(1, 0.35 + v * 0.7); });
           e.core.forEach((sp, i) => { sp.position.z = -e.r * (0.2 + i * 0.45) * (0.8 + v); sp.scale.setScalar(e.r * (1.5 - i * 0.3) * (0.7 + v * 0.5)); sp.material.opacity = Math.min(1, 0.2 + v * 0.75) * (1 - i * 0.2); });
         }

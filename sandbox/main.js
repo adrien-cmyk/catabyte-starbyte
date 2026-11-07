@@ -346,7 +346,7 @@ function sportCam(dt) {
   const v = new THREE.Vector3(...rc.vel), sp = v.length(); v.normalize();
   const up = new THREE.Vector3(0, 1, 0).applyQuaternion(giant.group.quaternion);
   const side = new THREE.Vector3().crossVectors(v, up).normalize();
-  const dir = v.clone().multiplyScalar(-Math.cos(0.28)).addScaledVector(up, Math.sin(0.28)).addScaledVector(side, 0.32).normalize();
+  const dir = v.clone().multiplyScalar(-Math.cos(0.28)).addScaledVector(up, Math.sin(0.28)).addScaledVector(side, 0.85).normalize();   // trois quarts arrière : la coque et ses panaches de profil
   let yaw = Math.atan2(dir.x, dir.z); const pitch = Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
   while (yaw - cam.goal.yaw > Math.PI) yaw -= 2 * Math.PI; while (yaw - cam.goal.yaw < -Math.PI) yaw += 2 * Math.PI;
   yaw += cam.u.yaw; const pitchU = THREE.MathUtils.clamp(pitch + cam.u.pitch, -1.45, 1.45);
@@ -491,7 +491,7 @@ function step(dt) {
     cam.maxDist = m; if (cam.goal.logD > Math.log(m)) cam.goal.logD = Math.log(m); }
   const sportRc = raceLayer ? sportCam(dt) : null;
   // vue de poursuite : moins d'éclat (panache du racer suivi atténué, bloom plus sélectif) pour que la coque reste lisible
-  if (fleet) for (const r of fleet) r.dim = r === sportRc ? 0.45 : 1;
+  if (fleet) for (const r of fleet) r.dim = r === sportRc ? 0.8 : 1;   // poursuite : panache à peine adouci (teinté, il ne noie plus la coque)
   bloom.strength = sportRc ? 0.16 : 0.55; bloom.threshold = sportRc ? 0.99 : 0.92;
   cam.update(dt);
   if (sportRc && sportRc.throttle > 0.5) { const tt = performance.now() / 1000; camera.rotateX(Math.sin(tt * 37) * 0.0012); camera.rotateY(Math.sin(tt * 29 + 1) * 0.0012); }   // vibration de poussée

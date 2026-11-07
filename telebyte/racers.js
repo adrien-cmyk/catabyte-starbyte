@@ -72,9 +72,9 @@ export function mountRacers({ E, racer, hint = null }) {
     cam.aspect = w / h; cam.updateProjectionMatrix();
     const s = ships[sel]; if (!s || !s.visible) { st.render(cam); return; }
     const L = s.userData.len, a = (now - t0) / 1000 * 0.35 + 2.4;    // trois quarts avant, tour complet en ~18 s
-    const d = 0.52 * L / (Math.tan(cam.fov * Math.PI / 360) * Math.min(w / h, 1.4)) + 3;   // de profil, la coque tient dans la largeur
-    cam.position.set(Math.sin(a) * d, L * 0.32, Math.cos(a) * d); cam.lookAt(0, 0, 0);
-    s.position.set(0, 0, 0); s.rotation.set(0, 0, 0); s.userData.thrust(0.55, now / 1000);
+    const d = 0.66 * L / (Math.tan(cam.fov * Math.PI / 360) * Math.min(w / h, 1.4)) + 3;   // de profil, la coque et son panache tiennent dans la largeur
+    cam.position.set(Math.sin(a) * d, L * 0.32, Math.cos(a) * d - L * 0.22); cam.lookAt(0, 0, -L * 0.22);   // centré un peu en arrière : le panache est dans l'image
+    s.position.set(0, 0, 0); s.rotation.set(0, 0, 0); s.userData.thrust(1.15, now / 1000);   // plein gaz : la flamme à la couleur du racer
     st.render(cam, { dt: 1 / 60 });
   }
   function select(id) { sel = id; renderCard(); show(id); }

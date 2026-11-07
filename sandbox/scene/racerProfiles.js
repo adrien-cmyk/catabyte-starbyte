@@ -18,7 +18,7 @@ export const RACER_PROFILES = {
   // « Kerath Lourd » : Monoreactor 88, 14 m, un seul gros réacteur
   kv01: {
     url: url('monoreactor88_shot.glb.gz'), embedded: url('monoreactor88_shot.glb.gz.js'), length: 14.0, model: 'Monoreactor 88',
-    nozzles: [{ x: 0, y: 0.08, z: -5.47, r: 0.42 }],
+    nozzles: [{ x: 0, y: 0.08, z: -7.0, r: 1.9 }],                     // la grande cloche (Ø 4,7 m), pas le seul cœur lumineux
     plume: PLUME_ION, engine: [0.45, 0.7, 1.0], tint: {},
   },
   // « La Mule » : Bidon 52, 48 m, réacteurs chimiques
