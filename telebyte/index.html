@@ -240,6 +240,22 @@
   body.insys #sub { bottom: auto; top: calc(var(--sat) + 64px); }
   body.insys #news { display: none; }
   #offline { top: calc(var(--sat) + 156px) !important; }
+  /* accueil (07/11) : explication de la course, montrée aux deux premières ouvertures, puis par le bouton « ? » */
+  #hello { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: calc(var(--sat) + 16px) max(16px, var(--sar)) calc(var(--sab) + 16px) max(16px, var(--sal)); background: rgba(2, 3, 6, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  #hello[hidden] { display: none; }
+  #hello .card { box-sizing: border-box; width: 100%; max-width: 420px; max-height: 100%; overflow-y: auto; background: rgba(6, 11, 18, .96); border: 1px solid var(--line); border-radius: 14px; padding: 20px 20px 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, .6); }
+  #hello .k { font-size: 10px; font-weight: 700; letter-spacing: .26em; text-transform: uppercase; color: var(--accent); }
+  #hello h1 { margin: 6px 0 4px; font-size: 22px; font-weight: 800; letter-spacing: .02em; }
+  #hello .lead { margin: 0 0 14px; color: var(--dim); font-size: 13px; line-height: 1.5; }
+  #hello ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  #hello li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; }
+  #hello li > span { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font: 700 12px var(--f-num); color: var(--accent); border: 1px solid var(--line); background: rgba(159, 212, 236, .06); }
+  #hello li b { display: block; font-size: 13px; margin-bottom: 2px; }
+  #hello li p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--dim); }
+  #hello li p em { font-style: normal; color: #ffd27a; }
+  #hello-go { display: block; width: 100%; margin-top: 16px; font: 700 14px var(--f-ui); color: #05080c; background: var(--accent); border: 0; border-radius: 9px; padding: 12px; cursor: pointer; }
+  #hello-go:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  #help { pointer-events: auto; width: 26px; height: 26px; font: 700 13px/1 var(--f-ui); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 50%; padding: 0; cursor: pointer; }
   @media (max-width: 720px) {
     #board { left: max(12px, var(--sal)); right: max(12px, var(--sar)); top: auto; bottom: calc(var(--sab) + 74px); width: auto; padding: 6px 0 2px; }
     #board h2 { margin: 0 12px 2px; }
@@ -262,7 +278,7 @@
 <div id="labels"></div>
 <header>
   <div class="brand"><b>TÉLÉ<em>BYTE</em></b><span id="edition">La Grande Fronde</span><small id="route">—</small><nav id="stages" aria-label="Étapes de la course"></nav></div>
-  <div class="onair"><span class="pill-row"><button id="racers-btn" type="button" title="Les racers : vaisseaux et specs" aria-label="Les racers"></button><button id="tv" type="button" title="Mode TV : la régie choisit les images" aria-pressed="false">📺</button><button id="voice" type="button" title="Commentaire">🔊</button><span class="pill" id="state">en direct</span></span><span class="t" id="time">00 h 00</span></div>
+  <div class="onair"><span class="pill-row"><button id="help" type="button" title="Comment marche la course ?" aria-label="Comment marche la course ?">?</button><button id="racers-btn" type="button" title="Les racers : vaisseaux et specs" aria-label="Les racers"></button><button id="tv" type="button" title="Mode TV : la régie choisit les images" aria-pressed="false">📺</button><button id="voice" type="button" title="Commentaire">🔊</button><span class="pill" id="state">en direct</span></span><span class="t" id="time">00 h 00</span></div>
 </header>
 <aside id="board" aria-label="Classement">
   <h2><button id="board-h" type="button" aria-expanded="true" aria-controls="standings"><span>Classement</span><em id="board-lead"></em><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h2>
@@ -282,6 +298,35 @@
   <button id="bets-btn" type="button" hidden aria-expanded="false" aria-controls="bets">Paris</button>
   <div class="track"><input id="clock" type="range" min="0" max="1" step="1" value="0" aria-label="Temps de course"><span id="next">—</span></div>
 </footer>
+<section id="hello" hidden role="dialog" aria-modal="true" aria-labelledby="hello-t">
+  <div class="card">
+    <div class="k">Télébyte · bienvenue</div>
+    <h1 id="hello-t">La Grande Fronde</h1>
+    <p class="lead">La course interstellaire de la galaxie. Une édition chaque mois, la même pour tous les commandants&nbsp;: tout le monde regarde la même course, en même temps.</p>
+    <ol>
+      <li><span>1</span><div><b>Une course de 72 heures</b><p>Des pilotes s'élancent à travers plusieurs systèmes. Ils frôlent étoiles et géantes pour prendre de la vitesse&nbsp;: certains jouent la prudence, d'autres prennent tous les risques.</p></div></li>
+      <li><span>2</span><div><b>Suis-la en direct</b><p>Le classement bouge en temps réel. Touche un racer pour le suivre, touche une étape pour plonger dans le système et voir les passages de près. 📺 laisse la régie choisir les images, la fiche des racers montre leurs vaisseaux. Le curseur du bas permet de revoir ce qui s'est déjà passé.</p></div></li>
+      <li><span>3</span><div><b>Parie sur le vainqueur</b><p>Avant le départ, mise tes <em>crédits galactiques</em> sur un pilote (5 000 CG au plus par course). Toutes les mises forment la cagnotte&nbsp;: moins il y a de monde sur ton pilote, plus ta part sera grosse s'il gagne. Tes gains arrivent dans ta partie à l'arrivée.</p></div></li>
+      <li><span>4</span><div><b>Une course honnête</b><p>Le résultat est fixé avant l'ouverture des paris et scellé par une empreinte publiée. À l'arrivée, chacun peut vérifier que rien n'a bougé.</p></div></li>
+    </ol>
+    <button id="hello-go" type="button">Regarder la course</button>
+  </div>
+</section>
+<script>
+// accueil : aux deux premières ouvertures du Télébyte, puis à la demande (bouton « ? »)
+(function () {
+  const box = document.getElementById('hello'), KEY = 'sb_fronde_hello';
+  let n = 0; try { n = parseInt(localStorage.getItem(KEY) || '0', 10) || 0; } catch (e) {}
+  const show = () => { box.hidden = false; };
+  const hide = () => { box.hidden = true; };
+  document.getElementById('hello-go').onclick = hide;
+  box.addEventListener('click', (e) => { if (e.target === box) hide(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !box.hidden) hide(); });
+  window.frondeHelp = show;
+  document.addEventListener('DOMContentLoaded', () => { const b = document.getElementById('help'); if (b) b.onclick = show; });
+  if (n < 2) { try { localStorage.setItem(KEY, String(n + 1)); } catch (e) {} show(); }
+})();
+</script>
 <script type="module" src="main.js"></script>
 </body>
 </html>
