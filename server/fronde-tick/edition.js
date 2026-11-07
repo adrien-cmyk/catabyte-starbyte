@@ -3,11 +3,11 @@
 //   · calendrier : une course tous les 21 jours, le dimanche à 20 h (heure de Zurich), à partir du dimanche 8 novembre
 //     2026 ; paris ouverts 3 jours avant le départ ;
 //   · graine : 256 bits aléatoires ; empreinte sha-256 publiée, graine gardée secrète jusqu'à l'arrivée ;
-//   · parcours : les systèmes de course dans un ordre tiré de la graine ; racers : la flotte de la maison ;
+//   · parcours : les dix systèmes de course, de proche en proche depuis un départ tiré de la graine ; racers : la flotte ;
 //   · course simulée une fois avec le moteur partagé : plans des pilotes (publiés au fil de la course) et résultat.
 // Les systèmes, racers et paramètres complets sont enregistrés avec l'édition : le jeu rejoue avec EXACTEMENT ces
 // données (pas avec les siennes), ce qui garde la course identique même si le jeu évolue entre-temps.
-import { runRace, planOf, rngOf, hazardsOf, RACE_SYSTEMS, RACERS, PILOT, ENGINE_HASH } from './engine.js';
+import { runRace, planOf, rngOf, hazardsOf, routeOf, RACE_SYSTEMS, RACERS, PILOT, ENGINE_HASH } from './engine.js';
 
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const hex = (buf) => [...new Uint8Array(buf)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -52,9 +52,11 @@ export async function prepareEdition(now = Date.now(), seed = null, opts = {}) {
     const z = new Date(now); id = 'essai-' + z.toISOString().slice(0, 16).replace(/[-:T]/g, '');
   }
   seed = seed || hex(crypto.getRandomValues(new Uint8Array(32)).buffer);
-  // parcours : ordre des systèmes tiré de la graine (mélange de Fisher-Yates déterministe)
-  const R = rngOf(seed + '|parcours'), systems = RACE_SYSTEMS.slice();
-  for (let i = systems.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [systems[i], systems[j]] = [systems[j], systems[i]]; }
+  // parcours : v3, les dix systèmes de proche en proche depuis un départ tiré de la graine (routeOf) ; avant, ordre
+  // des trois systèmes mélangé (Fisher-Yates déterministe)
+  let systems;
+  if ((PILOT.v || 1) >= 3) systems = routeOf(RACE_SYSTEMS, seed);
+  else { const R = rngOf(seed + '|parcours'); systems = RACE_SYSTEMS.slice(); for (let i = systems.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [systems[i], systems[j]] = [systems[j], systems[i]]; } }
   const name = opts.test ? `Course d'essai · ${opts.minutes || 30} min` : `Grande Fronde · dimanche ${d} ${MONTHS[m]} ${y}`;
   // carte des dangers (ceintures, risque d'éruption) : publique, tirée de la graine (v2)
   const pilot = { ...PILOT, id, name, seed, ...((PILOT.v || 1) >= 2 ? { hazards: hazardsOf(systems, seed) } : {}) };

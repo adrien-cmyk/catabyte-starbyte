@@ -14,7 +14,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   p.on('console', (m) => { if (/plans 3D/.test(m.text())) { errs.push(m.text()); console.log('WARN', m.text().slice(0, 200)); } });
   await p.goto('http://localhost:8766/telebyte/index.html'); await p.waitForFunction(() => window.TB && TB.ready, null, { timeout: 120000 });
   await p.evaluate(() => { document.getElementById('play').click(); TB.set(40 * 3600); }); await sleep(1200);
-  await p.tap('#news'); await sleep(600);
+  await p.waitForSelector('#news', { state: 'visible', timeout: 15000 }).catch(() => console.log('  (bandeau caché :', 'insys/corr ?)')); await p.tap('#news'); await sleep(600);
   const k = await p.evaluate(() => TB.news.items.findIndex((x) => x.e.kind === 'overtake'));
   ok(k >= 0, 'un dépassement dans les moments forts');
   const ev = await p.evaluate((k) => TB.news.items[k].e, k);
@@ -35,14 +35,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   ok(!after.playing && after.hidden && !after.in3d, '« Passer » : retour au schéma');
   ok(Math.abs(after.t - (ev.t + 60)) < 120, `horloge juste après le fait (${(after.t / 3600).toFixed(2)} h, fait ${(ev.t / 3600).toFixed(2)} h)`);
   // un autre « Revoir » (pas un dépassement) : comportement d'avant (vue système ou couloir), pas de 3D
-  await p.tap('#news'); await sleep(500);
-  const k2 = await p.evaluate(() => TB.news.items.findIndex((x) => !['overtake', 'start', 'flare', 'failure', 'beltHit', 'repair', 'failed', 'moon', 'finish'].includes(x.e.kind)));
+  // (dix systèmes : au tout début, tous les faits ont leur plan 3D ; on avance jusqu'à un fait qui n'en a pas)
+  const k2of = () => p.evaluate(() => TB.news.items.findIndex((x) => !['overtake', 'start', 'flare', 'failure', 'beltHit', 'repair', 'failed', 'moon', 'finish'].includes(x.e.kind)));
+  if (await k2of() < 0) { await p.evaluate(() => TB.set(30 * 3600)); await sleep(800); }
+  await p.waitForSelector('#news', { state: 'visible', timeout: 15000 }).catch(() => console.log('  (bandeau caché :', 'insys/corr ?)')); await p.tap('#news'); await sleep(500);
+  const k2 = await k2of();
   await p.tap(`.nw-rows button[data-k="${k2}"]`); await sleep(1500);
   ok(!(await p.evaluate(() => TB.p3d.playing)), 'un fait sans plan 3D : revoir d\'avant');
   // une éruption (ou une lune) : son plan 3D
-  await p.evaluate(() => { if (TB.state.inSystem) document.getElementById('sysframe').contentWindow.document.querySelector('#rh-back')?.click(); });
+  await p.evaluate(() => { TB.cor.close(); if (TB.state.inSystem) document.getElementById('sysframe').contentWindow.document.querySelector('#rh-back')?.click(); });   // vue système ou couloir : on revient au schéma
   await sleep(1500); await p.evaluate(() => TB.set(70 * 3600)); await sleep(800);
-  await p.tap('#news'); await sleep(500);
+  await p.waitForSelector('#news', { state: 'visible', timeout: 15000 }).catch(() => console.log('  (bandeau caché :', 'insys/corr ?)')); await p.tap('#news'); await sleep(500);
   const k3 = await p.evaluate(() => TB.news.items.findIndex((x) => x.e.kind === 'flare' || x.e.kind === 'moon'));
   if (k3 >= 0) { await p.tap(`.nw-rows button[data-k="${k3}"]`); for (let i = 0; i < 40 && !(await p.evaluate(() => TB.p3d.playing)); i++) await sleep(300);
     ok(await p.evaluate(() => TB.p3d.playing && /eruption|lune/.test(TB.p3d.state.shot || 'eruption lune')), `éruption ou lune : plan 3D (${await p.evaluate(() => TB.p3d.state.shot)})`);

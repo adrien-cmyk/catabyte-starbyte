@@ -26,7 +26,7 @@ const STUB = () => {
   p.on('console', (m) => { if (m.type() === 'warning' && /commentaire/.test(m.text())) { errs.push(m.text()); console.log('WARN', m.text().slice(0, 200)); } });
   await p.goto('http://localhost:8766/telebyte/index.html');
   await p.waitForFunction(() => window.TB && TB.ready, null, { timeout: 120000 });
-  await p.mouse.click(200, 400);                                          // premier toucher : le son est autorisé
+  await p.mouse.click(195, 240);                                          // premier toucher (ciel vide, loin des systèmes) : le son est autorisé
   await sleep(9000);
   const s1 = await p.evaluate(() => ({ log: TB.nar.log.map((x) => x.who + ' ' + x.text), sub: document.getElementById('sub').hidden ? null : document.getElementById('sub').textContent, spoken: window.__spoken.filter((x) => x.text.trim()), news: document.getElementById('news').hidden ? null : document.getElementById('news').textContent, t: TB.state.t }));
   console.log('  dit :', s1.log.slice(0, 6).join(' | '));

@@ -19,7 +19,8 @@ const c1 = n.log.length; n.update(fe.t - 1200); REAL += 50; run(n, fe.t - 1200, 
 const lines = n._linesFor(fe, fe.t).map((l) => l[1]);
 ok(n.log.slice(c1).some((x) => lines.includes(x.text) || x.text.split(' ').slice(0, 3).join(' ') === lines[0].split(' ').slice(0, 3).join(' ')), `revoir : « ${fe.kind} » redit après le retour en arrière`);
 // 3. vue système (instant envoyé tous les 250 ms) à ×200 : les passages sont dits
-n = mk(); const sys0 = n.tl.find((e) => e.kind === 'periapsis'); let t = sys0.t - 3000; n.update(t);
+// (dix systèmes : le peloton est serré au début ; on prend une périapse qu'aucun autre fait ne recouvre de ±25 min)
+n = mk(); const sys0 = n.tl.find((e) => e.kind === 'periapsis' && !n.tl.some((o) => o !== e && o.kind !== 'periapsis' && Math.abs(o.t - e.t) < 1500)) || n.tl.find((e) => e.kind === 'periapsis'); let t = sys0.t - 3000; n.update(t);
 let acc = 0; while (t < sys0.t + 3000) { REAL += 16; acc += 16; t += 200 * 0.016; if (acc >= 250) { acc = 0; n._lt = t; } n.update(n._lt ?? sys0.t - 3000); }
 const per = n.log.filter((x) => /Périapse|au plus près/.test(x.text)).length;
 ok(per >= 1 && n.log.length >= 5, `vue système ×200 (instant tous les 250 ms) : ${n.log.length} phrases, ${per} périapse(s)`);

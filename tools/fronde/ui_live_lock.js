@@ -18,7 +18,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const inSys = async () => { for (let i = 0; i < 80; i++) { if (await p.evaluate(() => TB.state.inSystem) && sys() && await sys().evaluate(() => window.RW && RW.live && RW.live().now != null).catch(() => false)) return true; await sleep(250); } return false; };
   const back = async () => { await sys().evaluate(() => document.querySelector('#rh-back').click()); await sleep(1500); };
   // attendre que la course ait quitté Kerath (tous les racers au-delà)
-  await p.waitForFunction(() => TB.live().now > 22 * 3600, null, { timeout: 240000 });
+  await p.waitForFunction(() => TB.live().now > 8 * 3600, null, { timeout: 240000 });
   console.log('maintenant', (await p.evaluate(() => TB.live().now / 3600)).toFixed(1) + ' h');
   await p.click('#stages button[data-i="0"]');
   ok(await inSys(), 'Kerath : vue système ouverte');
@@ -31,14 +31,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   ok(L.lock && Math.abs(L.t - L.now) / 1500 < 1 && L.speed === 'direct', `pastille touchée : retour au direct (écart ${((L.now - L.t) / 1500).toFixed(2)} s réelles, « ${L.pill} »)`);
   await back();
   // une étape que la course n'a pas quittée (la dernière) : direct, calé sur l'horloge
-  await p.click('#stages button[data-i="2"]');
-  ok(await inSys(), 'Nox : vue système ouverte');
+  await p.click('#stages button[data-i="9"]');
+  ok(await inSys(), 'Orvane (dernière étape) : vue système ouverte');
   const samples = [];
   for (let i = 0; i < 12; i++) { samples.push(await sys().evaluate(() => RW.live())); await sleep(250); }
   const maxGap = Math.max(...samples.map((s) => Math.abs(s.now - s.t))), mono = samples.every((s, i) => !i || s.t >= samples[i - 1].t);
   // l'écart vient seulement de l'image en cours (SwiftShader : images lentes ; course ×1500) : on le compte en secondes réelles
   const f0 = await sys().evaluate(() => RW.frameCount()); await sleep(2000); const fps = (await sys().evaluate(() => RW.frameCount()) - f0) / 2;
-  ok(samples.every((s) => s.lock) && mono && maxGap / 1500 < Math.max(4, 8 / Math.max(fps, 0.5)), `Nox : direct tenu (verrou ${samples.map((s) => +s.lock).join('')}, écart max ${(maxGap / 1500).toFixed(2)} s réelles à ${fps.toFixed(1)} im/s, temps croissant : ${mono})`);
+  ok(samples.every((s) => s.lock) && mono && maxGap / 1500 < Math.max(4, 8 / Math.max(fps, 0.5)), `Orvane : direct tenu (verrou ${samples.map((s) => +s.lock).join('')}, écart max ${(maxGap / 1500).toFixed(2)} s réelles à ${fps.toFixed(1)} im/s, temps croissant : ${mono})`);
   // la caméra s'oriente au doigt (glisser) en direct, dans les trois vues
   for (const v of ['overview', 'gates', 'follow']) {
     // personne dans ce système : « Suivre » ouvre le couloir du Télébyte (Phase 4), rien à orienter ici

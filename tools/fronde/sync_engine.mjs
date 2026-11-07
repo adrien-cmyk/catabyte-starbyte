@@ -28,10 +28,10 @@ for (const [id, file] of MODS) {
   if (/^export\s/m.test(s)) throw new Error(`${file} : forme d'export non gérée`);
   parts.push(`// ── ${file} ──\n__m.${id} = (() => {\n${s}\nreturn { ${[...new Set(names)].join(', ')} };\n})();`);
 }
-const api = ['runRace', 'digest', 'planOf', 'plansMap', 'choosePlan', 'passSystem', 'rngOf', 'rng2', 'hazardsOf', 'FLARE_P', 'ENGINE_V', 'PLAN_LABEL', 'FUEL_PER_DV', 'FUEL_PER_LEG', 'V_REF'];
-const data = ['RACE_SYSTEMS', 'RACERS', 'PILOT', 'gmOfGiant', 'sphereGM'];
+const api = ['runRace', 'digest', 'planOf', 'plansMap', 'choosePlan', 'passSystem', 'rngOf', 'rng2', 'hazardsOf', 'routeOf', 'FLARE_P', 'ENGINE_V', 'PLAN_LABEL', 'FUEL_PER_DV', 'FUEL_PER_LEG', 'V_REF'];
+const data = ['RACE_SYSTEMS', 'RACE_SYSTEMS_V2', 'RACERS', 'PILOT', 'PILOT_V2', 'gmOfGiant', 'sphereGM'];
 // références d'autocontrôle (5 graines) : la fonction serveur vérifie qu'elle calcule les mêmes courses que le jeu
-const ref = JSON.parse(readFileSync(new URL('tools/fronde/engine_ref_v2.json', root), 'utf8'));   // le serveur crée des éditions v2
+const ref = JSON.parse(readFileSync(new URL('tools/fronde/engine_ref_v3.json', root), 'utf8'));   // le serveur crée des éditions v3
 const REF5 = Object.fromEntries(Object.entries(ref).slice(0, 5));
 const engineHash = srcHash.copy().digest('hex').slice(0, 16);
 const code = `// STARBYTE — moteur de course de la Grande Fronde, COPIE GÉNÉRÉE par tools/fronde/sync_engine.mjs (dépôt catabyte-starbyte).

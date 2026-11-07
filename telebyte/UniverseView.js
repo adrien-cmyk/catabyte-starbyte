@@ -8,7 +8,7 @@ import { svg } from './icons.js';
 const LY = 230;                                    // unités de scène par année-lumière
 const LOOP = 210;                                  // rayon de la boucle de fronde autour d'un système
 const STAR_COL = { yellow: 0xffd9a0, white: 0xcfe0ff, red: 0xff9a7a };
-const GIANT_COL = { amber: '#d9a066', blue: '#3f95a0', black: '#3a3027' };
+const GIANT_COL = { amber: '#d9a066', blue: '#3f95a0', black: '#3a3027', rose: '#c48a90', pale: '#cfdad6', jade: '#7e9658', copper: '#c46a34', violet: '#8c74c0', cream: '#e6d6b0', ember: '#8a3a18' };
 
 const NEB_FS = /* glsl */`
 uniform float uT; varying vec2 vP;
@@ -62,7 +62,7 @@ export class UniverseView {
     // caméra : survol incliné ; glisser = se déplacer, molette / pincement = zoom
     const xs = this.nodes.map((n) => n.p[0]), zs = this.nodes.map((n) => n.p[2]);
     this.center = [(Math.min(...xs) + Math.max(...xs)) / 2, 0, (Math.min(...zs) + Math.max(...zs)) / 2];
-    this.span = Math.max(...xs) - Math.min(...xs) + 900; this.zoom = 1; this.pan = [0, 0];
+    this.span = Math.max(...xs) - Math.min(...xs) + 900; this.spanZ = Math.max(...zs) - Math.min(...zs) + 900; this.zoom = 1; this.pan = [0, 0];
     this._bind(); this.resize();
   }
   // ciel : peu d'étoiles, presque toutes très faibles, quelques brillantes à halo doux, teintes variées, léger
@@ -254,7 +254,8 @@ export class UniverseView {
     let focus = [this.center[0] + this.pan[0] + (wide ? this.span * 0.06 : 0), 0, this.center[2] + this.pan[1]];
     if (this.sel) { const p = this._placeOf(this.sel, t); focus = [p[0] + this.pan[0] * 0.2, 0, p[2] + this.pan[1] * 0.2]; }
     this._f = this._f || focus.slice();
-    const fit = this.span / Math.min(aspect, 1.6) * (aspect < 0.8 ? 1.25 : 1) * (aspect < 0.6 ? 1.25 : 1);   // portrait étroit : marge pour les systèmes extrêmes
+    const fit = Math.max(this.span / Math.min(aspect, 1.6) * (aspect < 0.8 ? 1.25 : 1) * (aspect < 0.6 ? 1.25 : 1),   // portrait étroit : marge pour les systèmes extrêmes
+      this.spanZ * (wide ? 0.95 : 1.1));                                                                 // dix systèmes : la profondeur du parcours compte aussi
     const dist = fit * (wide ? 1.5 : 1.15) * this.zoom * (this.sel ? 0.45 : 1);
     for (let i = 0; i < 3; i++) this._f[i] += (focus[i] - this._f[i]) * (1 - Math.exp(-dt * 4));
     this._d = this._d ? this._d + (dist - this._d) * (1 - Math.exp(-dt * 3)) : dist;
@@ -264,6 +265,13 @@ export class UniverseView {
     const W = this.host.clientWidth, H = this.host.clientHeight, v = new THREE.Vector3();
     const proj = (p) => { v.set(p[0], p[1], p[2]).project(c); return [(v.x * 0.5 + 0.5) * W, (-v.y * 0.5 + 0.5) * H, v.z < 1]; };
     this.nodes.forEach((n, i) => { const [x, y] = proj(n.p); this.sysLabels[i].style.transform = `translate(${x | 0}px, ${(y + 18) | 0}px)`; });
+    // dix étapes : on n'annonce les dangers que là où la course passe (étapes occupées et la suivante du premier), ou
+    // partout quand on zoome ; une éruption en cours reste toujours affichée
+    const near = new Set(), idx = (id) => this.nodes.findIndex((n) => n.sys.id === id); let front = -1;
+    for (const r of this.feed.racers) { const st = this.feed.stateAt(r.id, t);
+      const k = st.phase === 'leg' ? idx(st.legFrom) : st.phase === 'system' ? idx(st.system) : st.phase === 'start' ? 0 : -1;
+      if (st.phase === 'leg') near.add(k); front = Math.max(front, k); }
+    if (front >= 0) near.add(front);
     for (const h of this.hz || []) {
       const [x, y] = proj([h.mid.x - h.nrm[0] * 150, 0, h.mid.z - h.nrm[1] * 150]);   // de l'autre côté du nuage
       const hw = (h.el._w || (h.el._w = h.el.offsetWidth)) / 2 + 4;   // jamais coupée par le bord de l'écran
@@ -271,6 +279,8 @@ export class UniverseView {
       // éruption en cours sur cette étape (un fait déjà arrivé) : le halo s'allume et l'étiquette le dit
       let on = false; for (const r of this.feed.racers) for (const e of (this.feed.tracks[r.id].happenings || [])) if (e.kind === 'flare' && t >= e.t && t <= e.t + (e.data.dur || 0) && e.sys === this.nodes[h.k + 1].sys.id) on = true;
       if (on !== h.on) { h.on = on; h.el.classList.toggle('on', on); }
+      const far = !on && this.zoom > 0.55 && this.hz.length > 3 && !near.has(h.k);
+      if (far !== h.far) { h.far = far; h.el.classList.toggle('far', far); }
       h.glow.material.opacity = on ? 0.3 + 0.12 * Math.sin(performance.now() / 300) : 0;
     }
     const placed = [];

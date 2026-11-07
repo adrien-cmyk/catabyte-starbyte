@@ -385,7 +385,7 @@ VIEWS['course-portes'] = () => {
 VIEWS['course-portes']._w = true;
 
 /* ── systèmes de la course : bascule (étoile, soleil, reflets, géante, lunes, cibles, vues) ── */
-const STAR_GLOW = { amber: [0.5, 0.3, 0.16], blue: [0.12, 0.3, 0.42], black: [0.08, 0.07, 0.06] };
+const STAR_GLOW = { amber: [0.5, 0.3, 0.16], blue: [0.12, 0.3, 0.42], black: [0.08, 0.07, 0.06], rose: [0.45, 0.24, 0.24], pale: [0.3, 0.36, 0.38], jade: [0.22, 0.32, 0.16], copper: [0.5, 0.24, 0.1], violet: [0.22, 0.16, 0.4], cream: [0.5, 0.42, 0.28], ember: [0.3, 0.1, 0.04] };
 function setSystem(id) {
   const sys = RACE_SYSTEMS.find((x) => x.id === id); if (!sys || sys === curSys) return;
   curSys = sys;
@@ -602,6 +602,8 @@ function hud() {
   if (graze && t === graze.target) alt = ' · altitude ' + fmtDist(graze.moon.altitudeAt(cam.pos));
   $('readout').textContent = `${fps.toFixed(0)} i/s · ${lod.budget.name} · ${frameStats.calls} appels · ${(frameStats.tris / 1e3).toFixed(0)} k tri · ${t ? t.label : ''} · distance ${fmtDist(d)}${alt} · ×${timeScale}`;
 }
+// sélecteur : tous les systèmes de course (dix depuis le moteur v3), avec le nom de leur géante
+{ const sel = $('giant'); sel.innerHTML = ''; for (const x of RACE_SYSTEMS) sel.add(new Option(`${x.name} · ${GIANTS[x.giant].name.replace('Géante', 'géante')}`, x.id)); sel.value = curSys.id; }
 $('giant').onchange = (e) => { setSystem(e.target.value); };
 $('view-sel').onchange = (e) => { if (e.target.value === 'zoom') { cam.enabled = false; director.start(1); $('cine').textContent = 'Caméra libre'; return; } if (director.active) { director.stop(); cam.enabled = true; $('cine').textContent = 'Cinématique'; } const v = e.target.value; curTarget = v.startsWith('ring') ? 'rings' : v === 'star' ? 'star' : moonById[v] ? 'moon:' + v : 'giant'; if (!v.startsWith('graze')) graze = null; VIEWS[v](); };
 $('target').onchange = (e) => { curTarget = e.target.value; graze = null;

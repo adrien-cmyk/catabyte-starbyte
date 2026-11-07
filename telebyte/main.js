@@ -157,13 +157,13 @@ $('route').textContent = E.systems.map((s) => s.name).join(' → ');
 /* ── étapes : chaque système, à l'instant où le premier racer y passe la périapse ── */
 function stagesOf() {
   return E.systems.map((sys) => {
-    if (feed.etaPeriapsis) { const e = feed.etaPeriapsis(sys.id); let t0 = Infinity; for (const r of E.racers) for (const sg of feed.tracks[r.id].segs) if (sg.kind === 'system' && sg.sys.id === sys.id) t0 = Math.min(t0, sg.t0); return { sys, tp: e.t, known: e.known, t0: Number.isFinite(t0) ? t0 : e.t - 6.1 * 3600 }; }
+    if (feed.etaPeriapsis) { const e = feed.etaPeriapsis(sys.id); let t0 = Infinity; for (const r of E.racers) for (const sg of feed.tracks[r.id].segs) if (sg.kind === 'system' && sg.sys.id === sys.id) t0 = Math.min(t0, sg.t0); return { sys, tp: e.t, known: e.known, t0: Number.isFinite(t0) ? t0 : e.t - ((E.pilot && E.pilot.entryR) || 9) / 9 * 6.1 * 3600 }; }
     let tp = Infinity, t0 = Infinity;
     for (const r of E.racers) for (const sg of feed.tracks[r.id].segs) if (sg.kind === 'system' && sg.sys.id === sys.id) { tp = Math.min(tp, sg.tp); t0 = Math.min(t0, sg.t0); }
     return { sys, tp, t0, known: true };
   });
 }
-let STAGES = stagesOf();
+let STAGES = stagesOf(), stageSeen = '';
 const stageHtml = () => STAGES.map((s, i) => (i ? `<button type="button" class="leg" data-leg="${i - 1}" aria-label="Couloir ${STAGES[i - 1].sys.name} vers ${s.sys.name}"></button>` : '') + `<button type="button" data-i="${i}" aria-label="Voir le passage à ${s.sys.name}"><b>${s.sys.name}</b><span>${s.known ? '' : '≈ '}${hh(s.tp)}</span></button>`).join('');
 $('stages').innerHTML = stageHtml();
 // flux publié : à chaque plan reçu, étapes et durée de la course se précisent
@@ -215,7 +215,10 @@ function renderClock() {
   setTxt($('time'), hh(t));
   { let cur = 0; STAGES.forEach((s, i) => { if (t >= s.t0) cur = i; }); const lk = cor.legNow(t, null); const inLeg = lk >= 0 && E.racers.every((r) => feed.stateAt(r.id, t).phase !== 'system');
     for (const b of $('stages').querySelectorAll('button[data-i]')) b.classList.toggle('now', !inLeg && +b.dataset.i === cur);
-    for (const b of $('stages').querySelectorAll('button[data-leg]')) b.classList.toggle('now', inLeg && +b.dataset.leg === lk); }
+    for (const b of $('stages').querySelectorAll('button[data-leg]')) b.classList.toggle('now', inLeg && +b.dataset.leg === lk);
+    // dix étapes sur une ligne qui défile : l'étape en cours reste en vue (sans bouger la page)
+    const nb = $('stages').querySelector('button.now'), key = nb ? nb.dataset.i + '/' + nb.dataset.leg : '';
+    if (nb && key !== stageSeen) { stageSeen = key; const st = $('stages'); st.scrollTo({ left: Math.max(0, nb.getBoundingClientRect().left - st.getBoundingClientRect().left + st.scrollLeft - st.clientWidth * 0.3), behavior: "smooth" }); } }
   { const v = String(Math.round(t)); if (slider.value !== v && document.activeElement !== slider) slider.value = v; }
   const ev = feed.nextEvent(t);
   setTxt($('next'), ev ? `${ev.label} · ${racer[ev.racer].name} dans ${dur(ev.t - t)}` : 'course terminée');

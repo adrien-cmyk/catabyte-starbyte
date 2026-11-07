@@ -116,8 +116,9 @@ export class ServerFeed extends RaceFeed {
     }
     if (Number.isFinite(tp)) return { t: tp, known: true };
     const k = this.systems.findIndex((s) => s.id === sysId);
-    if (!Number.isFinite(entry)) entry = k * (12 + this.pilot.legHours) * 3600;     // ~12 h dans un système, puis l'étape
-    return { t: entry + 6.1 * 3600, known: false };
+    const sysH = (this.pilot.entryR || 9) >= 9 ? 12 : 4.4;                         // durée d'un passage (v3 : entrée à 4 rayons)
+    if (!Number.isFinite(entry)) entry = k * (sysH + this.pilot.legHours) * 3600;    // un passage, puis l'étape
+    return { t: entry + sysH * 0.51 * 3600, known: false };
   }
 }
 

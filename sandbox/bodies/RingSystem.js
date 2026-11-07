@@ -11,6 +11,13 @@ const RING_COLORS = {
   amber: ['#d2bc9c', '#8f7558', '#e8dcc6'],
   blue: ['#a9b4ba', '#5f6c75', '#c9d2d6'],
   black: ['#6e655b', '#37322d', '#8b8178'],
+  rose: ['#c9a49a', '#7e5852', '#e6cfc4'],
+  pale: ['#c4ccc8', '#7e8a88', '#e2e8e2'],
+  jade: ['#a8ae86', '#5a6248', '#c8cca6'],
+  copper: ['#b88a64', '#6a4228', '#d8b490'],
+  violet: ['#a49ab8', '#5a4e70', '#c8c0da'],
+  cream: ['#e2d4b4', '#a28c64', '#f4ead4'],
+  ember: ['#7a5a48', '#3a2418', '#a07a60'],
 };
 
 export class RingSystem {
