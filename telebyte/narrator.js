@@ -203,6 +203,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
 
   /* ── temps morts : point course, télémétrie, vécu, faits divers, paris, finale ── */
   function filler(t, now) {
+    { const B = burst(t, now); if (B) return B; }
     if (now != null && now < 0) return preRace(-now);
     const rows = feed.standingsAt(t), lead = rows[0], done = rows.every((r) => r.done);
     if (done) { const w = nar.tl.find((x) => x.kind === 'finish' && x.data.place === 1); return w ? [['A', `Rappel du résultat : victoire ${N[w.racer].du}. Rendez-vous dans trois semaines pour la prochaine Grande Fronde !`]] : null; }
@@ -265,6 +266,25 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     return T[i].map((l) => [l[0], l[1]]);
   }
   nar.feuilleton = feuilleton;                                    // essais
+  // ouverture (07/11 : « à la première connexion, qu'ils parlent un peu plus ») : à chaque ouverture du Télébyte, les
+  // premières minutes enchaînent accueil, parcours, pilotes, faits divers ; ensuite, le rythme habituel
+  let openedAt = null, burstI = 0;
+  const racerIntro = (r) => [['A', `Présentation : ${N[r.id].le}.`], ['B', `${PROFILE[r.id] ? PROFILE[r.id][0].toUpperCase() + PROFILE[r.id].slice(1) : 'Un outsider à surveiller'}. Aux commandes : ${P(r.id)}.`]];
+  const fait = () => [['A', pick(['Un petit fait divers en passant.', 'Et pendant ce temps, dans la galaxie…', 'Mila, tu as vu passer ça ?'])], ['B', FAITS[(faitI++) % FAITS.length]]];
+  const blague = () => { const b = BLAGUES[(blagueI++) % BLAGUES.length]; return [['A', b[0]], ['B', b[1]]]; };
+  function burst(t, now) {
+    if (openedAt == null || performance.now() - openedAt > 300000) return null;
+    if (now == null && !moving) return null;                     // revoir en pause : pas de bavardage
+    const pre = now != null && now < 0, last = E.systems[E.systems.length - 1];
+    const seq = pre
+      ? [() => [['A', 'Bienvenue sur le Télébyte, commandant ! Installez-vous, on vous raconte tout de la Grande Fronde.'], ['B', `Au programme : ${E.systems.map((x) => x.name).join(', puis ')}. Et l'arrivée à la périapse de ${last.name}.`]],
+         () => [...nv([['A', `Départ dans ${dur(-now)} ! Les paris sont ouverts jusque-là.`]]), ['B', 'Quatre vaisseaux, quatre caractères. Laissez-moi vous les présenter.']],
+         ...E.racers.map((r) => () => racerIntro(r)), fait, blague, fait]
+      : [(r) => fillOf('tele', t, feed.standingsAt(t), feed.standingsAt(t)[0]), (r) => fillOf('vecu', t, feed.standingsAt(t), feed.standingsAt(t)[0]), fait, () => feuilleton('pendant'), blague, (r) => fillOf('paris', t, feed.standingsAt(t), feed.standingsAt(t)[0])];
+    while (burstI < seq.length) { const L = seq[burstI++](); if (L && L.length) return L; }
+    return null;
+  }
+  const inBurst = (now) => openedAt != null && performance.now() - openedAt < 300000 && burstI < 12 && (now != null || moving);
   let preI = 0;
   function preRace(left) {
     if ((preI++) % 3 !== 2) { const F = feuilleton('avant'); if (F) return F; }   // avant le départ : surtout le feuilleton
@@ -342,7 +362,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     if (nar.mode === 'off') { lastT = t; lastReal = real; return; }
     const dtR = Math.max(1e-3, (real - (lastReal || real)) / 1000);
     if (lastT == null) {
-      lastT = t < 60 ? -1 : t; lastReal = real; rateT = t; rateReal = real; nextFill = real + 2500;   // au départ : le départ est annoncé
+      lastT = t < 60 ? -1 : t; lastReal = real; rateT = t; rateReal = real; nextFill = real + 2500; openedAt = real;   // au départ : le départ est annoncé
       if (t >= 60) enqueue(recap(t), 3, real);
     }
     {
@@ -395,6 +415,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     }
   };
   const fillGap = (now) => {
+    if (inBurst(now)) return 2500 + rnd() * 2500;                     // ouverture : ils enchaînent (la parole en cours passe d'abord)
     if (now != null && now < 0) return 90000 + rnd() * 60000;     // avant-course : le feuilleton, posément (une réplique toutes les 1 min 30 à 2 min 30)
     const slow = !moving || rate < 30;                            // pause ou direct (×1) : on laisse respirer
     return (slow ? 35000 + rnd() * 40000 : 7000 + rnd() * 6000);
