@@ -22,9 +22,9 @@ const [{ toCreasedNormals }, { RoomEnvironment }] = await Promise.all([
 
 // vaisseaux de course : modèle final de chaque racer
 export const SHIPS = {
-  sentinelle: { file: 'racer07_shot.glb.gz', name: 'Racer 07' },
-  fulgurant: { file: 'fulgur07_shot.glb.gz', name: 'Fulgur 07' },
-  mule: { file: 'bidon52_shot.glb.gz', name: 'Bidon 52' },
+  sentinelle: { file: 'racer07_shot.glb.gz', name: 'Racer 07', noz: [[-2.87, 2.55, -15.95, 0.6], [2.87, 2.55, -15.95, 0.6]] },   // tuyères mesurées (repère du modèle)
+  fulgurant: { file: 'fulgur07_shot.glb.gz', name: 'Fulgur 07', noz: [[-12.4, -0.04, -47.6, 3.7], [12.4, -0.04, -47.6, 3.7]] },
+  mule: { file: 'bidon52_shot.glb.gz', name: 'Bidon 52', noz: [-1, 1].flatMap((sx) => [-3.49, 4.58].map((y) => [sx * 4.66, y, -21.44, 1.0])) },
   cuirasse: { file: 'monoreactor88_shot.glb.gz', name: 'Monoreactor 88', bell: 0.4 },   // grande cloche : flamme à 40 % de la largeur
 };
 const BASE = window.FRONDE_PLANS3D_BASE || new URL('./models/', import.meta.url).href;
@@ -177,6 +177,7 @@ export async function createStage(canvas, { giant = 'amber' } = {}) {
       const c = b.getCenter(new THREE.Vector3()), r = Math.max(0.4, Math.max(b.max.x - b.min.x, b.max.y - b.min.y) * 0.5);
       nozzles.push({ c, r });
     }
+    if (def.noz) nozzles.splice(0, nozzles.length, ...def.noz.map(([x, y, z, r]) => ({ c: new THREE.Vector3(x, y, z).sub(ctr), r })));   // tuyères connues : pas de devinette
     if (def.bell) for (const n of nozzles) n.r = Math.max(n.r, size.x * def.bell);   // cœur lumineux plus petit que la cloche
     if (!nozzles.length) nozzles.push({ c: new THREE.Vector3(0, 0, -size.z / 2), r: Math.max(0.6, size.x * 0.12) });
     // une « tuyère » trop large (plusieurs moteurs dans un seul maillage) : deux flammes, à gauche et à droite

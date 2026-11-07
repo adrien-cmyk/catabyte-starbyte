@@ -12,7 +12,7 @@ export const RACER_PROFILES = {
   // « Sentinelle » : Racer 07, 35 m, deux tuyères ioniques au-dessus de la poupe
   sr01: {
     url: url('racer07_shot.glb.gz'), embedded: url('racer07_shot.glb.gz.js'), length: 34.6, model: 'Racer 07',
-    nozzles: [{ x: -1.5, y: 2.56, z: -15.9, r: 0.75 }, { x: 1.5, y: 2.56, z: -15.9, r: 0.75 }],
+    nozzles: [{ x: -2.87, y: 2.55, z: -15.95, r: 0.6 }, { x: 2.87, y: 2.55, z: -15.95, r: 0.6 }],   // réacteurs aux extrémités de la poupe (mesurés)
     plume: PLUME_ION, engine: [0.5, 0.78, 1.0], tint: {},
   },
   // « Kerath Lourd » : Monoreactor 88, 14 m, un seul gros réacteur
@@ -24,13 +24,13 @@ export const RACER_PROFILES = {
   // « La Mule » : Bidon 52, 48 m, réacteurs chimiques
   tk07: {
     url: url('bidon52_shot.glb.gz'), embedded: url('bidon52_shot.glb.gz.js'), length: 47.7, model: 'Bidon 52',
-    nozzles: [-1, 1].flatMap((sx) => [-3.3, 4.4].map((y) => ({ x: sx * 4.6, y, z: -21.44, r: 1.0 }))),   // quatre nacelles aux coins
+    nozzles: [-1, 1].flatMap((sx) => [-3.49, 4.58].map((y) => ({ x: sx * 4.66, y, z: -21.44, r: 1.0 }))),   // quatre nacelles aux coins (mesurées)
     plume: PLUME_CHIMIQUE, engine: [1.0, 0.74, 0.42], tint: {},
   },
   // « Le Fulgurant » : Fulgur 07, 100 m, deux nacelles motrices
   sport: {
     url: url('fulgur07_shot.glb.gz'), embedded: url('fulgur07_shot.glb.gz.js'), length: 100, model: 'Fulgur 07',
-    nozzles: [{ x: -12.3, y: 0, z: -47.6, r: 3.6 }, { x: 12.3, y: 0, z: -47.6, r: 3.6 }],
+    nozzles: [{ x: -12.4, y: -0.04, z: -47.6, r: 3.7 }, { x: 12.4, y: -0.04, z: -47.6, r: 3.7 }],   // mesurées
     plume: PLUME_OR, engine: [1.0, 0.7, 0.3], tint: {},
   },
 };
