@@ -1,605 +1,1433 @@
-# La Grande Fronde — les répliques d'Arno et Mila
+# La Grande Fronde — les répliques d’Arno et Mila
 
-**Arno Vasseur**, le commentateur (voix ElevenLabs « Andy - Youth Radio ») · **Mila Korsh**, la consultante, ancienne pilote (voix « Jessica - Martinican »).
+**Version 2 — texte complet de remplacement · 8 novembre 2026**
 
-Ce document reprend tous les textes fixes lus à voix haute : le feuilleton (avant et pendant la course), les blagues, les piques, les cris, les faits divers, les présentations des pilotes et le vécu à bord. Les réactions aux faits de course (dépassements, plongées, pannes…) sont écrites à la volée avec les noms et les chiffres de la course : elles ne figurent pas ici.
+**Arno Vasseur**, commentateur — voix ElevenLabs « Andy - Youth Radio ».  
+**Mila Korsh**, consultante et ancienne pilote — voix « Jessica - Martinican ».
+
+Ce document remplace le texte précédent : ouverture, feuilleton d’avant-course, feuilleton pendant la course, humour, réactions courtes, faits divers, présentations des pilotes et évocations de la vie à bord. Les commentaires des faits de course restent alimentés par les noms, les chiffres et les événements réels de la simulation.
+
+## Direction de jeu — ne pas lire à voix haute
+
+### Le duo
+
+**Arno aime ce sport et connaît ses dossiers.** Chaleureux, rassembleur, capable de faire monter une action, il repère les enjeux et ose défendre une lecture différente de celle de Mila. Il pose les questions que se pose le public, sans jouer l’ignorant. Son enthousiasme ne se réduit pas à des cris.
+
+**Mila a encore les gestes d’une pilote.** Elle regarde les trajectoires avant les classements. Précise, directe, parfois drôle, elle peut aussi s’inquiéter, s’émerveiller et reconnaître qu’elle ne sait pas. Elle respecte Arno. Leurs taquineries reposent sur leur complicité ; elles ne doivent pas devenir le sujet de l’émission.
+
+Ils aiment les pilotes, les machines et les gens qui regardent. L’émotion vient des détails observés et de ce qui se joue pour les concurrents.
+
+### Rythme et diffusion
+
+- Les indications en italique, les titres, les identifiants et les conditions de diffusion ne sont jamais envoyés à la voix.
+- Une prise de parole correspond à un bloc audio. Les paragraphes à l’intérieur d’un monologue sont des respirations, pas des répliques séparées par plusieurs minutes.
+- L’ouverture est une séquence continue, jouée une seule fois à la première entrée pertinente dans l’avant-course. Elle ne redémarre pas à chaque visite.
+- Le feuilleton d’avant-course conserve 79 entrées ; celui de course en conserve 47. Les entrées 1 à 3 de l’avant-course s’enchaînent ; les autres peuvent être espacées d’environ 1 min 30 à 2 min 30, selon l’activité à l’écran.
+- Chaque joueur reprend sa progression narrative, mais une entrée devenue incompatible avec la phase de course est ignorée. Une reconnexion après le départ ne déclenche pas l’ouverture d’avant-course.
+- Un fait de course interrompt le contenu d’ambiance à la fin d’une phrase si possible. Le contenu interrompu peut être repris plus tard, seulement s’il reste pertinent.
+- Les anecdotes dépendantes restent groupées et ordonnées : dernière course de Mila, légendes, petits échanges qui se répondent.
+- Les nouvelles arrivées en cours de course utilisent les retours d’antenne, puis un état de course issu de la simulation. Aucun classement n’est inventé dans un texte fixe.
+- La montée en pression d’avant-départ et celle de fin de course sont conditionnées à la phase réelle. Ne pas annoncer un départ imminent plusieurs heures à l’avance.
+- Pas de plaisanterie automatique après un accident ou une perte de contact. Attendre une confirmation rassurante avant de retrouver un ton léger.
+- Un silence sur une belle image est souhaitable. Une pause entre deux observations vaut mieux qu’une formule de remplissage.
+
+### Vérité de l’antenne
+
+Une donnée chiffrée, une panne, une température, un message radio ou une action en cockpit ne sont présentés comme observés que si le moteur les fournit. Les évocations imaginées sont explicitement formulées comme telles. Les exemples conditionnels de ce document constituent des modèles de ton, pas des événements à déclencher artificiellement.
+
+La durée de référence reste celle du texte fourni : **soixante-douze heures**, pour **quatre concurrents** et **dix systèmes**. Si une édition change de format, adapter ces mentions ensemble avant génération des voix. Les vitesses interstellaires relèvent des technologies de Starbyte ; ne pas expliquer qu’une simple fronde gravitationnelle suffit à rendre réaliste une traversée interstellaire en trois jours.
+
+---
 
 ## Le feuilleton — avant le départ
 
-_Une ou deux répliques toutes les 1 min 30 à 2 min 30 ; chaque joueur reprend là où il s'était arrêté._
+### Ouverture — séquence continue
 
-### Ouverture
+#### 1. La prise d’antenne
 
-1. **Arno** — Bonsoir à toutes et à tous, et bienvenue sur le Télébyte ! Ici Arno Vasseur, en direct de la cabine de la Grande Fronde !  
-   **Mila** — Et Mila Korsh à ses côtés. Ancienne pilote, actuelle voisine de bureau d'Arno. Je ne sais pas laquelle des deux carrières est la plus dangereuse.
+*Arno sourit dans la voix. Il accueille d’abord, puis accélère légèrement au fil de la présentation. Il garde de la réserve : le départ n’a pas encore lieu.*
 
-2. **Arno** — Mila, on a toute la journée devant nous avant le départ. Qu'est-ce qu'on raconte aux commandants ?  
-   **Mila** — Tout. Les règles, les pilotes, les coulisses, et quelques secrets que la direction de course préférerait garder pour elle.
+**Arno** — Bonsoir à toutes et à tous ! Bonsoir aux équipages, aux équipes de nuit, à ceux qui ont terminé leur service et à ceux qui vont trouver un moyen de regarder quand même… Bienvenue sur le Télébyte !
 
-3. **Arno** — Des secrets ? Je sens que je vais adorer cette journée !  
-   **Mila** — Tu adores toutes les journées, Arno. C'est ton principal défaut, et ta seule qualité.
+Dans les stations, dans les colonies, au fond des ateliers du Comptoir : où que vous soyez, on est très heureux de vous retrouver. Ici Arno Vasseur. Et aujourd’hui, nous ouvrons ensemble une nouvelle édition de la Grande Fronde !
 
-### Les règles
+Quatre vaisseaux. Dix systèmes à traverser. Soixante-douze heures de course où quelques secondes gagnées au passage d’une géante peuvent vous porter jusqu’à l’arrivée… ou vous donner trois jours de regrets.
 
-4. **Arno** — Commençons par le commencement. La Grande Fronde, c'est quoi, en une phrase ?  
-   **Mila** — Quatre vaisseaux, une dizaine de systèmes, et une seule idée : voler l'énergie des planètes géantes pour aller plus vite que tout le monde.
+Et cette année encore, quel plateau !
 
-5. **Arno** — Voler l'énergie des planètes ? C'est légal, ça ?  
-   **Mila** — Parfaitement légal. Ça s'appelle une fronde gravitationnelle. Tu plonges vers la géante, elle t'attire, et tu repars plus vite que tu n'es arrivé.
+Ysée Marr, d’abord. La Sentinelle. Vous pouvez prendre de l’avance sur elle. Vous pouvez même croire que vous l’avez distancée. Mais avant de fêter quoi que ce soit, vérifiez où elle est.
 
-6. **Arno** — Comme une balançoire cosmique !  
-   **Mila** — Voilà. Sauf qu'une balançoire ne fait pas fondre ta coque si tu passes trop près.
+Brannoc et son Kerath Lourd ! On lui annonce chaque saison que son vaisseau a fait son temps. Chaque saison, il revient demander les chronos.
 
-7. **Arno** — Et c'est là qu'intervient le fameux effet Oberth, dont tout le monde parle sans le comprendre.  
-   **Mila** — C'est simple : une poussée de moteur rapporte beaucoup plus quand tu vas déjà très vite. Donc on pousse au point le plus bas, au ras de la planète.
+Tobbe, ensuite. Le docker du Comptoir, au départ sur un cargo qu’on n’aurait même pas pensé à inscrire. Aujourd’hui, regardez le nombre de gens qui portent ses couleurs !
 
-8. **Arno** — Au ras de la planète, là où il fait le plus chaud…  
-   **Mila** — Là où il fait le plus chaud, là où on a le plus peur, et là où on gagne la course. C'est toute la beauté du sport.
+Et puis Kaï Varon. Le Fulgurant. Quand il annonce une trajectoire, on regarde les chiffres. On vérifie les chiffres. Et on appelle Mila pour lui demander si c’est possible.
 
-9. **Arno** — Et entre les systèmes, il se passe quoi ?  
-   **Mila** — Le grand vide. Des heures de croisière. Plus tu sors vite d'un système, plus ton étape est courte. Tout se joue à la sortie.
+Justement : elle est avec nous ! Ancienne pilote de la Fronde, et la personne que je préfère avoir à mes côtés quand un vaisseau disparaît derrière une géante. Bonsoir, Mila !
 
-10. **Arno** — Les pilotes choisissent leur trajectoire à chaque système, c'est bien ça ?  
-   **Mila** — À chaque entrée. Prudente, classique, ou plongée rasante. Et une fois annoncée, on ne revient pas en arrière. C'est publié, gravé, assumé.
+#### 2. L’entrée de Mila
 
-11. **Arno** — Et nous, en cabine, on découvre leurs choix en même temps que vous, commandants !  
-   **Mila** — Ce qui explique les cris d'Arno. Je m'excuse d'avance auprès de vos oreilles.
+**Mila** — Bonsoir Arno. Bonsoir à tous. Tu sais ce que j’aime dans ce plateau ? Je connais les quatre. Et je suis incapable de t’en désigner un qui soit venu pour une place d’honneur.
 
-### Ysée Marr, la Sentinelle
+**Arno** — Même Tobbe ?
 
-12. **Arno** — Passons aux pilotes ! On commence par la commandante Ysée Marr, aux commandes de la Sentinelle.  
-   **Mila** — Ysée, c'est la régularité incarnée. Elle ne fait jamais le coup d'éclat, mais elle est toujours là au moment où il faut.
+**Mila** — Surtout Tobbe. On continue à lui parler comme s’il avait gagné le droit de participer. Lui, il aimerait bien qu’on commence à lui demander comment il compte gagner.
 
-13. **Arno** — Tu l'as connue en course, Mila ?  
-   **Mila** — On a couru trois saisons ensemble. Elle me battait une fois sur deux. L'autre fois, je trichais un peu sur le carburant.
+#### 3. Le rendez-vous est lancé
 
-14. **Arno** — Mila Korsh, en direct, avoue des tricheries !  
-   **Mila** — J'avoue des économies. Nuance. La direction de course a classé l'affaire.
+**Arno** — Alors on le lui demandera ! On a toute cette avant-course pour découvrir les machines, les trajectoires, les dernières nouvelles des hangars… et pour essayer de vous arracher un pronostic, Mila Korsh.
 
-15. **Arno** — Son vaisseau, le Racer 07, a une drôle d'allure. Deux réacteurs tout au bout des ailes !  
-   **Mila** — C'est pour l'équilibre dans les plongées. Les réacteurs écartés, le vaisseau ne part pas en toupie quand la géante tire dessus.
+**Mila** — Tu auras une analyse. Pour le pronostic, tu attendras que j’aie vu le parcours.
 
-16. **Arno** — On dit qu'Ysée écoute toujours la même chanson avant chaque départ.  
-   **Mila** — Une berceuse de sa planète natale. Elle dit que ça la calme. Son équipage dit que ça les endort.
+**Arno** — Vous l’entendez : elle est déjà en course ! Prenez place, choisissez vos couleurs, faites venir ceux qui manquent encore devant l’écran. Bienvenue dans la Grande Fronde !
 
-17. **Arno** — Son point faible ?  
-   **Mila** — Elle est trop raisonnable. Quand tout le monde prend des risques, elle reste sage. Et parfois, la sagesse arrive deuxième.
+### Comprendre la course
 
-### Brannoc, le Kerath Lourd
+#### 4. Le principe
 
-18. **Arno** — Deuxième pilote : le vieux Brannoc et son Kerath Lourd. Le doyen de la course !  
-   **Mila** — Brannoc a couru sa première Fronde avant qu'Arno sache parler. Ce qui, vu le résultat, était une période plus calme.
+**Arno** — Pour ceux qui nous rejoignent pour la première fois : on va voir les pilotes utiliser les géantes pour préparer leur sortie de système. Mila, qu’est-ce qu’on regarde en priorité ?
 
-19. **Arno** — Merci, Mila. Son vaisseau, le Monoreactor 88, ne fait que quatorze mètres de long !  
-   **Mila** — Quatorze mètres, et un seul réacteur, énorme. C'est un poing fermé avec un moteur au bout.
+**Mila** — La trajectoire de sortie. Le passage près de la planète est spectaculaire, mais ce qui compte, c’est de repartir dans la bonne direction, avec le plus de vitesse utile possible.
 
-20. **Arno** — Et il encaisse tout, paraît-il.  
-   **Mila** — Tout. Les débris, la chaleur, les astéroïdes. Brannoc dit que son vaisseau est comme lui : petit, vieux, et impossible à casser.
+#### 5. Ce que donne une géante
 
-21. **Arno** — Sa stratégie, c'est quoi ?  
-   **Mila** — Passer large, pousser fort, et attendre que les autres fassent des bêtises. Et dans la Fronde, les autres font toujours des bêtises.
+**Arno** — On entend souvent qu’ils « volent de la vitesse » aux planètes. C’est une assez belle définition de la Fronde.
 
-22. **Arno** — Brannoc a une superstition célèbre, il me semble.  
-   **Mila** — Il garde une boîte de biscuits à bord. Il ne l'ouvre jamais. Il dit que le jour où il l'ouvrira, ce sera pour fêter sa dernière victoire.
+**Mila** — Oui. Ils exploitent la gravité et le mouvement de ces mondes. Mais une géante peut aussi te renvoyer là où tu ne voulais pas aller. Il faut arriver avec un plan.
 
-23. **Arno** — Et elle est ouverte depuis combien de temps, cette boîte ?  
-   **Mila** — Personne ne sait. Les biscuits doivent être plus vieux que certains spectateurs.
+#### 6. Le prix d’un passage bas
 
-### Tobbe, La Mule
+**Arno** — Et plus on serre la planète, plus on peut lui demander ?
 
-24. **Arno** — Troisième pilote : Tobbe le docker, aux commandes de La Mule ! Le chouchou des tribunes !  
-   **Mila** — Tobbe chargeait des cargos au Comptoir il y a quelques années. Un jour, il a acheté un vieux Bidon 52 et il s'est inscrit à la course.
+**Mila** — On peut courber davantage sa trajectoire. Mais on réduit ses marges. Une correction tardive, une zone de débris, une approche trop basse… Il faut regarder le gain et le risque ensemble.
 
-25. **Arno** — Un ancien docker dans la Grande Fronde ? Ça a dû faire rire tout le monde !  
-   **Mila** — Tout le monde a ri. Jusqu'à ce qu'il termine sur le podium. Depuis, plus personne ne rit de La Mule.
+#### 7. L’effet Oberth
 
-26. **Arno** — Le Bidon 52, c'est un vrai cargo à la base ?  
-   **Mila** — Un cargo de livraison, avec quatre nacelles motrices. Peu de poussée, mais une vitesse de croisière que personne n'arrive à suivre entre les étoiles.
+**Arno** — Autre mot qu’on va beaucoup employer : Oberth. C’est le moment où le pilote choisit de pousser alors que la gravité l’a déjà énormément accéléré.
 
-27. **Arno** — Donc La Mule perd du temps dans les systèmes, et en regagne entre eux.  
-   **Mila** — Exactement. C'est une course de fond pour elle. Plus la course est longue, plus elle est dangereuse.
+**Mila** — Voilà. Une même variation de vitesse produit un plus grand gain d’énergie quand le vaisseau va déjà très vite. Le moment de la poussée compte donc beaucoup. Partir trop tôt, c’est parfois gaspiller une très bonne approche.
 
-28. **Arno** — Et on m'a dit que Tobbe parle à son vaisseau ?  
-   **Mila** — Il l'appelle « ma grande ». Il lui dit merci à chaque sortie de système. Franchement, vu ce qu'il lui demande, c'est la moindre des choses.
+#### 8. Attendre la poussée
 
-29. **Arno** — Il a aussi un fan-club, non ?  
-   **Mila** — Les dockers du Comptoir. Ils portent des casques verts et chantent à chaque passage. Ils chantent faux, mais avec beaucoup de cœur.
+**Arno** — Ce sera l’un de mes conseils pour suivre les passages : surveillez le moment où les moteurs rallument.
 
-### Kaï Varon, le Fulgurant
+**Mila** — Oui. Et regardez aussi ceux qui attendent encore. En cockpit, quand tu vois la planète grossir et que ton repère n’est toujours pas arrivé… les dernières secondes sont longues.
 
-30. **Arno** — Et enfin, le plus spectaculaire : Kaï Varon et le Fulgurant !  
-   **Mila** — Kaï, c'est le pilote que les mamans détestent et que les enfants adorent.
+#### 9. Entre les systèmes
 
-31. **Arno** — Il plonge plus près des géantes que n'importe qui, c'est vrai ?  
-   **Mila** — Plus près que n'importe qui de sensé. Il vise la limite à chaque fois. Parfois, il la dépasse.
+**Arno** — On parlera beaucoup des plongées, mais cette course se gagne aussi dans les longues étapes entre les systèmes.
 
-32. **Arno** — Son vaisseau, le Fulgur 07, fait cent mètres de long. Une flèche jaune !  
-   **Mila** — Une flèche magnifique, avec une coque fine comme du papier. Quand ça chauffe, ça chauffe vraiment.
+**Mila** — Absolument. Une bonne sortie peut rapporter pendant des heures. Et il faut profiter de la traversée pour vérifier la machine, préparer l’approche suivante et récupérer. Tu ne peux pas piloter trois jours comme tu pilotes trois minutes.
 
-33. **Arno** — Pourquoi prendre autant de risques ?  
-   **Mila** — Parce que quand ça passe, il ressort comme une comète et personne ne le revoit avant l'arrivée. Kaï préfère gagner en grand que finir en petit.
+#### 10. Choisir une trajectoire
 
-34. **Arno** — On dit qu'il ne mange rien avant une plongée.  
-   **Mila** — Rien. Il dit que ça lui donne les idées claires. Moi, à jeun, j'aurais surtout les idées noires.
+**Arno** — Prudente, classique, rasante : trois choix qui vont nous en dire beaucoup sur les intentions des pilotes.
 
-35. **Arno** — Tu crois qu'il a peur, parfois ?  
-   **Mila** — Tout le monde a peur. Kaï, lui, a simplement décidé que la peur pouvait attendre la fin de la course.
+**Mila** — Mais pas toute l’histoire. Une trajectoire prudente peut être la meilleure attaque avec une machine fatiguée. Il faut regarder ce que le pilote a encore à sa disposition.
 
-### Mila raconte sa dernière course
+#### 11. Lire les décisions
 
-36. **Arno** — Mila, tu ne racontes jamais ta dernière course. Aujourd'hui, c'est le moment !  
-   **Mila** — Tu insistes depuis trois ans. Bon. C'était il y a six saisons, dans un système qui n'existe plus sur la carte des courses.
+**Arno** — Et quand leurs choix seront publiés, nous les découvrirons avec vous.
 
-37. **Arno** — Un système qui n'existe plus ? Raconte !  
-   **Mila** — Ses anneaux étaient trop instables. Trop de débris. Après ma course, la direction l'a retiré du parcours. Je ne suis pas étrangère à cette décision.
+**Mila** — On pourra discuter de ce qu’ils cherchent. Pour savoir s’ils ont raison, en revanche… il faudra les regarder passer.
 
-38. **Arno** — Qu'est-ce qui s'est passé ?  
-   **Mila** — J'étais deuxième. J'ai tenté de couper par les anneaux pour passer en tête. Le raccourci de ma vie.
+### Ysée Marr — la Sentinelle
 
-39. **Arno** — Et alors ?  
-   **Mila** — Et alors, un caillou de la taille d'un piano a décidé de traverser mon cockpit. J'ai fini la course avec un trou dans la coque et une très mauvaise humeur.
+#### 12. La concurrente qu’on n’oublie pas
 
-40. **Arno** — Tu as fini la course ?!  
-   **Mila** — Troisième. Avec un scaphandre, un rouleau de ruban adhésif et beaucoup de vocabulaire. Le lendemain, j'ai rangé mes gants.
+**Arno** — Ysée Marr a cette qualité agaçante pour ses adversaires : même quand on ne parle pas d’elle, elle reste dans la course.
 
-41. **Arno** — Et tu ne regrettes pas ?  
-   **Mila** — Tous les jours. Mais d'ici, au moins, je peux critiquer les autres sans risquer de prendre un piano dans la figure.
+**Mila** — Parce qu’elle perd très peu de temps gratuitement. Une correction propre, une poussée au bon moment, une réserve bien gérée. À l’arrivée, toutes ces petites choses finissent par peser lourd.
+
+#### 13. Courir contre Ysée
+
+**Arno** — Vous avez partagé trois saisons. Qu’est-ce qui te gênait le plus chez elle ?
+
+**Mila** — Sa radio. Toujours la même voix. Je pouvais lui prendre de l’avance, elle répondait calmement à son équipe. J’aurais aimé l’entendre s’agacer une fois. Pour me rassurer.
+
+#### 14. Une adversaire qui apprend
+
+**Arno** — Tu m’avais raconté qu’après une course, elle était venue te demander comment tu l’avais passée.
+
+**Mila** — Oui. Avec les horaires précis. J’étais encore en train de raconter mon dépassement à tout le monde ; elle était déjà en train de préparer la prochaine fois.
+
+#### 15. Le Racer 07
+
+**Arno** — Sa Sentinelle, le Racer 07, est immédiatement reconnaissable : les deux réacteurs au bout des ailes, cette silhouette très ouverte.
+
+**Mila** — Et une machine qu’elle connaît parfaitement. C’est précieux. Quand il faut corriger, elle sait ce qu’elle peut demander, et ce qu’elle doit éviter. Cette confiance-là se voit dans son pilotage.
+
+#### 16. La chanson
+
+**Arno** — Avant chaque départ, la même berceuse de sa planète natale. C’est son rituel.
+
+**Mila** — Oui. On pourrait croire qu’elle cherche à s’endormir. En réalité, elle cherche quelque chose de familier. Quand tout le reste devient inhabituel, ça aide.
+
+#### 17. Sait-elle attaquer ?
+
+**Arno** — On dit souvent qu’elle est trop raisonnable. Je trouve qu’on confond parfois patience et manque d’audace.
+
+**Mila** — Je suis d’accord. La vraie question, c’est : saura-t-elle quitter son plan si la course l’exige ? Elle peut gagner en restant elle-même. Mais il faudra peut-être une décision qu’on ne lui connaît pas encore.
+
+### Brannoc — le Kerath Lourd
+
+#### 18. Le doyen
+
+**Arno** — Brannoc revient encore. Et je me méfie toujours des gens qui annoncent que cette édition sera celle de trop.
+
+**Mila** — Moi aussi. Il connaît les moments où les autres s’impatientent. Il les a eus, ces moments-là. Il en a payé quelques-uns assez cher pour s’en souvenir.
+
+#### 19. Le Monoreactor 88
+
+**Arno** — Quatorze mètres de long. Un réacteur qui semble prendre toute la place. Le Monoreactor 88 n’essaie pas de séduire les photographes.
+
+**Mila** — Pourtant, ils l’adorent. On dirait que quelqu’un a construit le moteur d’abord, puis trouvé juste assez de place pour asseoir Brannoc devant.
+
+#### 20. Une coque qui raconte
+
+**Arno** — Il y a des marques sur cette coque qu’on reconnaît d’une saison à l’autre.
+
+**Mila** — Son équipe ne remplace pas une pièce parce qu’elle est laide. Elle la remplace quand elle ne fait plus son travail. Résultat : chaque panneau a quelque chose à raconter.
+
+#### 21. Sa patience
+
+**Arno** — Il peut perdre du terrain sans changer immédiatement de stratégie. C’est assez rare.
+
+**Mila** — Il supporte d’être derrière. Beaucoup de pilotes prennent une mauvaise décision simplement parce qu’ils détestent voir un autre nom au-dessus du leur.
+
+#### 22. La boîte de biscuits
+
+**Arno** — Toujours à bord, cette fameuse boîte de biscuits qu’il réserve à sa dernière victoire.
+
+**Mila** — Toujours fermée. Son mécanicien dit qu’elle tient mieux que certaines pièces du vaisseau.
+
+#### 23. Le jour où elle s’ouvrira
+
+**Arno** — Tu crois qu’il l’ouvrira un jour ?
+
+**Mila** — Oui. Mais je ne suis pas certaine qu’il préviendra qui que ce soit. Je l’imagine bien rentrer, poser ses gants et demander deux tasses.
+
+### Tobbe — La Mule
+
+#### 24. Du quai au départ
+
+**Arno** — Tobbe chargeait les cargos du Comptoir. Aujourd’hui, des gens interrompent leur service pour regarder passer le sien.
+
+**Mila** — Et il connaît leurs horaires. Quand il parle de son public, il ne parle pas d’une foule abstraite. Il parle de gens avec qui il a travaillé.
+
+#### 25. Le premier podium
+
+**Arno** — La première fois qu’il a inscrit La Mule, on en a beaucoup souri. Puis il est monté sur le podium.
+
+**Mila** — Le plus drôle, c’est qu’il n’avait pas préparé de discours. Il a remercié les gens qui lui avaient prêté des outils. Il a oublié le nom de la course.
+
+#### 26. Le Bidon 52
+
+**Arno** — Un ancien cargo de livraison, quatre nacelles motrices. Il faut quand même une conviction solide pour regarder ça et se dire : je vais en faire un racer.
+
+**Mila** — Ou bien le connaître assez pour voir ce que les autres ne voient pas. La Mule manque de poussée dans les passages serrés, mais sur une longue traversée, il faut compter avec elle.
+
+#### 27. Sa course à lui
+
+**Arno** — Il faudra donc éviter de juger sa course uniquement au classement d’une sortie de système.
+
+**Mila** — Exactement. Il peut céder du temps là où les autres brillent et le reprendre quand on regarde ailleurs. Avec Tobbe, il faut garder la vue d’ensemble.
+
+#### 28. « Ma grande »
+
+**Arno** — Il lui parle toujours ?
+
+**Mila** — À La Mule ? Bien sûr. « Ma grande », avant une manœuvre. « Merci, ma grande », quand elle est passée. J’ai entendu des équipes entières communiquer moins clairement que ces deux-là.
+
+#### 29. Les casques verts
+
+**Arno** — Si vous voyez des casques verts dans les tribunes, vous savez maintenant pour qui ils sont venus.
+
+**Mila** — Les dockers du Comptoir. Ils ont gardé leurs casques de travail. Je trouve ça assez beau : Tobbe court avec quelque chose qui leur appartient à tous.
+
+### Kaï Varon — le Fulgurant
+
+#### 30. Celui qu’on attend dans les plongées
+
+**Arno** — Kaï Varon. Même quand on soutient un autre pilote, on attend son passage.
+
+**Mila** — Parce qu’il va chercher des trajectoires qu’on n’ose pas tous tenter. Et qu’il a le talent pour en réussir certaines. Le problème, c’est qu’il voudrait toutes les réussir.
+
+#### 31. Ce qu’il cherche
+
+**Arno** — Chez lui, la prise de risque semble presque faire partie du style.
+
+**Mila** — Attention quand même : il ne choisit pas une plongée au hasard pour faire une belle image. Il travaille énormément. On peut discuter de ses marges, pas de sa préparation.
+
+#### 32. Le Fulgur 07
+
+**Arno** — Cent mètres. Cette flèche jaune qu’on repère immédiatement dans le noir. Le Fulgur 07 est une sacrée machine.
+
+**Mila** — Magnifique. Mais avec beaucoup moins de tolérance aux mauvais traitements que le Kerath Lourd. Il faut être précis avec elle. Le talent de Kaï ne rend pas la coque plus épaisse.
+
+#### 33. Gagner en attaquant
+
+**Arno** — J’aime les pilotes qui essaient de gagner. Mais il y a des courses qu’il aurait pu finir mieux en insistant moins.
+
+**Mila** — Oui. Et je pense qu’il le sait. On va regarder s’il a appris à garder une attaque pour plus tard. C’est souvent plus difficile que de la tenter tout de suite.
+
+#### 34. Le repas d’avant-course
+
+**Arno** — Il ne mange rien avant une plongée. Encore un rituel qu’aucun membre de notre régie n’a souhaité adopter.
+
+**Mila** — Moi non plus. J’avais besoin de savoir qu’au moins une chose se passerait bien dans ma journée. Le petit-déjeuner remplissait généralement cette fonction.
+
+#### 35. Sa respiration
+
+**Arno** — Sur ses anciennes radios, ce qui me frappe, c’est sa voix avant une plongée. On pourrait croire qu’il rentre au hangar.
+
+**Mila** — Écoute sa respiration. Il prend une grande inspiration avant de couper le canal. Toujours au même moment.
+
+**Arno** — Donc il a peur.
+
+**Mila** — Bien sûr. Il sait ce qu’il va demander au vaisseau. C’est pour ça que je le regarde. Et que j’aimerais parfois qu’il passe un peu plus large.
+
+### La dernière course de Mila — six entrées à conserver dans l’ordre
+
+#### 36. Demander la permission
+
+**Arno** — On parle beaucoup de ce qu’ils ressentent là-dedans. Mila, si tu es d’accord… j’aimerais qu’on revienne sur ta dernière course.
+
+**Mila** — D’accord. Mais laisse-moi la raconter jusqu’au bout. Tu poses toujours ta première question juste avant la partie intéressante.
+
+#### 37. Le système retiré du parcours
+
+**Mila** — C’était il y a six saisons. Un système qu’on a retiré du parcours depuis. Les anneaux bougeaient beaucoup. On le savait, mais on pensait connaître les passages.
+
+**Arno** — Et tu en avais choisi un que les autres évitaient.
+
+**Mila** — Oui. J’étais deuxième. Je pensais avoir trouvé ma chance.
+
+#### 38. L’approche
+
+**Mila** — Au début, tout se passe bien. C’est ça que je revois le mieux. Les repères arrivent exactement où je les attends. Je suis même un peu en avance.
+
+**Arno** — Tu sais déjà que tu peux prendre la tête ?
+
+**Mila** — Je crois le savoir. Ce n’est pas tout à fait la même chose.
+
+#### 39. Le choc
+
+**Mila** — Un fragment a frappé le bord de la verrière. Je n’ai pas vu arriver le morceau. J’ai entendu le choc dans la structure, puis l’alarme de pression.
+
+**Arno** — Qu’est-ce que tu fais en premier ?
+
+**Mila** — Je ferme mon casque. Après seulement, je regarde ce qui fonctionne encore.
+
+#### 40. Finir
+
+**Arno** — Et tu finis troisième.
+
+**Mila** — Oui. Sous scaphandre, avec une fuite colmatée comme on a pu et mon équipe à la radio. Ils m’ont fait vérifier les mêmes choses plusieurs fois. Sur le moment, ça m’agaçait. Maintenant, je comprends pourquoi ils avaient besoin de m’entendre répondre.
+
+#### 41. Ranger les gants
+
+**Arno** — Qu’est-ce qui t’a décidée à arrêter ?
+
+**Mila** — Le lendemain, j’ai voulu regarder mon passage pour comprendre où j’avais perdu du temps. Pas où j’avais failli me tuer. Où j’avais perdu du temps.
+
+*Une respiration.*
+
+**Mila** — Je me suis dit qu’il fallait peut-être laisser mes gants au vestiaire quelque temps. Puis tu m’as proposé un micro. Je pensais que ce serait plus reposant.
+
+**Arno** — On n’avait pas parlé du volume sonore.
+
+**Mila** — Non. Une omission importante.
 
 ### Les dix systèmes
 
-42. **Arno** — Parlons du terrain de jeu. Une dizaine de systèmes, chacun avec sa géante. Mila, ton préféré ?  
-   **Mila** — Kerath et sa géante ambrée. Des anneaux immenses, des lunes partout. C'est le système le plus beau, et le plus traître.
+*Ces portraits décrivent les lieux. Ils ne prédisent pas les conditions de l’édition en cours.*
 
-43. **Arno** — Et le plus effrayant ?  
-   **Mila** — Nox. Une géante noire sous une étoile rouge. On n'y voit presque rien. Les pilotes plongent à l'instinct.
+#### 42. Kerath
 
-44. **Arno** — On m'a parlé d'Ivène, la géante braise.  
-   **Mila** — Une étoile toute proche, une géante rouge sombre qui rougeoie comme un feu de camp. Les coques y chauffent avant même la plongée.
+**Arno** — Kerath, sa géante ambrée, ses anneaux… C’est souvent l’image qu’on choisit pour présenter la Fronde.
 
-45. **Arno** — Et Talys, la géante pâle, couchée sur le côté ?  
-   **Mila** — Talys tourne presque à plat. Ses anneaux sont debout, comme une porte. Les pilotes disent qu'on a l'impression de plonger dans un tableau.
+**Mila** — Et quand on y arrive en course, on comprend pourquoi il vaut mieux avoir étudié la carte avant. On pourrait facilement passer son temps à regarder. Il y a des lunes partout, des ombres, des changements de lumière. C’est superbe.
 
-46. **Arno** — Il y a aussi Sarn, la géante verte.  
-   **Mila** — Sarn la jade. Elle a des orages énormes, avec des éclairs qu'on voit depuis l'espace. Magnifique, à condition de ne pas passer dedans.
+#### 43. Nox
 
-47. **Arno** — Et Quell, la violette ? Ça sonne comme un nom de fleur.  
-   **Mila** — Une fleur avec des aurores autour de la tête. Quand on la frôle de nuit, le cockpit devient tout violet. Le plus beau spectacle de la course.
+**Arno** — Nox, à l’inverse, donne beaucoup moins à voir. Cette géante presque noire sous une étoile rouge…
 
-48. **Arno** — Ostra, la géante crème, avec ses anneaux immenses.  
-   **Mila** — Les plus larges de tout le parcours. Si tu les traverses au mauvais endroit, c'est comme rouler sur du gravier à quarante kilomètres par seconde.
+**Mila** — Là-bas, on travaille avec ses instruments. Le noir peut donner une fausse impression de distance. On a envie de chercher la planète des yeux ; il faut surtout garder ses repères.
 
-49. **Arno** — Et Mirr, la cuivrée ?  
-   **Mila** — Mirr, c'est la cocotte-minute. Une étoile rouge, une géante couleur rouille et des tempêtes partout. Personne n'aime Mirr. Tout le monde respecte Mirr.
+#### 44. Ivène
 
-50. **Arno** — Il nous reste Vessa et Orvane.  
-   **Mila** — Vessa la bleue, toute calme, la plus reposante du parcours. Et Orvane la rose, avec deux lunes qui jouent à cache-cache. Toujours une surprise à Orvane.
+**Arno** — Ivène, la géante braise. Même les images donnent l’impression d’avoir chaud.
 
-### Coulisses de la régie
+**Mila** — Avec cette étoile toute proche et la lumière sur les nuages, oui. Et on y surveille particulièrement l’état thermique du vaisseau. Une marge consommée à l’approche ne réapparaît pas parce qu’on en a besoin plus tard.
 
-51. **Arno** — Un mot sur les coulisses. Ici, en régie, on est combien pour vous faire vivre la course ?  
-   **Mila** — Douze techniciens, trois drones caméras, un cuisinier, et un Arno. Le plus bruyant des quinze, ce n'est pas le cuisinier.
+#### 45. Talys
 
-52. **Arno** — Les drones caméras suivent les vaisseaux dans les systèmes ?  
-   **Mila** — Ils se postent près des géantes et attendent. Quand un vaisseau passe à quarante kilomètres par seconde, le drone a exactement un clignement d'œil pour faire l'image.
+**Arno** — Talys et ses anneaux presque dressés devant nous. Un de mes décors préférés.
 
-53. **Arno** — Et on a déjà perdu des drones ?  
-   **Mila** — Onze l'an dernier. L'un d'eux a été retrouvé en orbite autour d'une lune. Il filme encore. On ne sait pas quoi.
+**Mila** — Le mien aussi. La planète est très inclinée. En approche, l’horizon ne ressemble plus à ce que ton corps attend. Les premières fois, on penche la tête dans le casque. Comme si ça allait arranger quelque chose.
 
-54. **Arno** — Et le cuisinier, il prépare quoi pour soixante-douze heures de direct ?  
-   **Mila** — De la soupe. Beaucoup de soupe. La soupe, c'est la seule chose qui ne flotte pas partout quand Arno saute de sa chaise.
+#### 46. Sarn
 
-55. **Arno** — Je ne saute pas de ma chaise !  
-   **Mila** — Tu as cassé deux chaises la saison dernière. La régie a fini par te visser au sol.
+**Arno** — Sarn la jade. Sur les belles images, on distingue les orages jusque sur la face nocturne.
 
-### Les paris
+**Mila** — C’est l’un des rares endroits où j’avais envie de demander à mon navigateur : tu as vu ça ? Puis je me rappelais qu’il était occupé à faire son travail. Et que moi aussi, normalement.
 
-56. **Arno** — Un mot pour les commandants qui veulent parier. Mila, des conseils ?  
-   **Mila** — D'abord, ne pariez jamais ce que vous n'êtes pas prêts à perdre. La course, ça se regarde avant tout pour le plaisir.
+#### 47. Quell
 
-57. **Arno** — Et ensuite ?  
-   **Mila** — Regardez la carte des dangers : les ceintures d'astéroïdes, les risques d'éruption. Un pilote audacieux dans une course dangereuse, c'est un pari… audacieux.
+**Arno** — Quell, la violette. On nous demande souvent si les couleurs sont retouchées.
 
-58. **Arno** — Le favori n'est pas toujours le meilleur pari, c'est ça ?  
-   **Mila** — Le favori rapporte peu, parce que tout le monde mise dessus. L'outsider rapporte gros, quand il gagne. Tout est là.
+**Mila** — Pas besoin. Quand les aurores sont visibles, la lumière entre jusque dans le cockpit. Les reflets changent sur les gants. C’est un souvenir très précis pour beaucoup de pilotes.
 
-59. **Arno** — Et la course est vraiment honnête ? Rien n'est truqué ?  
-   **Mila** — Le résultat est scellé avant l'ouverture des paris, et son empreinte est publiée. À l'arrivée, chacun peut vérifier. Même Arno n'a pas accès au résultat.
+#### 48. Ostra
 
-60. **Arno** — Heureusement, je l'aurais dit à tout le monde !  
-   **Mila** — C'est exactement pour ça qu'on ne te le dit pas.
+**Arno** — Les anneaux d’Ostra remplissent presque le cadre. On pourrait les prendre pour une surface continue.
 
-### Légendes de la Fronde
+**Mila** — Et il faut justement se rappeler qu’ils n’en sont pas une. Ce sont des fragments, de la glace, de la matière en mouvement. On choisit un passage dans quelque chose qui continue de bouger.
 
-61. **Arno** — Mila, raconte-nous la première Grande Fronde. Les débuts !  
-   **Mila** — Trois vaisseaux, deux systèmes, et un parcours tracé sur une serviette en papier par trois pilotes de cargo, un soir, au Comptoir.
+#### 49. Mirr
 
-62. **Arno** — Sur une serviette en papier ?  
-   **Mila** — Elle est encadrée dans le bureau de la direction de course. Avec une tache de sauce dessus. La tache fait partie de l'histoire.
+**Arno** — Mirr la cuivrée. Une planète qui semble avoir déjà décidé que notre présence l’ennuyait.
 
-63. **Arno** — Et qui a gagné cette première course ?  
-   **Mila** — Personne ne s'en souvient vraiment. Les trois pilotes prétendent tous avoir gagné. Ils racontent encore l'histoire, chacun la sienne.
+**Mila** — Je ne lui ai jamais demandé son avis. J’ai surtout essayé de bien préparer ma sortie. Avec ses tempêtes et cette lumière rouge, on a suffisamment de choses à surveiller.
 
-64. **Arno** — Et la légende du vaisseau fantôme ? Tu y crois ?  
-   **Mila** — Ah, le cinquième vaisseau. Certains pilotes jurent avoir vu une lueur sans immatriculation les dépasser dans le grand vide.
+#### 50. Vessa et Orvane
 
-65. **Arno** — Un vaisseau fantôme dans la course ? Ça me donne des frissons !  
-   **Mila** — Moi, je pense que c'est un reflet sur la verrière. Mais je l'ai vu deux fois. Et je n'avais pas mangé de soupe ce jour-là.
+**Arno** — Vessa la bleue, Orvane la rose. Deux images plus douces pour terminer ce tour du parcours.
 
-66. **Arno** — Il y a aussi la légende de la plongée parfaite.  
-   **Mila** — La trajectoire idéale, celle qui frôle la géante au millimètre près, sans une égratignure. On dit qu'un seul pilote l'a réussie. Personne ne sait qui.
+**Mila** — Vessa donne cette impression de calme, oui. Orvane, je regarde d’abord où sont ses deux lunes. Une belle image peut cacher un passage compliqué. Ça reste vrai même quand la planète est rose.
 
-67. **Arno** — Kaï Varon la cherche, non ?  
-   **Mila** — Kaï la cherche à chaque plongée. C'est pour ça que son mécanicien a les cheveux blancs à trente ans.
+### Les coulisses de la retransmission
 
-### Rumeurs du paddock
+#### 51. Derrière l’image
 
-68. **Arno** — Passons aux rumeurs du paddock ! On dit que Brannoc a changé son réacteur cette saison.  
-   **Mila** — On dit ça chaque saison. Et chaque saison, c'est le même réacteur, simplement mieux astiqué.
+**Arno** — On entend deux voix, mais derrière cette retransmission, il y a des techniciens, des opérateurs, des gens qui préparent les images bien avant nous.
 
-69. **Arno** — Il paraît qu'Ysée Marr a un nouveau navigateur.  
-   **Mila** — Un jeune très doué, qui ne parle jamais. Ysée dit que c'est le meilleur équipier de sa vie. Il ne l'a pas encore contredite.
+**Mila** — Et qui savent exactement quand couper sur un gros plan. Je peux repérer une correction ; encore faut-il que quelqu’un vous la montre. On leur doit beaucoup.
 
-70. **Arno** — Et Tobbe aurait repeint sa Mule pendant la nuit ?  
-   **Mila** — Il a repeint le chiffre cinquante-deux. Il dit que ça porte bonheur. Les dockers disent que ça cachait surtout une rayure.
+#### 52. Les caméras
 
-71. **Arno** — Et la grande rumeur : Kaï Varon aurait parié sur lui-même !  
-   **Mila** — Les pilotes n'ont pas le droit de parier. Mais je suis prête à parier qu'il en a très envie.
+**Arno** — Les drones ne poursuivent pas simplement les racers d’un système à l’autre. Les points de vue se préparent.
 
-### Les commandants
+**Mila** — Oui. Il faut être au bon endroit avant le passage. Quand le vaisseau arrive, on n’a plus le temps de se dire que l’autre côté aurait été plus joli.
 
-72. **Arno** — Un petit mot pour tous les commandants qui nous regardent depuis leur planète.  
-   **Mila** — Bonsoir à vous. Vous pouvez suivre un racer en le touchant sur la carte, et plonger dans les systèmes pour voir les passages de près.
+#### 53. Celui qui filme encore
 
-73. **Arno** — Et si vous êtes pressés, le mode télé choisit les images pour vous !  
-   **Mila** — C'est comme avoir un réalisateur personnel. Un réalisateur qui ne crie pas. Contrairement à certains.
+**Arno** — Un drone perdu la saison dernière a fini en orbite autour d’une lune. Il envoie encore des images.
 
-74. **Arno** — Et n'oubliez pas : la fiche des racers vous montre les vaisseaux sous toutes les coutures.  
-   **Mila** — Allez y faire un tour avant de parier. Un vaisseau, ça se regarde dans les yeux. Enfin, dans les hublots.
+**Mila** — Un lever de soleil, un coucher de soleil. Une équipe de réalisation d’une remarquable régularité.
 
-### Montée en pression
+#### 54. La soupe
 
-75. **Arno** — Mila, plus on approche du départ, plus je sens la tension monter.  
-   **Mila** — Dans les hangars, les mécaniciens resserrent tout ce qui se resserre. Et quelques trucs qui ne se resserrent pas.
+**Arno** — On me demande pourquoi il y a toujours de la soupe pendant les longues retransmissions.
 
-76. **Arno** — À quoi pensent les pilotes, juste avant le départ ?  
-   **Mila** — Au premier système. Pas à la victoire, pas à l'arrivée. Juste au premier passage. Une course, ça se gagne une géante à la fois.
+**Mila** — Parce qu’elle se réchauffe. Et qu’au bout d’un moment, quelqu’un doit nous rappeler qu’un café ne compte pas comme un repas.
 
-77. **Arno** — Et toi, à quoi tu pensais, avant tes départs ?  
-   **Mila** — Au café que je ne boirais pas pendant soixante-douze heures. Et à ma mère, qui regardait. Dans cet ordre-là, je l'avoue.
+#### 55. Les chaises
 
-78. **Arno** — Un dernier pronostic avant le départ ?  
-   **Mila** — Il va y avoir des dépassements, des plongées folles, au moins une surprise, et Arno va hurler. Je prends tous les paris là-dessus.
+**Arno** — On a également changé les chaises de la cabine.
 
-79. **Arno** — Restez avec nous, commandants : la Grande Fronde, c'est bientôt, et c'est ici !  
-   **Mila** — Installez-vous confortablement. Prenez de la soupe. Et attachez vos ceintures.
+**Mila** — La tienne, surtout.
+
+**Arno** — Elle avait du jeu.
+
+**Mila** — Après ton commentaire du dernier sprint, elle avait surtout des raisons.
+
+### Les paris entre commandants
+
+*Diffuser les mentions de cotes et de vérification uniquement si elles correspondent aux fonctions réellement disponibles. Les crédits désignent les crédits de jeu.*
+
+#### 56. Choisir son favori
+
+**Arno** — Certains ont déjà leur pilote. D’autres attendent de mieux connaître le parcours avant d’engager leurs crédits.
+
+**Mila** — Et on peut très bien suivre toute la course sans miser. Pour ceux qui le font : choisissez une somme que vous accepterez de perdre. Vous aurez davantage de plaisir à regarder.
+
+#### 57. Regarder le parcours
+
+**Arno** — Ton premier réflexe avant un pronostic ?
+
+**Mila** — La carte. La place des dangers, les approches, la longueur des traversées. Un même pilote ne part pas avec les mêmes chances sur tous les parcours.
+
+#### 58. Lire une cote
+
+**Arno** — Et une grosse cote ne veut pas dire qu’on vient de découvrir une bonne affaire.
+
+**Mila** — Exactement. Elle peut aussi raconter que peu de gens croient à cette victoire. Il faut comprendre pourquoi, puis décider si on est d’accord. Ça ne transforme pas une incertitude en certitude.
+
+#### 59. L’équité
+
+*Entrée réservée aux éditions où le protocole d’engagement et de révélation est effectivement disponible. Sinon, l’omettre.*
+
+**Arno** — Le protocole de vérification de cette édition est accessible avant les mises. L’engagement publié pourra être contrôlé avec les éléments révélés à l’arrivée.
+
+**Mila** — Et nous, nous n’avons pas le résultat. Quand une place se joue, je découvre la suite avec vous.
+
+#### 60. Le pronostic d’Arno
+
+**Arno** — Je vais quand même défendre Tobbe. Sur une course longue, je lui vois une vraie chance.
+
+**Mila** — C’est défendable. À condition de ne pas lui demander de tout reprendre dans la dernière plongée.
+
+**Arno** — Tu vois, on peut être d’accord.
+
+**Mila** — On peut même l’être avant le résultat. C’est plus courageux.
+
+### Les légendes de la Fronde
+
+#### 61. Les débuts
+
+**Arno** — Avant les caméras, avant les tribunes : trois pilotes de cargo, deux systèmes, un soir au Comptoir.
+
+**Mila** — Et cette question très dangereuse : « Tu crois vraiment que ton vaisseau arrive avant le mien ? » Il y a des institutions qui commencent avec moins que ça.
+
+#### 62. La serviette
+
+**Arno** — Le parcours aurait été tracé sur une serviette. Elle est toujours encadrée dans les bureaux de la direction.
+
+**Mila** — Avec une tache de sauce sur une des étapes. On m’a expliqué que personne n’osait la nettoyer, de peur d’effacer un point de passage.
+
+#### 63. Trois vainqueurs
+
+**Arno** — Pour le vainqueur de cette première course, en revanche, les versions divergent.
+
+**Mila** — Les trois revendiquent la victoire. Le départ n’était pas très clair. L’arrivée non plus. Mais ils sont tous revenus pour la suivante. C’est probablement le résultat le plus important.
+
+#### 64. Le cinquième vaisseau
+
+**Arno** — Il y a aussi cette histoire qui revient chaque saison. Une lumière sans immatriculation, entre deux systèmes. Le cinquième vaisseau.
+
+**Mila** — On me l’a racontée avant ma première Fronde. J’ai ri. Puis, un soir, j’ai passé beaucoup trop longtemps à vérifier un reflet sur ma verrière.
+
+#### 65. Ce que Mila a vu
+
+**Arno** — Tu as vu quelque chose ?
+
+**Mila** — Une lumière, oui. Je n’ai jamais réussi à savoir d’où elle venait.
+
+**Arno** — Et tu ne l’avais jamais raconté ?
+
+**Mila** — À un commentateur ? Tu comprends bien pourquoi j’hésitais.
+
+#### 66. La plongée parfaite
+
+**Arno** — Autre légende : la plongée parfaite. Celle dont aucun pilote n’aurait jamais pu améliorer la sortie.
+
+**Mila** — J’aimerais bien voir les données. Chaque fois que j’ai cru réussir mon meilleur passage, j’ai trouvé après coup un endroit où j’aurais pu faire mieux.
+
+#### 67. Ceux qui la cherchent
+
+**Arno** — Tu viens de donner du travail à tous ceux qui regardent les ralentis de Varon.
+
+**Mila** — Lui le premier. Il peut passer une soirée sur quelques secondes d’images. On parle beaucoup de son audace ; on devrait montrer plus souvent cette partie-là.
+
+### Les rumeurs du paddock
+
+*Ces échanges sont des anecdotes d’avant-course, pas des informations mécaniques modifiant les statistiques des racers.*
+
+#### 68. Le réacteur de Brannoc
+
+**Arno** — La rumeur annuelle : Brannoc aurait enfin changé de réacteur.
+
+**Mila** — Son équipe a nettoyé la tuyère. Pour certains observateurs, c’était déjà un changement assez radical pour lancer une enquête.
+
+#### 69. Le navigateur d’Ysée
+
+**Arno** — On parle aussi d’un nouveau navigateur chez Ysée. Très discret, paraît-il.
+
+**Mila** — Elle dit qu’il lui donne la bonne information au bon moment. Venant d’Ysée, c’est pratiquement une déclaration d’amour professionnelle.
+
+#### 70. La peinture de La Mule
+
+**Arno** — Tobbe a repeint le cinquante-deux sur sa coque.
+
+**Mila** — Oui. Les dockers lui avaient proposé de refaire tout le vaisseau. Il a demandé combien ça pesait. La conversation s’est arrêtée là.
+
+#### 71. La confiance de Kaï
+
+**Arno** — On raconte que Kaï voudrait miser sur sa propre victoire.
+
+**Mila** — Le règlement interdit aux pilotes de parier. En revanche, personne ne lui interdit d’en parler avec une assurance insupportable.
+
+**Arno** — Ça, il le fait très bien.
+
+**Mila** — Il s’entraîne depuis longtemps.
+
+### Les commandants devant l’écran
+
+#### 72. Choisir son point de vue
+
+**Arno** — Si vous découvrez la retransmission, vous pouvez sélectionner un racer sur la carte pour le suivre.
+
+**Mila** — C’est une bonne façon de comprendre sa course. On voit mieux ce qu’une décision lui rapporte quand on reste avec lui un moment.
+
+#### 73. Le mode télé
+
+**Arno** — Et le mode télé choisit les images pour vous. Pratique pour garder la course à côté de ce que vous faites.
+
+**Mila** — Avec le risque habituel : lever les yeux pour un passage, puis se rendre compte qu’on n’a plus travaillé depuis vingt minutes.
+
+#### 74. Les fiches des racers
+
+**Arno** — Les fiches permettent aussi de regarder les vaisseaux de près, avant qu’ils ne deviennent de petites lumières sur la carte.
+
+**Mila** — Prenez le temps. On comprend mieux certaines trajectoires quand on sait avec quelle machine le pilote essaie de les réaliser.
+
+### La montée en pression — uniquement à l’approche effective du départ
+
+#### 75. Le hangar devient calme
+
+**Arno** — Ce qui me frappe à l’approche d’un départ, c’est le changement de bruit dans les hangars. Les conversations raccourcissent.
+
+**Mila** — Chacun termine sa liste. On ne cherche plus une grande amélioration. On veut être certain que tout ce qui devait être fait a bien été fait.
+
+#### 76. Le premier passage
+
+**Arno** — On a passé l’avant-course à parler de victoire. Eux, maintenant, pensent surtout au premier système.
+
+**Mila** — À leur première approche, oui. À l’ordre des gestes. Tu peux avoir préparé les dix systèmes ; au départ, tu as besoin de savoir ce que tu fais dans les prochaines minutes.
+
+#### 77. La dernière voix
+
+**Arno** — Tu te souviens de ce que tu écoutais juste avant le signal ?
+
+**Mila** — Mon mécanicien. Il me disait : « Tout est bon de notre côté. » Toujours la même phrase. J’en avais besoin, même les jours où je savais déjà que tout était bon.
+
+#### 78. Le dernier regard
+
+**Arno** — Dernière question avant qu’on se concentre sur la piste : qu’est-ce que tu attends de ce départ ?
+
+**Mila** — De voir qui respecte son plan quand les autres commencent à bouger. C’est facile d’être patient au briefing. Beaucoup moins quand trois vaisseaux s’allument à côté de toi.
+
+#### 79. Passer la main à la course
+
+**Arno** — Voilà. Nous avons beaucoup parlé d’eux. Dans un instant, ce sont leurs trajectoires qui vont nous répondre. Commandants, merci d’être avec nous. Mila… bonne course.
+
+**Mila** — Bonne course, Arno. Et bonne course à vous quatre.
+
+*Laisser l’image et l’ambiance respirer. Le signal de départ, le compte à rebours et leurs réactions sont déclenchés par l’état réel de la course.*
+
+---
 
 ## Le feuilleton — pendant la course
 
-_Entre les faits de course, de temps en temps._
+*Ces conversations occupent les périodes calmes. Elles cèdent immédiatement la priorité aux faits de course. Les dernières entrées sont réservées aux phases auxquelles elles font référence.*
 
 ### Le carnet de bord de Mila
 
-1. **Arno** — Pendant que nos pilotes filent, Mila, raconte-nous la vie à bord pendant soixante-douze heures.  
-   **Mila** — On dort par tranches de vingt minutes, on mange des barres qui ont le goût de carton, et on parle tout seul. Beaucoup.
+#### 1. Tenir trois jours
 
-2. **Arno** — On parle tout seul ?  
-   **Mila** — Au vaisseau, aux moteurs, à la géante qui approche. Le silence du grand vide, au bout de vingt heures, ça pèse sur les épaules.
+**Arno** — Dans les longues traversées, on pense facilement qu’ils attendent le prochain système. Mais il faut déjà préparer la suite.
 
-3. **Arno** — Et la nuit, à bord ?  
-   **Mila** — Il n'y a pas de nuit, il n'y a que les étoiles. Pour dormir, on éteint le cockpit et on garde juste une petite lumière rouge.
+**Mila** — Vérifier la machine, manger, essayer de dormir. Le piège, c’est de considérer tout ça comme du temps perdu. Au troisième jour, on reconnaît ceux qui se sont occupés d’eux.
 
-4. **Arno** — Et la toilette ?  
-   **Mila** — Arno, il y a des enfants qui écoutent. Disons simplement que c'est une aventure en soi.
+#### 2. Le silence
 
-5. **Arno** — Qu'est-ce qui te manquait le plus, en course ?  
-   **Mila** — Le bruit de la pluie. Dans l'espace, il ne pleut jamais. Et étrangement, c'est ce qui manque le plus.
+**Arno** — Le silence en cockpit, tu le vivais comment ?
 
-### La fronde expliquée
+**Mila** — Il n’y a pas vraiment de silence. Il y a les ventilateurs, les pompes, les petits bruits qu’on finit par connaître. Ce qui inquiète, c’est quand l’un d’eux change.
 
-6. **Arno** — Petite leçon de pilotage pour les commandants. Mila, pourquoi entrer lentement dans un système pour plonger ?  
-   **Mila** — Plus tu arrives lentement, plus la géante a le temps de te courber la trajectoire. Tu descends plus bas, et tu repars beaucoup plus vite.
+#### 3. Dormir
 
-7. **Arno** — Donc ralentir pour aller plus vite. C'est un peu fou !  
-   **Mila** — C'est la règle numéro un de la Fronde. Celle que personne ne croit avant de l'avoir vécue.
+**Arno** — Tu arrivais vraiment à dormir par petites tranches ?
 
-8. **Arno** — Et les lunes, elles servent à quoi ?  
-   **Mila** — À voler encore un peu de vitesse avant la géante. Une petite fronde avant la grande. Mais une lune, ça a des débris autour. Il faut viser juste.
+**Mila** — Mal, au début. Je gardais une main près du tableau. Comme si je pouvais rattraper le vaisseau dans mon sommeil. Après quelques courses, j’ai appris à faire confiance aux alarmes. Un peu.
 
-9. **Arno** — Et la chaleur, pendant une plongée, c'est vraiment terrible ?  
-   **Mila** — Au plus près, la haute atmosphère de la géante frotte sur la coque. Les capteurs passent au rouge, la verrière se teinte. On serre les dents.
+#### 4. Les gestes ordinaires
 
-10. **Arno** — Et si on passe trop près ?  
-   **Mila** — Surchauffe. L'ordinateur coupe la poussée pour sauver le vaisseau. Tu perds ta plongée, et souvent ta course avec.
+**Arno** — On voit rarement les petites contraintes : ouvrir un emballage, ranger quelque chose, retrouver un objet qui s’est échappé.
 
-11. **Arno** — Et le carburant, comment on le gère sur toute la course ?  
-   **Mila** — On garde toujours de quoi finir. Un pilote à sec, c'est un pilote qui regarde les autres passer en mangeant sa barre au carton.
+**Mila** — Un objet qui flotte devient rapidement une affaire personnelle. J’ai passé une traversée à chercher un bouchon. Je l’ai retrouvé dans ma manche après l’arrivée.
 
-### Histoires des systèmes
+#### 5. Le bruit de la pluie
 
-12. **Arno** — Une petite histoire de système, Mila ? Parle-nous des lunes de Kerath.  
-   **Mila** — Oro la volcanique crache des panaches de soufre. Les pilotes disent que ça sent l'œuf pourri jusque dans le cockpit. C'est faux, mais tout le monde le dit.
+**Arno** — Qu’est-ce qui te manquait le plus ?
 
-13. **Arno** — Et Nox, il paraît qu'il y a un écho mystérieux sur les radars ?  
-   **Mila** — Un signal faible, qui revient toutes les dix-sept minutes. Les techniciens disent que c'est un vieux satellite. Les pilotes ne passent jamais trop près.
+**Mila** — La pluie. Le bruit sur un toit, surtout. J’en avais un enregistrement, mais je l’écoutais rarement.
 
-14. **Arno** — Ivène, la géante braise, cache aussi une histoire ?  
-   **Mila** — On raconte qu'une expédition minière s'y est installée il y a cent ans. Ils sont repartis au bout d'une semaine. Trop chaud. Même pour des mineurs.
+**Arno** — Pourquoi ?
 
-15. **Arno** — Et Talys, la pâle ? Pourquoi elle est couchée sur le côté ?  
-   **Mila** — Un très vieux choc, d'après les savants. Une autre planète l'aurait percutée il y a des milliards d'années. Elle ne s'en est jamais relevée.
+**Mila** — Parce qu’après, j’avais encore plus envie de rentrer.
 
-16. **Arno** — Sarn et ses orages verts, c'est dangereux pour les pilotes ?  
-   **Mila** — Les éclairs de Sarn brouillent les instruments. Pendant quelques secondes, on pilote à l'œil. C'est là qu'on reconnaît les vrais pilotes.
+### Lire une fronde
 
-17. **Arno** — Et Ostra, avec ses anneaux immenses ?  
-   **Mila** — Les anneaux d'Ostra sont faits de glace. Quand le soleil les éclaire, ils brillent comme une patinoire géante. Une patinoire à quarante kilomètres par seconde.
+#### 6. La vitesse d’entrée
 
-18. **Arno** — Quell, la violette, et ses aurores…  
-   **Mila** — Les pilotes ont une tradition : à Quell, on éteint les lumières du cockpit pendant dix secondes pour regarder les aurores. Même en pleine course.
+**Arno** — On nous demande pourquoi la plus grande vitesse à l’entrée ne garantit pas la meilleure sortie.
 
-19. **Arno** — Même Kaï Varon ?  
-   **Mila** — Surtout Kaï Varon. C'est un casse-cou, mais c'est un poète. Les deux vont souvent ensemble.
+**Mila** — Parce qu’il faut pouvoir tourner vers la bonne trajectoire. Arriver très vite réduit parfois la déviation qu’on peut obtenir. On compare une manœuvre complète, pas seulement un chiffre au début.
+
+#### 7. Ralentir n’est pas une recette
+
+**Arno** — Donc on ne peut pas résumer ça à : ralentir pour aller plus vite.
+
+**Mila** — Non. Ralentir coûte aussi quelque chose. Il faut que le passage suivant le justifie. Sinon, on a simplement freiné au milieu d’une course.
+
+#### 8. Les lunes
+
+**Arno** — Une lune peut changer toute l’approche de la géante.
+
+**Mila** — Oui. Elle peut aider à placer le vaisseau, à modifier sa trajectoire. Mais il faut la rencontrer au bon moment. Une belle idée sur une carte ne sert à rien si la lune est ailleurs quand tu arrives.
+
+#### 9. La chaleur
+
+**Arno** — Dans les passages les plus bas, on parle beaucoup de la température de coque.
+
+**Mila** — Et de la durée d’exposition. Une pointe brève et une chaleur qui s’accumule, ce n’est pas la même chose. Quand on commente, il faut regarder ce que les capteurs racontent vraiment.
+
+#### 10. Une protection qui intervient
+
+**Arno** — Si la protection thermique coupe la poussée, le premier réflexe est de dire que tout est perdu.
+
+**Mila** — On perd une partie de la manœuvre, oui. Mais la protection essaie de préserver la machine. Avant de parler du classement, il faut savoir ce qui fonctionne encore.
+
+#### 11. Garder du carburant
+
+**Arno** — La réserve restante peut rendre une belle avance moins confortable qu’elle n’en a l’air.
+
+**Mila** — Exactement. Tu peux avoir payé très cher pour être devant. La question suivante, c’est : avec quoi vas-tu défendre cette place ?
+
+### Les histoires des systèmes
+
+#### 12. Oro
+
+**Arno** — Oro, près de Kerath, est célèbre pour ses panaches volcaniques. Et pour cette vieille blague des pilotes sur l’odeur de soufre.
+
+**Mila** — Qu’ils prétendent sentir à travers une coque étanche. Le plus inquiétant, c’est le sérieux avec lequel certains te le racontent.
+
+#### 13. Le signal de Nox
+
+**Arno** — À Nox, on raconte qu’un vieux signal revient à intervalles réguliers sur certaines fréquences.
+
+**Mila** — L’explication habituelle, c’est un ancien satellite. J’aime bien cette idée. Une machine dont tout le monde est parti, et qui continue de signaler qu’elle est là.
+
+#### 14. Les mineurs d’Ivène
+
+**Arno** — L’ancienne expédition minière d’Ivène n’aurait tenu qu’une semaine.
+
+**Mila** — Et ils ont laissé un rapport remarquable. Plusieurs pages de mesures, de relevés, de propositions. Avec, à la fin : « Nous recommandons de travailler ailleurs. »
+
+#### 15. Talys couchée
+
+**Arno** — Pour Talys, les spécialistes parlent d’un ancien choc pour expliquer son inclinaison.
+
+**Mila** — Et nous, des milliards d’années plus tard, on arrive avec nos petits vaisseaux en essayant de comprendre dans quel sens passer. Ça remet assez bien les choses à leur place.
+
+#### 16. Les orages de Sarn
+
+**Arno** — Les images des orages de Sarn sont parmi les plus demandées après une édition.
+
+**Mila** — Je comprends. On aperçoit un éclair et, pendant une fraction de seconde, on comprend l’épaisseur des nuages. Puis tout redevient sombre. On a envie d’attendre le suivant.
+
+#### 17. La glace d’Ostra
+
+**Arno** — De loin, les anneaux d’Ostra ressemblent à quelque chose de très fin. Presque fragile.
+
+**Mila** — Oui. Puis une caméra te montre un fragment de près, et tu changes d’avis sur ce que signifie « fin » à l’échelle d’une planète.
+
+#### 18. Les lumières de Quell
+
+**Arno** — Certains pilotes racontent qu’ils baissent l’éclairage du cockpit à Quell pour mieux voir les aurores.
+
+**Mila** — Quand la phase de vol le permet, oui. On garde évidemment les instruments. Mais quelques lumières en moins, et la couleur de dehors entre partout.
+
+#### 19. Même Varon
+
+**Arno** — Même Kaï prend le temps de regarder ?
+
+**Mila** — Il m’a envoyé une image de Quell un jour. Sans commentaire. J’ai trouvé ça plus convaincant que toutes ses déclarations sur la beauté du pilotage.
 
 ### Les mécaniciens
 
-20. **Arno** — Un mot pour les héros de l'ombre : les mécaniciens !  
-   **Mila** — Ils préparent les vaisseaux pendant des semaines, et pendant la course, ils ne peuvent rien faire d'autre que regarder. C'est la pire des tortures.
+#### 20. Ceux qui restent au sol
 
-21. **Arno** — Ils suivent la course comment ?  
-   **Mila** — Sur les mêmes écrans que vous. Avec les ongles en moins à chaque plongée.
+**Arno** — Pensons aux équipes techniques. Des semaines à préparer une machine, puis il faut la regarder partir.
 
-22. **Arno** — Et quand un pilote doit réparer en plein vide ?  
-   **Mila** — Le mécanicien le guide à la radio. « Le câble rouge. Non, l'autre rouge. Non, pas celui-là. » Ça peut durer longtemps.
+**Mila** — Et accepter qu’on ne puisse plus poser la main dessus. Ils connaissent parfois un bruit avant même qu’on ait remarqué un problème. Mais c’est nous qui avons les outils à bord.
 
-23. **Arno** — Le mécanicien de Brannoc est une légende, paraît-il.  
-   **Mila** — Il a quatre-vingts ans et il refuse de prendre sa retraite tant que Brannoc court. Brannoc refuse d'arrêter tant que son mécanicien travaille. Ils sont coincés.
+#### 21. Leurs écrans
 
-### Records
+**Arno** — Toi, tu regardes la trajectoire. Eux, tu sais ce qu’ils regardent d’abord ?
 
-24. **Arno** — Quelques records de la Grande Fronde, Mila ?  
-   **Mila** — La plongée la plus basse : à peine quelques centaines de kilomètres au-dessus des nuages d'une géante. Le pilote a mis une semaine à s'en remettre.
+**Mila** — La donnée qui les inquiétait avant le départ. Une température, une pression, une vibration. Ils peuvent regarder une très belle plongée et ne voir qu’une petite ligne qui monte.
 
-25. **Arno** — Et l'écart le plus serré à l'arrivée ?  
-   **Mila** — Moins d'une seconde, après soixante-douze heures de course. Les deux pilotes ont dû regarder le ralenti pour savoir qui avait gagné.
+#### 22. Réparer à distance
 
-26. **Arno** — Et la course la plus folle ?  
-   **Mila** — Celle où les quatre vaisseaux ont changé de place en tête dans le même système. Arno a perdu sa voix. Nous avons eu une heure de silence. Un record aussi.
+**Arno** — Il faut une confiance énorme quand quelqu’un te guide à la radio pour une réparation.
 
-### Le courrier des commandants
+**Mila** — Et parler clairement. « À gauche » ne veut plus dire grand-chose quand tu as la tête sous un panneau. Mon mécanicien avait fini par nommer toutes les pièces d’après les erreurs que j’avais déjà faites.
 
-27. **Arno** — Place au courrier des commandants ! Premier message : « Mila, est-ce que tu reprendrais le volant un jour ? »  
-   **Mila** — Seulement si Arno est dans le siège passager. Pour voir enfin quelqu'un de plus terrorisé que moi.
+#### 23. Le pacte de Brannoc
 
-28. **Arno** — Deuxième message : « Arno, pourquoi vous criez tout le temps ? »  
-   **Mila** — Je peux répondre ? Parce qu'il croit que les vaisseaux l'entendent.
+**Arno** — Le mécanicien de Brannoc refuse d’arrêter tant que Brannoc court. Brannoc dit l’inverse.
 
-29. **Arno** — Troisième message : « Quel vaisseau a le meilleur café à bord ? »  
-   **Mila** — Le Kerath Lourd. Brannoc fait son café dans le système de refroidissement du réacteur. C'est interdit, et c'est délicieux.
+**Mila** — J’espère qu’ils se rendent compte qu’ils ont organisé leur retraite de la façon la moins efficace possible.
 
-30. **Arno** — Quatrième message : « Est-ce que les racers se parlent pendant la course ? »  
-   **Mila** — Jamais officiellement. Mais on raconte qu'Ysée et Tobbe s'envoient des blagues par la radio de secours pendant les longues étapes.
+### Les archives et les records
 
-31. **Arno** — Dernier message : « Bravo pour les commentaires, mais parlez moins fort. »  
-   **Mila** — Ce message est pour toi, Arno. Je l'encadre.
+*Ces souvenirs appartiennent à l’histoire fictive de l’épreuve. Les distinguer d’un record calculé pour l’édition actuelle.*
 
-### Les débats
+#### 24. Le passage le plus bas
 
-32. **Arno** — Grand débat en cabine ! Mila, quel est le plus beau vaisseau de la course ?  
-   **Mila** — Le Fulgurant, sans hésiter. Une flèche jaune. Toi, tu vas dire la Mule, parce que tu as un faible pour les causes perdues.
+**Arno** — On ressort souvent les images de la plongée à quelques centaines de kilomètres au-dessus des nuages.
 
-33. **Arno** — La Mule n'est pas une cause perdue ! C'est un vaisseau courageux !  
-   **Mila** — Courageux et têtu. Comme son pilote. Comme toi, d'ailleurs. Ça explique ton affection.
+**Mila** — Je préfère entendre le pilote après. Il ne parle presque pas du record. Il demande si on a récupéré toutes les données. Il veut comprendre comment le vaisseau s’est comporté.
 
-34. **Arno** — Autre débat : vaut-il mieux être en tête tôt, ou attaquer à la fin ?  
-   **Mila** — En tête tôt, tu prends les risques sans savoir ce que font les autres. À la fin, tu sais tout, mais il faut combler l'écart. Moi, j'attaquais toujours à la fin.
+#### 25. Moins d’une seconde
 
-35. **Arno** — Et ça marchait ?  
-   **Mila** — Une fois sur deux. L'autre fois, j'attaquais trop tard et je racontais à tout le monde que c'était voulu.
+**Arno** — Moins d’une seconde à l’arrivée, après trois jours de course. C’est l’écart qui me paraît toujours le plus difficile à croire.
 
-36. **Arno** — Dernier débat : les lunes, une bénédiction ou un piège ?  
-   **Mila** — Les deux. C'est comme un raccourci par une ruelle sombre. Ça fait gagner du temps, jusqu'au jour où ça en fait perdre beaucoup.
+**Mila** — On imagine tout ce qui aurait pu faire cette seconde. Une petite correction, une hésitation… Je plains celui qui a terminé deuxième. Il a dû refaire la course longtemps.
+
+#### 26. Quatre leaders dans un système
+
+**Arno** — Et cette édition où chacun des quatre concurrents a pris la tête dans le même système ! J’avais fini par laisser le classement affiché en permanence.
+
+**Mila** — Tu avais surtout arrêté de finir tes phrases.
+
+**Arno** — Le classement les finissait pour moi.
+
+**Mila** — Pour une fois, vous étiez deux à travailler à la même vitesse.
+
+### Les questions du public
+
+*Questions de rubrique, préparées pour l’émission. Ne pas les attribuer à un véritable joueur ni les présenter comme des messages venant d’arriver.*
+
+#### 27. Reprendre les commandes
+
+**Arno** — Une question qui revient souvent quand on rencontre les spectateurs : est-ce que tu reprendrais les commandes ?
+
+**Mila** — Pour un vol, oui. Pour une Fronde… il faudrait que je sache pourquoi j’y retourne. L’envie de piloter et l’envie de recourir, ce n’est pas tout à fait pareil.
+
+#### 28. Pourquoi crier ?
+
+**Arno** — Autre grande question : pourquoi les commentateurs parlent-ils plus fort dans les derniers mètres ?
+
+**Mila** — Parce qu’ils ont attendu tout le reste de la course pour voir ça.
+
+**Arno** — Merci.
+
+**Mila** — Je défends la profession. Pour ton cas particulier, il faudrait davantage de temps.
+
+#### 29. Le café de Brannoc
+
+**Arno** — Quel équipage prépare le meilleur café ?
+
+**Mila** — Brannoc. Il refuse de dire comment. Je soupçonne surtout les autres équipes de préparer le pire café possible pour gagner quelques grammes.
+
+#### 30. Se parler entre pilotes
+
+**Arno** — Est-ce qu’on a envie de parler aux autres concurrents pendant une longue traversée ?
+
+**Mila** — Parfois. Ne serait-ce que pour entendre quelqu’un qui vit la même chose. On raconte qu’Ysée et Tobbe échangent des blagues. Je serais surtout curieuse de savoir si Ysée rit à la radio.
+
+#### 31. Le son de la retransmission
+
+**Arno** — Dernière question : peut-on suivre la Fronde en travaillant ?
+
+**Mila** — Oui. Mais je déconseille de répondre « il passe à l’intérieur » au milieu d’une réunion.
+
+**Arno** — Ça dépend de la réunion.
+
+**Mila** — C’est vrai. Tu pourrais enfin la rendre intéressante.
+
+### Les débats de cabine
+
+#### 32. Le plus beau vaisseau
+
+**Arno** — Je sais que tu vas choisir le Fulgurant. Mais je défends La Mule. On voit qu’elle a une vie avant la course.
+
+**Mila** — Je te l’accorde. Le Fulgurant, tu as envie de le regarder. La Mule, tu as envie qu’on t’ouvre le hangar et qu’on te raconte ce qui a été changé.
+
+#### 33. Ce qu’on aime chez La Mule
+
+**Arno** — Exactement. On imagine le travail, les essais, les pièces qu’on a dû adapter.
+
+**Mila** — Et Tobbe qui tient à garder quelque chose que tout le monde veut remplacer. Chaque équipe a ce débat. Lui, il a construit un vaisseau entier autour.
+
+#### 34. Attaquer tôt ou tard
+
+**Arno** — Si tu as une belle occasion tôt dans la course, tu la prends ou tu attends ?
+
+**Mila** — Si elle est vraiment belle, je la prends. Mais j’essaie de distinguer une occasion d’une impatience. En cockpit, elles se ressemblent énormément.
+
+#### 35. Les mauvaises excuses
+
+**Arno** — Tu as déjà prétendu après une course qu’une attaque manquée faisait partie du plan ?
+
+**Mila** — Oui. Mon équipe avait les radios et les données. Ils ont eu la gentillesse de me laisser terminer l’interview avant de se moquer.
+
+#### 36. Les lunes, encore
+
+**Arno** — Ce que j’aime avec les lunes, c’est qu’elles obligent à penser au système entier.
+
+**Mila** — Oui. On peut gagner beaucoup à préparer un enchaînement. Mais il faut encore réussir chaque morceau. J’ai vu de très bons plans disparaître dès le premier rendez-vous.
 
 ### Superstitions et souvenirs
 
-37. **Arno** — Parlons superstitions ! Les pilotes en ont tous ?  
-   **Mila** — Tous. Ysée touche trois fois le tableau de bord avant chaque plongée. Tobbe embrasse une photo de sa grand-mère. Kaï chante.
+#### 37. Les rituels
 
-38. **Arno** — Kaï Varon chante ? Quoi donc ?  
-   **Mila** — Personne ne sait. Il coupe la radio avant. Mais les capteurs du cockpit montrent qu'il chante. Faux, apparemment.
+**Arno** — Ysée touche trois fois son tableau. Tobbe garde une photo de sa grand-mère. Tous ces gestes n’améliorent pas le moteur, mais on y tient.
 
-39. **Arno** — Et toi, Mila, tu avais une superstition ?  
-   **Mila** — Une chaussette porte-bonheur. Violette. Je l'ai portée pendant onze courses. Ma combinaison, elle, a fini par demander le divorce.
+**Mila** — Ils donnent un ordre à ce qu’on fait. Tu as terminé ta préparation, tu fais ton geste, tu passes à la suite. C’est parfois tout ce qu’il faut pour arrêter de vérifier une quatrième fois la même chose.
 
-40. **Arno** — Ton plus beau souvenir de Fronde ?  
-   **Mila** — Une sortie de géante, face à l'étoile qui se levait derrière les anneaux. Tout était doré. J'ai oublié la course pendant trois secondes. Les plus belles de ma vie.
+#### 38. Kaï chante
+
+**Arno** — Et Kaï chanterait avant certains passages. Il coupe la radio, donc personne ne sait quoi.
+
+**Mila** — C’est peut-être pour préserver sa concentration. Ou sa réputation. Je respecte les deux hypothèses.
+
+#### 39. La chaussette violette
+
+**Arno** — On m’a parlé d’une chaussette violette qui aurait accompagné plusieurs de tes courses.
+
+**Mila** — Onze. Lavée entre les courses, je précise. C’est important : la légende est en train de devenir très injuste envers moi.
+
+#### 40. Les trois secondes
+
+**Arno** — Ton plus beau souvenir, si on enlève les podiums ?
+
+**Mila** — Une sortie de géante. L’étoile apparaissait derrière les anneaux, et toute la lumière a changé dans le cockpit. J’ai arrêté de chercher mon prochain repère pendant deux ou trois secondes.
+
+**Arno** — Tu le regrettes ?
+
+**Mila** — Non. Je me souviens encore de la couleur.
 
 ### Les tribunes
 
-41. **Arno** — Pendant ce temps, dans les tribunes installées sur les lunes, l'ambiance est incroyable !  
-   **Mila** — Sur certaines lunes, ils ont construit des gradins dans les cratères. Pour voir passer les vaisseaux une demi-seconde. Une demi-seconde de bonheur.
+#### 41. Attendre un passage
 
-42. **Arno** — Une demi-seconde pour des heures d'attente ?  
-   **Mila** — C'est ça, la passion. Et entre deux passages, ils mangent, ils chantent, ils parient. Une vraie fête foraine dans le vide.
+**Arno** — Sur certaines lunes, on vient pour un passage qui ne durera qu’un instant.
 
-43. **Arno** — On me signale que les fans de la Mule ont apporté un tambour géant !  
-   **Mila** — Dans le vide, le son ne se propage pas. Mais ils tapent quand même. C'est beau, la foi.
+**Mila** — Oui. Mais les gens se souviennent de toute la journée. Avec qui ils étaient, de quel côté le vaisseau est apparu, qui a crié le premier. Le passage est bref. La journée, elle, reste.
 
-### La tension monte
+#### 42. Une fête loin de chez soi
 
-44. **Arno** — Mila, à ce stade de la course, qu'est-ce qui se passe dans la tête des pilotes ?  
-   **Mila** — La fatigue commence à peser. Les réflexes ralentissent. C'est là que les erreurs arrivent, et que les grands pilotes se révèlent.
+**Arno** — Il y a aussi ceux qui ont fait le voyage ensemble. Ceux qui retrouvent les mêmes voisins de tribune d’une édition à l’autre.
 
-45. **Arno** — Et la stratégie évolue en cours de route ?  
-   **Mila** — Complètement. Un pilote en retard devient audacieux. Un pilote en tête devient prudent. Le classement change le caractère des gens.
+**Mila** — Et ceux qui affirment avoir choisi cet endroit pour la vue, alors qu’ils savent exactement où on sert quelque chose de chaud.
 
-46. **Arno** — Tu crois que tout peut encore basculer ?  
-   **Mila** — Dans la Fronde, tout peut toujours basculer. Une plongée ratée, une éruption au mauvais moment, et le premier devient dernier.
+#### 43. Le tambour des dockers
 
-47. **Arno** — Restez avec nous, commandants : la Grande Fronde continue, et le meilleur reste à venir !  
-   **Mila** — Et si vous devez partir, revenez vite. Les géantes, elles, ne vous attendront pas.
+**Arno** — Dans les archives, il y a cette image des supporters de La Mule avec leur énorme tambour.
 
-## Les blagues
+**Mila** — Oui. Ils l’avaient apporté jusque dans une tribune pressurisée. Il a fallu demander aux supporters de le sortir des contrôles de fret pour comprendre pourquoi le terminal vibrait.
 
-_Dans les temps calmes et à l'ouverture : Arno lance, Mila répond._
+### Quand la fatigue s’installe — après une durée de course suffisante
 
-1. **Arno** — Mila, tu as déjà plongé au ras d'une géante ?  
-   **Mila** — Une fois. J'ai perdu mes sourcils et mon permis. Dans cet ordre.
+#### 44. Les petites erreurs
 
-2. **Arno** — On me dit en régie que le café est froid !  
-   **Mila** — Arno, on est dans l'espace. Tout est froid. Sauf toi quand tu commentes.
+**Arno** — Avec les heures qui s’accumulent, on s’attend à une grosse erreur. Mais la fatigue se voit parfois dans quelque chose de minuscule.
 
-3. **Arno** — Si je pilotais là-dedans, je gagnerais en deux heures !  
-   **Mila** — Si tu pilotais là-dedans, on te chercherait encore autour de Kerath.
+**Mila** — Une vérification qu’on recommence. Une correction un peu tardive. On peut encore avoir de très bons réflexes et commencer à mal choisir le moment de les utiliser.
 
-4. **Arno** — Tu paries sur qui, toi, Mila ?  
-   **Mila** — Sur celui qui ne t'écoute pas. Ça marche à tous les coups.
+#### 45. Changer de stratégie
 
-5. **Arno** — Les pilotes dorment pendant les étapes ?  
-   **Mila** — Ils dorment. Toi, tu commentes. Chacun son métier.
+**Arno** — Comment on sait qu’il faut abandonner son plan ?
 
-6. **Arno** — J'ai vu une plongée tellement rasante qu'elle a laissé une trace sur la géante !  
-   **Mila** — C'était un nuage, Arno. Mais c'était un beau nuage.
+**Mila** — Quand les raisons pour lesquelles on l’a choisi ne sont plus vraies. Ça paraît évident ici. Là-dedans, on a parfois besoin que quelqu’un nous le dise très clairement à la radio.
 
-7. **Arno** — Mila, c'est quoi le secret d'une bonne fronde ?  
-   **Mila** — Viser juste, pousser fort, et ne jamais regarder le thermomètre.
+### À l’approche de la fin — uniquement dans la phase finale
 
-8. **Arno** — Il paraît que le Kerath Lourd a une machine à café à bord !  
-   **Mila** — Une machine à café blindée. Comme le reste.
+#### 46. Ce qui reste à faire
 
-9. **Arno** — On m'annonce cent mille spectateurs sur les lunes !  
-   **Mila** — Et autant de parieurs qui regrettent déjà leur choix.
+**Arno** — On va beaucoup parler de l’arrivée maintenant. Mais il reste des trajectoires à tenir, des décisions à prendre.
 
-10. **Arno** — Qu'est-ce que tu emmènes, toi, pour soixante-douze heures de course ?  
-   **Mila** — Un oreiller, des barres de céréales, et des bouchons d'oreilles pour toi.
+**Mila** — Oui. On finit la manœuvre qu’on est en train de faire. Puis la suivante. Penser à la ligne ne dispense pas de regarder ce qu’il y a devant la verrière.
 
-11. **Arno** — La Mule, c'est un nom de champion, ça ?  
-   **Mila** — C'est un nom de cargo têtu. Et les cargos têtus finissent toujours par arriver.
+#### 47. Rester avec eux
 
-12. **Arno** — Kaï Varon a dit qu'il n'avait jamais peur !  
-   **Mila** — Kaï Varon a dit aussi que la ceinture d'astéroïdes, c'était « juste du gravier ».
+**Arno** — Où que vous soyez en train de nous suivre, merci d’être là. Nous allons rester avec les pilotes jusqu’au bout.
 
-13. **Arno** — Mila, ton meilleur souvenir de pilote ?  
-   **Mila** — Le jour où j'ai doublé trois vaisseaux d'un coup. Le pire : le lendemain, à l'infirmerie.
+**Mila** — Regardez aussi les machines quand elles passeront. Après une course comme celle-là, elles ont toutes quelque chose de différent.
 
-14. **Arno** — Je sens que ça va être serré jusqu'au bout !  
-   **Mila** — Tu dis ça à chaque course, Arno. Et à chaque fois tu as raison, c'est agaçant.
+---
 
-15. **Arno** — Si ça continue, je descends piloter moi-même !  
-   **Mila** — Excellente idée. On gagnera enfin un peu de silence en cabine.
+## Les blagues et les respirations
 
-16. **Arno** — Les astéroïdes, c'est dangereux, finalement ?  
-   **Mila** — Seulement quand on les touche. Le problème, c'est qu'ils sont nombreux.
+*Réserver ces échanges aux temps calmes. Pas de quota d’humour. Ne pas ajouter systématiquement une blague à l’ouverture ni après une conversation intime. Espacer les allusions à la soupe, au café et au volume d’Arno : ce sont des rappels complices, pas trois sujets permanents.*
 
-## Les piques après les gros faits
+### 1. La belle trajectoire
 
-_Environ une fois sur deux, après le fait concerné._
+**Arno** — Si je te dessine une trajectoire, tu peux me dire si elle est bonne ?
 
-**Dépassement**
+**Mila** — Oui. Mais utilise un crayon. On va avoir besoin de la gomme.
 
-- Il ne lui a même pas dit bonjour !
-- Ça, c'est ce qu'on appelle un dépassement poli. Enfin, presque.
-- Doublé ! Il va falloir s'habituer à la vue de dos !
+### 2. Le café froid
 
-**Plongée annoncée**
+**Arno** — J’ai encore laissé refroidir mon café pendant une plongée.
 
-- Les ingénieurs se rongent les ongles jusqu'au coude.
-- Il a du courage. Ou pas de rétroviseur.
+**Mila** — C’est un bon indicateur. Quand le café est chaud, la course est calme.
 
-**Passage au plus près**
+### 3. Le siège passager
 
-- Je sens la chaleur d'ici, et je suis à trois systèmes !
-- Ça, c'est une trajectoire qu'on montre dans les écoles de pilotage !
+**Arno** — Je maintiens que je serais un excellent passager.
 
-**Passage près d'une lune**
+**Mila** — Je te crois. Mais je te mettrais une radio séparée de celle du pilote.
 
-- Il a failli rayer la lune. Il faudra repeindre !
-- La lune n'a rien demandé, elle !
+### 4. La discrétion de Brannoc
 
-**Raccourci par la ceinture**
+**Arno** — Brannoc a résumé sa préparation en trois mots : « Ça devrait aller. »
 
-- Le raccourci préféré des fous et des génies. On saura bientôt lequel.
-- Gravier, astéroïdes : à cette vitesse, c'est pareil !
+**Mila** — Il était particulièrement bavard.
 
-**Choc d'astéroïde**
+### 5. Le poids des affaires
 
-- Ça va laisser des traces sur la carrosserie !
-- Le mécanicien va adorer sa soirée.
+**Arno** — On emporte quoi pour trois jours ?
 
-**Panne**
+**Mila** — Le nécessaire. Puis le mécanicien retire la moitié. Ensuite, on négocie pour récupérer les chaussettes.
 
-- Quelqu'un a essayé d'éteindre et de rallumer ?
-- Le pire moment pour une panne. Il n'y a jamais de bon moment, remarquez.
+### 6. Le bon côté
 
-**Réparation**
+**Arno** — Tu avais un côté préféré pour dépasser ?
 
-- Arrêt au stand… sans stand !
-- Clé à molette, ruban adhésif, et beaucoup de prières.
+**Mila** — Celui où il restait de la place.
 
-**Éruption**
+### 7. La préparation
 
-- Crème solaire indice cinq mille, obligatoire !
-- L'étoile a décidé de participer à la course !
+**Arno** — Tu étudiais combien de temps une approche ?
 
-**Surchauffe**
+**Mila** — Jusqu’à ce que mon navigateur me dise qu’il aimerait aussi la voir, cette carte.
 
-- Ça sent le chaud dans le cockpit !
-- Trop près, trop vite, trop chaud. La règle des trois « trop ».
+### 8. La machine à café
 
-## Les cris d'Arno
+**Arno** — Le café à bord du Kerath Lourd, c’est un équipement homologué ?
 
-_Devant la phrase, environ une fois sur deux sur les moments forts._
+**Mila** — Je n’ai jamais vu Brannoc présenter cette partie du vaisseau au contrôle technique.
 
-« Ohhh ! » · « Incroyable ! » · « Mais quelle folie ! » · « Regardez-moi ça ! » · « Oh là là ! »
+### 9. Les supporters
 
-## Les faits divers
+**Arno** — Les supporters de La Mule ont promis de chanter jusqu’à l’arrivée.
 
-_Annoncés par Arno (« Un petit fait divers en passant. », « Et pendant ce temps, dans la galaxie… », « Mila, tu as vu passer ça ? »), racontés par Mila._
+**Mila** — Espérons que Tobbe réalise un bon temps.
 
-1. Un cargo de melons s'est mis en travers du relais de Vessa : les douaniers comptent encore les melons.
-2. On signale une colonie de méduses spatiales près des anneaux de Kerath. Elles ne parient pas, rassurez-vous.
-3. Le Comptoir annonce une rupture de stock de cristal : tout le monde a misé sa paie sur la course.
-4. Un commandant a tenté de suivre la course en tanker. Il en est à mi-chemin… de son hangar.
-5. La radio de bord du Kerath Lourd capte une émission de cuisine depuis deux heures. Personne n'ose couper.
-6. Sur Kesh, les mineurs ont installé un écran géant dans le cratère principal. Ambiance de stade.
-7. Un drone de la régie a percuté une lune. La lune va bien.
-8. Dans les tribunes, un supporter a peint son vaisseau aux couleurs de la Mule. Il a oublié les hublots.
-9. Une tempête de poussière sur Oro : les volcanologues ont annulé leur pique-nique.
-10. Le standard de la régie déborde : tout le monde veut savoir ce que mange Kaï Varon avant une plongée. Réponse : rien.
-11. Les pirates de la ceinture ont déclaré une trêve pour regarder la course. Une première.
-12. Un écho mystérieux sur les radars de Nox. Les techniciens parlent d'un vieux satellite. Ou d'autre chose.
-13. Un enfant de Kerath a écrit à la régie pour demander si les vaisseaux ont des freins. Excellente question.
-14. On apprend qu'un ancien vainqueur de la Fronde vend ses gants de pilote au Comptoir. Prix : secret.
-15. Le chef mécanicien de la Sentinelle n'a pas dormi depuis le départ. Il dit que c'est normal.
-16. Une flotte de tankers a ralenti pour laisser passer la course. Les klaxons, c'est eux.
+### 10. La place du copilote
 
-## La présentation des pilotes
+**Arno** — Tu me prendrais pour une traversée tranquille ?
 
-**Arno** — Présentation : la Sentinelle.  
-**Mila** — La régulière, jamais très loin, toujours dangereuse. Aux commandes : la commandante Ysée Marr.
+**Mila** — Oui. Mais je choisirais un trajet avec beaucoup de choses à te montrer. Tu es plus calme quand tu regardes dehors.
 
-**Arno** — Présentation : le Kerath Lourd.  
-**Mila** — Une coque blindée, lourde, qui encaisse tout. Aux commandes : le vieux Brannoc.
+### 11. Le nom du vaisseau
 
-**Arno** — Présentation : la Mule.  
-**Mila** — Un cargo reconverti, rapide entre les étoiles, mais court en poussée. Aux commandes : Tobbe le docker.
+**Arno** — Si La Mule gagne, tu crois que Tobbe lui donnera un nom plus prestigieux ?
 
-**Arno** — Présentation : le Fulgurant.  
-**Mila** — Le casse-cou, il adore plonger au ras des géantes, à ses risques et périls. Aux commandes : Kaï Varon.
+**Mila** — Tu irais expliquer à une mule victorieuse qu’elle devrait changer quelque chose ?
 
-## Le vécu à bord (Mila)
+### 12. Le gravier
 
-_[racer], [pilote] et [système] sont remplacés par ceux de la course._
+**Arno** — Kaï a déjà décrit une ceinture d’astéroïdes comme « un peu de gravier ».
 
-**Dans un système**
+**Mila** — Les devis de réparation étaient écrits avec des mots plus précis.
 
-- À bord du [racer], [pilote] serre les dents : chaque vibration se sent jusque dans les os.
-- Message radio du [racer] : « Ça chauffe, mais elle tient ! »
-- On imagine [pilote], les yeux rivés sur la température de la coque.
-- Dans le cockpit du [racer], les alarmes de proximité ne se taisent plus.
+### 13. Le souvenir du dépassement
 
-**Entre deux systèmes**
+**Arno** — Ton plus beau dépassement, tu l’as raconté combien de fois ?
 
-- Dans le grand vide, [pilote] recalcule la trajectoire de [système] pour la dixième fois.
-- Silence à bord du [racer] : c'est le moment de manger un morceau et de dormir un peu.
-- Radio du [racer] : « Rien à signaler, on garde le cap. » Calme avant la tempête.
-- Le [racer] file entre les étoiles. Là-dedans, l'équipage vérifie chaque soudure.
+**Mila** — Suffisamment pour que mon équipe connaisse ma version mieux que la vraie.
+
+### 14. Le pronostic prudent
+
+**Arno** — Je les vois tous capables de gagner.
+
+**Mila** — Un pronostic solide. Difficile à afficher sur un seul casque, mais solide.
+
+### 15. La reconversion
+
+**Arno** — Si je me mets au pilotage, tu prends mon micro ?
+
+**Mila** — Bien sûr. Mais je commencerai par une longue présentation de tes essais au simulateur.
+
+### 16. Le formulaire d’assurance
+
+**Arno** — On te demande quoi quand tu veux assurer un racer ?
+
+**Mila** — D’abord le nom du pilote. Après, on sait généralement si la conversation va être longue.
+
+---
+
+## Les réactions après les faits de course
+
+*Banque de réponses courtes. Choisir une seule réplique pertinente, ou aucune. Ne plus appliquer « environ une fois sur deux » de façon automatique. La gravité de l’événement et l’information disponible priment sur la variété.*
+
+*Arno accompagne le mouvement et l’enjeu ; Mila ajoute une lecture, une conséquence ou un détail. Un dépassement tout juste esquissé ne déclenche pas une formule de dépassement acquis.*
+
+### Dépassement confirmé
+
+- **Arno** — Et cette fois, la place est prise !
+- **Arno** — Il fallait aller la chercher, celle-là !
+- **Mila** — La préparation du passage a fait la différence.
+- **Mila** — Très propre. Rien de dépensé en trop.
+
+### Dépassement encore disputé
+
+- **Arno** — Ce n’est pas fini !
+- **Arno** — La réponse arrive tout de suite !
+- **Mila** — Attendons la sortie avant de donner la place.
+- **Mila** — Ça se joue encore sur la trajectoire suivante.
+
+### Plongée rasante annoncée
+
+- **Arno** — Voilà une décision qui peut changer la course.
+- **Arno** — On va suivre ce passage de très près.
+- **Mila** — Il faudra être précis. La marge sera courte.
+- **Mila** — Le gain se défend. Maintenant, il faut réussir l’approche.
+
+### Passage au plus près réussi
+
+- **Arno** — Regardez cette sortie !
+- **Arno** — C’est passé exactement où il fallait !
+- **Mila** — Ah oui. Très beau pilotage.
+- **Mila** — Toute la préparation de l’approche se voit là.
+
+### Passage près d’une lune
+
+- **Arno** — La lune remplit toute l’image !
+- **Mila** — Gardez un œil sur la direction de sortie.
+- **Mila** — C’est un rendez-vous qui ne laisse pas beaucoup de retard possible.
+
+### Raccourci dans une ceinture
+
+- **Arno** — Le chemin est plus court. Pour la suite, on va attendre.
+- **Mila** — Le temps gagné ne vaut que si la machine ressort en état.
+- **Mila** — Regardez les corrections. C’est là qu’on verra si le passage reste propre.
+
+### Choc — état encore inconnu
+
+- **Arno** — Il y a eu un contact. On attend des informations.
+- **Mila** — Regardons d’abord si le contrôle est conservé.
+- **Mila** — Pour l’instant, on ne peut pas évaluer les dégâts.
+
+### Après un choc — contrôle et état du pilote confirmés
+
+- **Arno** — L’essentiel, c’est que le contact soit maintenu.
+- **Mila** — Maintenant, il faut comprendre ce qui a changé sur la machine.
+- **Mila** — Une chose à la fois. Stabiliser, vérifier, puis décider.
+
+### Incident mineur — seulement une fois la situation rassurante
+
+- **Arno** — L’équipe aura quelque chose à regarder au retour.
+- **Mila** — Le mécanicien a probablement déjà entouré la pièce sur son plan.
+
+### Panne
+
+- **Arno** — On laisse la place aux informations de l’équipe.
+- **Mila** — Il faut distinguer ce qui est coupé de ce qui est réellement endommagé.
+- **Mila** — Éviter de multiplier les gestes. D’abord, comprendre la panne.
+
+### Réparation en cours
+
+- **Arno** — Chaque seconde compte, mais il faut aller au bout du contrôle.
+- **Mila** — On ne redémarre pas pour rassurer le classement. On redémarre quand c’est prêt.
+- **Mila** — C’est dans ces moments-là qu’une voix calme à la radio compte énormément.
+
+### Réparation confirmée
+
+- **Arno** — Ça repart !
+- **Arno** — On va pouvoir reparler de course.
+- **Mila** — Beau travail. Maintenant, on surveille si ça tient.
+
+### Éruption détectée — impact à déterminer
+
+- **Arno** — L’éruption est signalée. On regarde les trajectoires concernées.
+- **Mila** — La question, c’est la position des vaisseaux au moment du passage.
+- **Mila** — Attendons l’évaluation avant de parler de dégâts.
+
+### Surchauffe confirmée
+
+- **Arno** — La température devient le sujet principal.
+- **Mila** — Il faut préserver ce qui permettra de repartir.
+- **Mila** — Si la poussée reste coupée, on regardera d’abord le refroidissement.
+
+### Une attaque échoue
+
+- **Arno** — Ça ne passe pas cette fois.
+- **Mila** — La place reste devant, mais il faudra regarder ce que l’essai a coûté.
+- **Mila** — Il y avait une idée. L’ouverture n’a pas suffi.
+
+### Une trajectoire prudente paie
+
+- **Arno** — Et le choix de la patience commence à rapporter !
+- **Mila** — C’est aussi une façon d’attaquer : ressortir avec davantage de moyens pour la suite.
+
+---
+
+## Les cris d’Arno — rares, liés à une action
+
+*Choisir une amorce qui décrit le moment. Ne pas préfixer un commentaire sur deux avec une exclamation. Un cri peut suffire à lui seul ; Mila n’a pas à le recouvrir immédiatement. Les durées et les écarts restent fournis par le moteur.*
+
+| Situation confirmée à l’écran | Amorce possible |
+| --- | --- |
+| Attaque en cours | « Attention… attention ! » |
+| Poussée au moment décisif | « Maintenant ! » |
+| Dépassement qui se concrétise | « Ça passe ! » |
+| Retour visible d’un poursuivant | « Ça revient ! » |
+| Riposte | « Et la réponse ! » |
+| Manœuvre particulièrement réussie | « Oh, c’est superbe ! » |
+| Nouvelle difficulté immédiate | « Ce n’est pas terminé ! » |
+| Contact ou situation dangereuse | « Oh ! Il y a eu un contact ! » |
+
+### Exemple de rythme — ne pas déclencher comme un texte fixe
+
+*Uniquement si Varon reste à l’intérieur, Marr rallume avant lui, puis Varon rallume et revient effectivement. Chaque observation dépend de la simulation. Le silence laisse le temps à l’image de montrer la sortie.*
+
+**Arno** — Varon reste à l’intérieur… Il reste à l’intérieur, Mila !
+
+**Mila** — Oui, je vois. Il attend pour pousser.
+
+**Arno** — Marr a déjà rallumé !
+
+**Mila** — Elle prend de la marge. Lui, il attend encore…
+
+**Arno** — Maintenant ! Le Fulgurant rallume !
+
+**Mila** — Regardez la sortie. C’est là qu’on va savoir.
+
+*Un bref silence, adapté à la durée réelle de l’action.*
+
+**Arno** — Il revient… Il revient sur elle !
+
+**Mila** — Ah oui. Très belle manœuvre.
+
+**Arno** — Vous pouvez le dire : ça vous a plu !
+
+**Mila** — Énormément. Je suis contente d’avoir vu ça depuis une cabine.
+
+---
+
+## Les faits divers — la galaxie autour de la course
+
+*Brèves fictives d’ambiance. Elles ne modifient ni les stocks, ni les prix, ni les statistiques, ni les dangers de la course. Ne pas les présenter comme des notifications système. Les brèves impliquant les pilotes décrivent des habitudes ou des anecdotes, jamais une télémétrie inventée.*
+
+*Diffusion en période calme. Une amorce d’Arno, puis la brève de Mila ; ne pas ajouter une deuxième chute automatiquement.*
+
+### Amorces d’Arno
+
+- « Pendant que les pilotes poursuivent leur traversée, une nouvelle du Comptoir. »
+- « La course se regarde aussi ailleurs que devant nos écrans. »
+- « Mila, on fait un détour par les tribunes ? »
+- « Une petite histoire en marge de cette édition. »
+
+### 1. Les melons de Vessa
+
+**Mila** — Au relais de Vessa, un conteneur de melons s’est ouvert pendant un contrôle. Les dockers ont récupéré la cargaison. Les douaniers essaient maintenant de déterminer lesquels avaient déjà été comptés.
+
+### 2. Les méduses de Kerath
+
+**Mila** — Une équipe d’observation suit une colonie de méduses spatiales près de Kerath. Elle demande aux visiteurs d’éviter d’éclairer les animaux avec leurs projecteurs. Certains supporters avaient commencé à les prendre pour un balisage.
+
+### 3. La file au Comptoir
+
+**Mila** — Au Comptoir, un écran de retransmission a été installé derrière les guichets. Depuis, les clients laissent volontiers passer leur tour pendant les plongées. Le responsable envisage de déplacer l’écran. Ses employés ont demandé à être consultés.
+
+### 4. Le tanker accompagnateur
+
+**Mila** — Un commandant voulait accompagner les racers avec son tanker personnel. Il a finalement annoncé qu’il les soutiendrait depuis le point de départ. Son équipage considère la décision comme une amélioration importante du programme.
+
+### 5. La fréquence de cuisine
+
+**Mila** — Pendant un ancien essai du Kerath Lourd, la radio a capté une émission de cuisine. Brannoc avait demandé qu’on attende la fin de la recette avant de régler le problème. L’équipe cherche encore à savoir s’il plaisantait.
+
+### 6. L’écran de Kesh
+
+**Mila** — Sur Kesh, les mineurs ont installé leur écran au bord du cratère principal. Les changements d’équipe ont été organisés pour que chacun puisse voir au moins un passage. Le tableau des horaires ressemble maintenant à une carte de course.
+
+### 7. Le drone et la lune
+
+**Mila** — Un ancien drone de prise de vue a terminé sa mission contre une lune. Le rapport conclut à une erreur de distance. La dernière image, en revanche, ne laissait aucun doute sur la proximité.
+
+### 8. Le vaisseau vert
+
+**Mila** — Un supporter de La Mule a peint son vaisseau en vert avant de remarquer qu’il avait masqué les hublots de service. Il assure qu’il s’agissait d’une première couche. Ses voisins de hangar l’ont beaucoup aidé à s’en souvenir.
+
+### 9. Le pique-nique d’Oro
+
+**Mila** — À Oro, une sortie de volcanologues a été reportée à cause des poussières. Les organisateurs précisent que le matériel scientifique était prêt. Le repas, lui, avait déjà commencé à circuler dans le laboratoire.
+
+### 10. Le repas de Kaï
+
+**Mila** — Les restaurateurs du paddock ont tenté de donner le nom de Kaï à un menu d’avant-plongée. L’idée a été abandonnée quand ils ont découvert qu’il ne mangeait rien. Ils cherchent un pilote avec de meilleures perspectives commerciales.
+
+### 11. La trêve des pirates
+
+**Mila** — Un équipage de la ceinture aurait annoncé une trêve pour suivre la Fronde. Le communiqué précise les horaires de diffusion avec beaucoup de soin. Les autorités recommandent de ne pas se fier uniquement à la qualité du programme télévisé.
+
+### 12. L’antenne de Nox
+
+**Mila** — Un atelier de Nox reçoit régulièrement des demandes pour capter le fameux signal local. Le propriétaire propose désormais de vérifier les antennes d’abord. Il dit que plusieurs mystères de la région tenaient à un mauvais branchement.
+
+### 13. La question d’un enfant
+
+**Mila** — Lors d’une rencontre avec les pilotes, un enfant a demandé si les racers avaient des freins. Trois ingénieurs ont commencé à répondre en même temps. L’enfant voulait surtout savoir s’il pourrait en essayer un.
+
+### 14. Les anciens gants
+
+**Mila** — Une paire de gants attribuée à un ancien vainqueur est en vente au Comptoir. Le certificat est très détaillé. La taille n’est indiquée nulle part. Le vendeur estime visiblement que personne ne devrait les porter.
+
+### 15. Le mécanicien et le tabouret
+
+**Mila** — Le chef mécanicien de la Sentinelle affirme qu’il suit très bien une course assis. Son équipe a néanmoins retiré les roulettes de son tabouret. Il se rapprochait des écrans à chaque passage sans s’en rendre compte.
+
+### 16. Les tankers saluent
+
+**Mila** — Des équipages de tankers ont préparé un salut lumineux pour le passage des racers. Les signaux ont été répétés plusieurs fois. On a dû expliquer à un remorqueur voisin qu’aucune assistance n’était nécessaire.
+
+---
+
+## La présentation des pilotes — formats courts
+
+*Pour une première apparition, une fiche racer ou une séquence de présentation. Ne pas relancer les quatre portraits à chaque reconnexion. Ces textes présentent un profil ; ils ne préjugent pas de la forme ou du classement de l’édition.*
+
+### Ysée Marr — la Sentinelle
+
+**Arno** — La Sentinelle entre dans l’image. À ses commandes : Ysée Marr.
+
+**Mila** — Précise, patiente, très difficile à décrocher. Avec elle, regardez ce qui se passe à la sortie : c’est souvent là qu’on comprend la qualité de son approche.
+
+### Brannoc — le Kerath Lourd
+
+**Arno** — Le Kerath Lourd. Quatorze mètres de coque, un énorme réacteur, et Brannoc aux commandes.
+
+**Mila** — Il connaît sa machine jusque dans ses mauvais jours. Ne confondez pas son calme avec un manque d’envie. S’il voit une occasion, il sait encore très bien quoi en faire.
+
+### Tobbe — La Mule
+
+**Arno** — La Mule ! Le Bidon 52 de Tobbe, ancien docker du Comptoir.
+
+**Mila** — Un cargo transformé pour la course, avec ses limites dans les manœuvres et ses qualités sur les longues traversées. Pour comprendre Tobbe, il faut parfois regarder plus loin que le prochain système.
+
+### Kaï Varon — le Fulgurant
+
+**Arno** — Cette silhouette jaune, c’est le Fulgurant. Kaï Varon est à bord.
+
+**Mila** — Un pilote très préparé, très rapide, qui accepte des marges que d’autres refusent. Ses plongées méritent qu’on les regarde. Ses sorties nous disent si le risque a payé.
+
+---
+
+## Le vécu à bord — Mila
+
+*Variables conservées : `[racer]`, `[pilote]`, `[système]`. Les phrases évitent les accords de genre dépendant du pilote et les articles dépendant du nom du vaisseau. Utiliser le nom canonique complet, par exemple « La Mule ».*
+
+*Deux banques distinctes : évocation sensible sans donnée interne, puis observation conditionnée à une information fournie. Ne jamais inventer une citation radio, une alarme ou une panne pour meubler.*
+
+### Dans un système — évocation
+
+- **Mila** — À ce stade d’une approche, le travail de [pilote], c’est surtout de tenir ses repères. Dehors, tout grossit très vite.
+- **Mila** — On peut imaginer ce que cette géante représente derrière la verrière de [racer]. Ici, nous avons encore tout le système à l’écran.
+- **Mila** — Une correction qui paraît minuscule sur notre carte peut demander beaucoup d’attention à bord de [racer].
+- **Mila** — Pour [pilote], il faut déjà penser à la sortie. La planète est devant les yeux ; la prochaine étape doit rester dans un coin de la tête.
+- **Mila** — Dans ces moments-là, j’avais tendance à serrer les mâchoires. Je ne m’en apercevais qu’après le passage.
+
+### Dans un système — seulement avec les données correspondantes
+
+- *Température réellement en hausse* : **Mila** — La température monte à bord de [racer]. Le prochain choix de poussée doit en tenir compte.
+- *Corrections effectivement détectées* : **Mila** — [pilote] corrige encore. Il faut regarder si la trajectoire se stabilise avant la poussée.
+- *Alerte de proximité transmise* : **Mila** — L’alerte de proximité est active à bord de [racer]. On suit la marge restante.
+- *Poussée coupée par protection* : **Mila** — La protection a coupé la poussée sur [racer]. Pour l’instant, la priorité est de préserver la machine.
+
+### Entre deux systèmes — évocation
+
+- **Mila** — Pour [pilote], la traversée vers [système] est aussi une fenêtre pour préparer l’approche. On a rarement l’esprit aussi vide que le paysage.
+- **Mila** — C’est dans ces longues traversées qu’on essaie de récupérer. Quelques minutes les yeux fermés peuvent devenir très précieuses plus tard.
+- **Mila** — De loin, [racer] semble ne plus bouger. À bord, il reste toujours une liste de petites choses à vérifier.
+- **Mila** — Dans ma cabine, j’avais une liste écrite à la main pour ces moments-là. Après plusieurs heures, j’aimais bien que quelqu’un ait déjà réfléchi à ma place. Même si ce quelqu’un, c’était moi la veille.
+- **Mila** — Le prochain rendez-vous, c’est [système]. Pour [pilote], il faut arriver avec une machine prête et une approche qu’on connaît déjà.
+
+### La radio — règle de reprise
+
+Un message radio doit provenir d’un événement réellement enregistré ou d’une séquence fictionnelle explicitement prévue par le moteur. Citer alors le texte reçu, sans le remplacer par une phrase de cette banque. Si la transmission est partielle ou incertaine, le dire ; ne pas compléter les mots manquants.
+
+---
+
+## Les retours d’antenne et les reconnexions
+
+*Une formule courte, puis le point de course réel : leader, écart pertinent, dernier fait marquant, prochain rendez-vous. Utiliser des variantes pour éviter une répétition à chaque visite. Ne pas supposer que le joueur a vu les séquences précédentes.*
+
+### Première entrée pendant la course
+
+**Arno** — Bonsoir à toutes et à tous, bienvenue sur le Télébyte ! Arno Vasseur et Mila Korsh avec vous pour la Grande Fronde. Si vous prenez la course en route, on vous remet tout de suite dans le rythme.
+
+*Enchaîner avec le point de course réel. Ne pas diffuser ensuite l’ouverture d’avant-départ.*
+
+### Retour après un résumé
+
+**Arno** — Voilà pour ce qui s’est passé pendant votre absence. On retrouve maintenant la course.
+
+**Mila** — Et on va regarder ce que ces événements changent pour la suite.
+
+*Enchaîner sur l’état réel et ses conséquences établies.*
+
+### Retour sur une longue traversée
+
+**Arno** — Heureux de vous retrouver. Les pilotes poursuivent leur traversée ; c’est le bon moment pour faire le point.
+
+*Utiliser uniquement pendant une traversée effective. Donner ensuite les informations réelles.*
+
+### Nouveau passage en vue
+
+**Arno** — Si vous aviez la course dans un coin de l’écran, c’est le moment de revenir avec nous.
+
+**Mila** — On va pouvoir suivre l’approche.
+
+*Déclencher seulement lorsqu’un passage est réellement proche. Le nom du racer, le système et l’enjeu sont ajoutés par le moteur.*
+
+### Après une longue séquence intense
+
+**Arno** — On va reprendre les choses dans l’ordre.
+
+**Mila** — Oui. D’abord ce qui a changé au classement, puis ce que ça a coûté aux machines.
+
+*À utiliser après un fait ayant effectivement une conséquence sportive. Si un pilote est en danger ou injoignable, rester sur les informations de sécurité.*
+
+---
+
+## L’arrivée — fragments conditionnels
+
+*Ces fragments complètent la banque ; ils ne sont pas une fin prédéterminée. Le nom du vainqueur et le résultat viennent exclusivement de la simulation. Laisser passer l’arrivée et l’émotion avant d’expliquer un protocole de vérification ou des gains.*
+
+### Victoire officiellement confirmée
+
+**Arno** — C’est officiel ! Au bout de ces trois jours, la Grande Fronde a son vainqueur !
+
+*Enchaîner avec le nom et le résultat confirmés. Si la durée de l’édition change, adapter « trois jours ».*
+
+### Résultat encore incertain
+
+**Arno** — On attend la confirmation. On ne va pas donner cette victoire trop vite.
+
+**Mila** — Attendons le classement officiel.
+
+### Après la confirmation — laisser retomber
+
+**Mila** — Là, il va falloir quelques instants pour que ça arrive vraiment jusqu’au cockpit. Pendant toute la course, on a quelque chose à faire. Et soudain, c’est fini.
+
+### Saluer les autres concurrents
+
+**Arno** — Et nous allons rester à l’antenne pour la suite des arrivées.
+
+*Uniquement si d’autres concurrents sont encore en course et attendus à l’arrivée. Traiter séparément les abandons et les situations non résolues.*
+
+### Fermer la retransmission
+
+*Seulement lorsque le bilan sportif est établi et qu’aucune situation de sécurité n’est laissée sans explication.*
+
+**Arno** — Merci aux pilotes, à leurs équipes, à tous ceux qui nous ont envoyé ces images. Et merci à vous qui avez suivi cette Grande Fronde, quelques minutes ou jusqu’au bout de la nuit. Mila, merci pour la course.
+
+**Mila** — Merci Arno. J’espère qu’on vous aura donné envie de regarder la prochaine.
+
+**Arno** — Ici Arno Vasseur et Mila Korsh. Bonne route à tous. À bientôt sur le Télébyte !
+
+---
+
+## Notes de cohérence pour l’intégration — ne pas lire
+
+1. **Conserver les identités.** Ysée Marr / la Sentinelle / Racer 07 ; Brannoc / le Kerath Lourd / Monoreactor 88 ; Tobbe / La Mule / Bidon 52 ; Kaï Varon / le Fulgurant / Fulgur 07. Les dix systèmes restent Kerath, Nox, Ivène, Talys, Sarn, Quell, Ostra, Mirr, Vessa et Orvane.
+2. **Distinguer caractère et résultat.** Un pilote patient peut attaquer ; un pilote audacieux peut choisir la prudence. Les portraits ne remplacent jamais l’état réel.
+3. **Ne pas fabriquer de direct.** Les faits divers sont de l’ambiance fictive. Les radios, positions, records actuels, informations de santé et données de cockpit nécessitent une source dans le moteur.
+4. **Garder les bonnes phases.** Les entrées d’avant-course 75 à 79 ne jouent qu’avant le départ proche. Les entrées de course 44 à 45 attendent une durée suffisante ; 46 à 47 sont réservées à la phase finale. Ne pas rattraper une séquence périmée pour terminer une liste.
+5. **Éviter les répétitions de fond.** Une anecdote racontée dans le feuilleton ne doit pas ressortir immédiatement sous forme de blague ou de brève. Espacer en particulier les références à la boîte de biscuits, au café de Brannoc, à la chanson de Kaï et au drone perdu.
+6. **Générer les deux voix séparément.** Le changement de personnage est explicite ; les notes de mise en scène sont exclues de la synthèse. Prévoir des respirations et éviter le chevauchement systématique des répliques.
+7. **Tester les noms à l’oreille.** Écouter Ysée, Brannoc, Kaï, Ivène, Quell et Télébyte sur les deux voix. Si une prononciation doit être guidée, garder la graphie canonique dans les sous-titres et traiter l’aide de prononciation séparément.
+8. **Laisser la course finir les phrases.** Si une action devient intéressante, raccourcir ou interrompre proprement la conversation. Aucun trait d’esprit n’a priorité sur ce que le public est venu voir.
+
+*Intention de la V2 : donner l’impression de retrouver deux personnes qui aiment ce sport, connaissent ses acteurs et se laissent encore surprendre par lui.*
+

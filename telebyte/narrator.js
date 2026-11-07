@@ -30,83 +30,18 @@ export function names(r) {
   return { le, Le: le[0].toUpperCase() + le.slice(1), du, au, il: g === 'f' ? 'elle' : 'il', Il: g === 'f' ? 'Elle' : 'Il', e: g === 'f' ? 'e' : '' };
 }
 // pilotes (couleur seulement)
-const PILOTS = { sentinelle: 'la commandante Ysée Marr', cuirasse: 'le vieux Brannoc', mule: 'Tobbe le docker', fulgurant: 'Kaï Varon' };
-const PROFILE = {
-  sentinelle: 'la régulière, jamais très loin, toujours dangereuse',
-  cuirasse: 'une coque blindée, lourde, qui encaisse tout',
-  mule: 'un cargo reconverti, rapide entre les étoiles, mais court en poussée',
-  fulgurant: 'le casse-cou, il adore plonger au ras des géantes, à ses risques et périls',
-};
-const FAITS = [
-  'Un cargo de melons s\'est mis en travers du relais de Vessa : les douaniers comptent encore les melons.',
-  'On signale une colonie de méduses spatiales près des anneaux de Kerath. Elles ne parient pas, rassurez-vous.',
-  'Le Comptoir annonce une rupture de stock de cristal : tout le monde a misé sa paie sur la course.',
-  'Un commandant a tenté de suivre la course en tanker. Il en est à mi-chemin… de son hangar.',
-  'La radio de bord du Kerath Lourd capte une émission de cuisine depuis deux heures. Personne n\'ose couper.',
-  'Sur Kesh, les mineurs ont installé un écran géant dans le cratère principal. Ambiance de stade.',
-  'Un drone de la régie a percuté une lune. La lune va bien.',
-  'Dans les tribunes, un supporter a peint son vaisseau aux couleurs de la Mule. Il a oublié les hublots.',
-  'Une tempête de poussière sur Oro : les volcanologues ont annulé leur pique-nique.',
-  'Le standard de la régie déborde : tout le monde veut savoir ce que mange Kaï Varon avant une plongée. Réponse : rien.',
-  'Les pirates de la ceinture ont déclaré une trêve pour regarder la course. Une première.',
-  'Un écho mystérieux sur les radars de Nox. Les techniciens parlent d\'un vieux satellite. Ou d\'autre chose.',
-  'Un enfant de Kerath a écrit à la régie pour demander si les vaisseaux ont des freins. Excellente question.',
-  'On apprend qu\'un ancien vainqueur de la Fronde vend ses gants de pilote au Comptoir. Prix : secret.',
-  'Le chef mécanicien de la Sentinelle n\'a pas dormi depuis le départ. Il dit que c\'est normal.',
-  'Une flotte de tankers a ralenti pour laisser passer la course. Les klaxons, c\'est eux.',
-];
-// échanges pour rire (07/11 : « qu'ils blaguent un peu, on doit sentir l'excitation ») : Arno lance, Mila répond
-const BLAGUES = [
-  ['Mila, tu as déjà plongé au ras d\'une géante ?', 'Une fois. J\'ai perdu mes sourcils et mon permis. Dans cet ordre.'],
-  ['On me dit en régie que le café est froid !', 'Arno, on est dans l\'espace. Tout est froid. Sauf toi quand tu commentes.'],
-  ['Si je pilotais là-dedans, je gagnerais en deux heures !', 'Si tu pilotais là-dedans, on te chercherait encore autour de Kerath.'],
-  ['Tu paries sur qui, toi, Mila ?', 'Sur celui qui ne t\'écoute pas. Ça marche à tous les coups.'],
-  ['Les pilotes dorment pendant les étapes ?', 'Ils dorment. Toi, tu commentes. Chacun son métier.'],
-  ['J\'ai vu une plongée tellement rasante qu\'elle a laissé une trace sur la géante !', 'C\'était un nuage, Arno. Mais c\'était un beau nuage.'],
-  ['Mila, c\'est quoi le secret d\'une bonne fronde ?', 'Viser juste, pousser fort, et ne jamais regarder le thermomètre.'],
-  ['Il paraît que le Kerath Lourd a une machine à café à bord !', 'Une machine à café blindée. Comme le reste.'],
-  ['On m\'annonce cent mille spectateurs sur les lunes !', 'Et autant de parieurs qui regrettent déjà leur choix.'],
-  ['Qu\'est-ce que tu emmènes, toi, pour soixante-douze heures de course ?', 'Un oreiller, des barres de céréales, et des bouchons d\'oreilles pour toi.'],
-  ['La Mule, c\'est un nom de champion, ça ?', 'C\'est un nom de cargo têtu. Et les cargos têtus finissent toujours par arriver.'],
-  ['Kaï Varon a dit qu\'il n\'avait jamais peur !', 'Kaï Varon a dit aussi que la ceinture d\'astéroïdes, c\'était « juste du gravier ».'],
-  ['Mila, ton meilleur souvenir de pilote ?', 'Le jour où j\'ai doublé trois vaisseaux d\'un coup. Le pire : le lendemain, à l\'infirmerie.'],
-  ['Je sens que ça va être serré jusqu\'au bout !', 'Tu dis ça à chaque course, Arno. Et à chaque fois tu as raison, c\'est agaçant.'],
-  ['Si ça continue, je descends piloter moi-même !', 'Excellente idée. On gagnera enfin un peu de silence en cabine.'],
-  ['Les astéroïdes, c\'est dangereux, finalement ?', 'Seulement quand on les touche. Le problème, c\'est qu\'ils sont nombreux.'],
-];
-// petite pique de Mila (ou cri d'Arno) après les gros faits : tirée du fait, la même pour tous
-const PIQUES = {
-  overtake: ['Il ne lui a même pas dit bonjour !', 'Ça, c\'est ce qu\'on appelle un dépassement poli. Enfin, presque.', 'Doublé ! Il va falloir s\'habituer à la vue de dos !'],
-  plan: ['Les ingénieurs se rongent les ongles jusqu\'au coude.', 'Il a du courage. Ou pas de rétroviseur.'],
-  periapsis: ['Je sens la chaleur d\'ici, et je suis à trois systèmes !', 'Ça, c\'est une trajectoire qu\'on montre dans les écoles de pilotage !'],
-  moon: ['Il a failli rayer la lune. Il faudra repeindre !', 'La lune n\'a rien demandé, elle !'],
-  belt: ['Le raccourci préféré des fous et des génies. On saura bientôt lequel.', 'Gravier, astéroïdes : à cette vitesse, c\'est pareil !'],
-  beltHit: ['Ça va laisser des traces sur la carrosserie !', 'Le mécanicien va adorer sa soirée.'],
-  failure: ['Quelqu\'un a essayé d\'éteindre et de rallumer ?', 'Le pire moment pour une panne. Il n\'y a jamais de bon moment, remarquez.'],
-  repair: ['Arrêt au stand… sans stand !', 'Clé à molette, ruban adhésif, et beaucoup de prières.'],
-  flare: ['Crème solaire indice cinq mille, obligatoire !', 'L\'étoile a décidé de participer à la course !'],
-  failed: ['Ça sent le chaud dans le cockpit !', 'Trop près, trop vite, trop chaud. La règle des trois « trop ».'],
-};
-const CRIS = ['Ohhh !', 'Incroyable !', 'Mais quelle folie !', 'Regardez-moi ça !', 'Oh là là !'];   // Arno, sur les moments forts
-const VECU_SYS = [
-  (n, p) => `À bord ${n.du}, ${p} serre les dents : chaque vibration se sent jusque dans les os.`,
-  (n, p) => `Message radio ${n.du} : « Ça chauffe, mais elle tient ! »`,
-  (n, p) => `On imagine ${p}, les yeux rivés sur la température de la coque.`,
-  (n) => `Dans le cockpit ${n.du}, les alarmes de proximité ne se taisent plus.`,
-];
-const VECU_LEG = [
-  (n, p, to) => `Dans le grand vide, ${p} recalcule la trajectoire de ${to} pour la dixième fois.`,
-  (n) => `Silence à bord ${n.du} : c'est le moment de manger un morceau et de dormir un peu.`,
-  (n, p) => `Radio ${n.du} : « Rien à signaler, on garde le cap. » Calme avant la tempête.`,
-  (n) => `${n.Le} file entre les étoiles. Là-dedans, l'équipage vérifie chaque soudure.`,
-];
+const PILOTS = { sentinelle: 'Ysée Marr', cuirasse: 'Brannoc', mule: 'Tobbe', fulgurant: 'Kaï Varon' };
+// nom canonique d'un racer dans les textes à trous ([racer]) du document d'Adrien
+const RACER_NOM = { sentinelle: 'la Sentinelle', cuirasse: 'le Kerath Lourd', mule: 'La Mule', fulgurant: 'le Fulgurant' };
 
 const NB = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze'];
-import { AVANT, PENDANT } from './feuilleton.js';
-// feuilleton : chaque joueur reprend là où il s'était arrêté (mémorisé sur l'appareil ; à la fin, retour au début)
-const FKEY = { avant: 'fronde.feuilleton.avant', pendant: 'fronde.feuilleton.pendant' };
-const fGet = (k) => { try { return parseInt(globalThis.localStorage.getItem(FKEY[k]) || '0', 10) || 0; } catch (e) { return 0; } };
-const fSet = (k, i) => { try { globalThis.localStorage.setItem(FKEY[k], String(i)); } catch (e) {} };
+import * as TX from './feuilleton.js';
+const { AVANT, PENDANT } = TX;
+// mémoire sur l'appareil : progression du feuilleton (toutes courses), et ce qui ne se joue qu'une fois par course
+const mem = {
+  get: (k, d = null) => { try { const v = globalThis.localStorage.getItem('fronde.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set: (k, v) => { try { globalThis.localStorage.setItem('fronde.' + k, JSON.stringify(v)); } catch (e) {} },
+};
 export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mine = () => [], sub = null, voice = null }) {
   const N = Object.fromEntries(E.racers.map((r) => [r.id, names(r)]));
   const P = (id) => PILOTS[id] || 'son pilote';
@@ -123,22 +58,42 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   const seeded = (key) => { let h = 2166136261; for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h = (h + 0x6D2B79F5) >>> 0; let x = h; x = Math.imul(x ^ (x >>> 15), x | 1); x ^= x + Math.imul(x ^ (x >>> 7), x | 61); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; };
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
   const nar = { mode: 'voix', log: [], tl: [] };
-  let blagueI = Math.floor(rnd0() * BLAGUES.length);
-  let lastT = null, lastReal = 0, rate = 1, queue = [], speaking = null, nextFill = 0, faitI = Math.floor(rnd() * FAITS.length), fillI = 0;
+  let blagueI = Math.floor(rnd0() * TX.BLAGUES.length);
+  let lastT = null, lastReal = 0, rate = 1, queue = [], speaking = null, nextFill = 0, faitI = Math.floor(rnd() * TX.BREVES.length), fillI = 0;
   const said = new Map();                                        // fait déjà dit → son instant
 
   nar.rebuild = () => { nar.tl = buildTimeline(feed); };
   nar.rebuild();
 
   /* ── ce que disent les commentateurs pour chaque fait ── */
+  // réactions après un fait (texte V2) : une seule réplique adaptée, ou aucune ; la gravité prime sur la variété
+  const REACT = { overtake: 'Dépassement confirmé', moon: 'Passage près d’une lune', belt: 'Raccourci dans une ceinture', beltHit: 'Choc — état encore inconnu',
+    failure: 'Panne', repair: 'Réparation en cours', flare: 'Éruption détectée — impact à déterminer', failed: 'Surchauffe confirmée' };
+  // cris d'Arno : rares, seulement sur l'action qu'ils décrivent
+  const CRI = { overtake: 'Dépassement qui se concrétise', beltHit: 'Contact ou situation dangereuse', failed: 'Nouvelle difficulté immédiate' };
+  const INCIDENTS = new Set(['beltHit', 'failure', 'failed', 'damage']);
   function linesFor(e, t) {
     rndOver = seeded(e.key || e.kind + e.t);
     try {
       let L = linesFor0(e, t); if (!L || !L.length) return L;
-      const strong = (e.prio || 0) >= 4 && e.kind !== 'start' && e.kind !== 'finish';
-      if (strong && L[0][0] === 'A' && rnd() < 0.5 && !/^(Oh|Incroyable|Mais quelle|Regardez|Choc|Attention|Panne|Quelle)/.test(L[0][1])) L = [['A', pick(CRIS) + ' ' + L[0][1], L[0][2]], ...L.slice(1)];
-      const pq = PIQUES[e.kind === 'plan' && e.data && e.data.plan !== 'plongée' ? '' : e.kind];
-      if (pq && rnd() < 0.55 && L.length < 3) L = [...L, [L[L.length - 1][0] === 'B' ? 'A' : 'B', pick(pq)]];
+      const d = e.data || {};
+      let rk = REACT[e.kind];
+      if (e.kind === 'plan' && d.plan === 'plongée') rk = 'Plongée rasante annoncée';
+      if (e.kind === 'periapsis' && d.plan === 'plongée') rk = 'Passage au plus près réussi';
+      if (e.kind === 'flare' && d.prudent) rk = null;                          // abri réussi : rien à ajouter
+      const bank = rk && TX.REACTIONS[rk];
+      if (bank && bank.length && rnd() < 0.45 && L.length < 3) {   // de préférence l'autre voix : Mila ajoute une lecture après Arno
+        const other = bank.filter((b) => b[0] !== L[L.length - 1][0]); L = [...L, pick(other.length ? other : bank).slice(0, 2)];
+      }
+      const cri = CRI[e.kind] && TX.CRIS[CRI[e.kind]];
+      if (cri && rnd() < 0.2 && L[0][0] === 'A') L = [['A', cri + ' ' + L[0][1], L[0][2]], ...L.slice(1)];
+      // l'arrivée (fragments V2) : victoire confirmée, laisser retomber, saluer les autres, fermer la retransmission
+      if (e.kind === 'finish') {
+        const A = TX.ARRIVEE, n = E.racers.length;
+        // l'émotion d'abord, les gains ensuite (montant du moment : sous-titre seul)
+        if (d.place === 1) L = [...(A['Victoire officiellement confirmée'] || []), L[0], ...(A['Après la confirmation — laisser retomber'] || []), ...L.slice(1).map((l) => /\d/.test(l[1]) ? [l[0], l[1], false] : l), ...(n > 1 ? A['Saluer les autres concurrents'] || [] : [])];
+        if (d.place === n) L = [...L, ...(A['Fermer la retransmission'] || [])];
+      }
       return L;
     } finally { rndOver = null; }
   }
@@ -203,11 +158,10 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
 
   /* ── temps morts : point course, télémétrie, vécu, faits divers, paris, finale ── */
   function filler(t, now) {
-    { const B = burst(t, now); if (B) return B; }
     if (now != null && now < 0) return preRace(-now);
     const rows = feed.standingsAt(t), lead = rows[0], done = rows.every((r) => r.done);
     if (done) { const w = nar.tl.find((x) => x.kind === 'finish' && x.data.place === 1); return w ? [['A', `Rappel du résultat : victoire ${N[w.racer].du}. Rendez-vous dans trois semaines pour la prochaine Grande Fronde !`]] : null; }
-    const kinds = ['recap', 'feuilleton', 'blague', 'vecu', 'feuilleton', 'fait', 'paris', 'feuilleton', 'tele', 'finale', 'blague', 'vecu'];
+    const kinds = ['recap', 'feuilleton', 'vecu', 'feuilleton', 'fait', 'paris', 'feuilleton', 'tele', 'blague', 'vecu', 'feuilleton', 'recap'];
     for (let k = 0; k < kinds.length; k++) {
       const kind = kinds[(fillI++) % kinds.length], L = fillOf(kind, t, rows, lead);
       if (L) return L;
@@ -218,7 +172,8 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   function fillOf(kind, t, rows, lead) {
     const id = pick(rows.filter((r) => !r.done)).id, n = N[id], s = feed.stateAt(id, t);
     if (kind === 'recap') {
-      if (rows.length < 2) return null;
+      if (rows.length < 2 || performance.now() - recapAt < 180000) return null;   // pas deux points coup sur coup
+      recapAt = performance.now();
       const second = rows[1];
       return nv([['A', `Point course à ${hh(t)} : ${N[lead.id].le} en tête${second.gap > 1 ? `, ${N[second.id].le} à ${dur(second.gap)}` : `, ${N[second.id].le} dans son sillage`}.`]]);
     }
@@ -227,21 +182,16 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
       if (s.phase === 'leg') return nv([['A', `${n.Le} est en plein vide interstellaire, en route vers ${sysName(s.legTo)}. Réservoir à ${pct(s.fuel)} %, coque à ${pct(s.integrity)} %.`]]);
       return null;
     }
-    if (kind === 'vecu') {
-      if (s.phase === 'system') return [['B', pick(VECU_SYS)(n, P(id))]];
-      if (s.phase === 'leg') return [['B', pick(VECU_LEG)(n, P(id), sysName(s.legTo))]];
-      return null;
+    if (kind === 'vecu') {                                         // évocations de Mila (texte V2), à trous
+      const sub = (x) => x.replace(/\[racer\]/g, RACER_NOM[id] || n.le).replace(/\[pilote\]/g, P(id)).replace(/\[système\]/g, sysName(s.legTo || s.system))
+        .replace(/\bde le /g, 'du ').replace(/\bà le /g, 'au ');
+      const bank = s.phase === 'system' ? TX.VECU.system : s.phase === 'leg' ? TX.VECU.leg : null;
+      return bank && bank.length ? [pick(bank).slice(0, 2)].map(([w, x]) => [w, sub(x)]) : null;
     }
-    if (kind === 'fait') { const f = FAITS[(faitI++) % FAITS.length]; return [['A', 'Un petit fait divers en passant.'], ['B', f]]; }
+    if (kind === 'fait') return fait(t);
     if (kind === 'paris') return nv(betLine(rows));
-    if (kind === 'feuilleton') return feuilleton('pendant');
-    if (kind === 'blague') { const b = BLAGUES[(blagueI++) % BLAGUES.length]; return [['A', b[0]], ['B', b[1]]]; }
-    if (kind === 'finale') {
-      const last = E.systems[E.systems.length - 1], s0 = feed.stateAt(lead.id, t);
-      if (s0.phase === 'leg' && s0.legTo === last.id) return [['B', `La grande finale approche : à ${last.name}, l'arrivée se joue à la périapse. ${N[lead.id].Le} mène la danse, mais rien n'est fait.`]];
-      if (s0.phase === 'system' && s0.system === last.id) return [['A', `On est dans la grande finale à ${last.name} ! Chaque seconde compte !`]];
-      return null;
-    }
+    if (kind === 'feuilleton') return feuilletonPendant(t);
+    if (kind === 'blague') return blague(t);
     return null;
   }
   function betLine(rows) {
@@ -260,40 +210,60 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
       ? [['A', `Côté paris : ${N[fav].le} est le favori des commandants, ${pct(share)} % des mises. Cagnotte : ${fmt(pl.total)} CG.`]]
       : [['B', `Si ${N[long].le} gagne, ceux qui y ont cru touchent ${odds.toFixed(1).replace('.', ',')} fois leur mise. Le coup de poker de la soirée.`]];
   }
-  function feuilleton(k) {
-    const T = k === 'avant' ? AVANT : PENDANT; if (!T.length) return null;
-    const i = fGet(k) % T.length; fSet(k, i + 1);
-    return T[i].map((l) => [l[0], l[1]]);
+  // ── feuilleton (texte V2 d'Adrien) ──
+  // progression : sur l'appareil, toutes courses confondues (entrées sans phase) ; chaque phase réservée se joue une
+  // fois par course, seulement quand la course y est vraiment (une entrée dont la phase est passée est abandonnée)
+  const edKey = (k) => `${k}.${E.id || 'demo'}`;
+  const finalPhase = (t) => { const last = E.systems[E.systems.length - 1].id;
+    return E.racers.some((r) => { const st = feed.stateAt(r.id, t); return (st.phase === 'system' && st.system === last) || (st.phase === 'leg' && st.legTo === last); }); };
+  function nextOf(list, key) { const done = mem.get(key, 0); if (done >= list.length) return null; mem.set(key, done + 1); return list[done]; }
+  function feuilletonAvant(now) {
+    const ouv = AVANT.filter((e) => e.phase === 'ouverture');
+    // ouverture : séquence continue, une seule fois par course, à la première visite d'avant-course
+    if (ouv.length && !mem.get(edKey('ouverture'), false)) { mem.set(edKey('ouverture'), true); return ouv.flatMap((e) => e.lines); }
+    // montée en pression : seulement à l'approche effective du départ (45 dernières minutes), dans l'ordre, puis le silence
+    if (now != null && now > -2700) { const e = nextOf(AVANT.filter((x) => x.phase === 'depart'), edKey('depart')); return e ? e.lines : null; }
+    const libre = AVANT.filter((e) => !e.phase); if (!libre.length) return null;
+    const i = mem.get('feuil2.avant', 0) % libre.length; mem.set('feuil2.avant', i + 1);
+    return libre[i].lines;
   }
-  nar.feuilleton = feuilleton;                                    // essais
-  // ouverture (07/11 : « à la première connexion, qu'ils parlent un peu plus ») : à chaque ouverture du Télébyte, les
-  // premières minutes enchaînent accueil, parcours, pilotes, faits divers ; ensuite, le rythme habituel
-  let openedAt = null, burstI = 0;
-  const racerIntro = (r) => [['A', `Présentation : ${N[r.id].le}.`], ['B', `${PROFILE[r.id] ? PROFILE[r.id][0].toUpperCase() + PROFILE[r.id].slice(1) : 'Un outsider à surveiller'}. Aux commandes : ${P(r.id)}.`]];
-  const fait = () => [['A', pick(['Un petit fait divers en passant.', 'Et pendant ce temps, dans la galaxie…', 'Mila, tu as vu passer ça ?'])], ['B', FAITS[(faitI++) % FAITS.length]]];
-  const blague = () => { const b = BLAGUES[(blagueI++) % BLAGUES.length]; return [['A', b[0]], ['B', b[1]]]; };
-  function burst(t, now) {
-    if (openedAt == null || performance.now() - openedAt > 300000) return null;
-    if (now == null && !moving) return null;                     // revoir en pause : pas de bavardage
-    const pre = now != null && now < 0, last = E.systems[E.systems.length - 1];
-    const seq = pre
-      ? [() => [['A', 'Bienvenue sur le Télébyte, commandant ! Installez-vous, on vous raconte tout de la Grande Fronde.'], ['B', `Au programme : ${E.systems.map((x) => x.name).join(', puis ')}. Et l'arrivée à la périapse de ${last.name}.`]],
-         () => [...nv([['A', `Départ dans ${dur(-now)} ! Les paris sont ouverts jusque-là.`]]), ['B', 'Quatre vaisseaux, quatre caractères. Laissez-moi vous les présenter.']],
-         ...E.racers.map((r) => () => racerIntro(r)), fait, blague, fait]
-      : [(r) => fillOf('tele', t, feed.standingsAt(t), feed.standingsAt(t)[0]), (r) => fillOf('vecu', t, feed.standingsAt(t), feed.standingsAt(t)[0]), fait, () => feuilleton('pendant'), blague, (r) => fillOf('paris', t, feed.standingsAt(t), feed.standingsAt(t)[0])];
-    while (burstI < seq.length) { const L = seq[burstI++](); if (L && L.length) return L; }
-    return null;
+  function feuilletonPendant(t) {
+    if (finalPhase(t)) { const e = nextOf(PENDANT.filter((x) => x.phase === 'finale'), edKey('finale')); return e ? e.lines : null; }
+    if (t > 30 * 3600) { const e = nextOf(PENDANT.filter((x) => x.phase === 'fatigue'), edKey('fatigue')); if (e) return e.lines; }
+    const libre = PENDANT.filter((e) => !e.phase); if (!libre.length) return null;
+    const i = mem.get('feuil2.pendant', 0) % libre.length; mem.set('feuil2.pendant', i + 1);
+    return libre[i].lines;
   }
-  const inBurst = (now) => openedAt != null && performance.now() - openedAt < 300000 && burstI < 12 && (now != null || moving);
+  nar.feuilleton = (k, t = 0, now = -1) => (k === 'avant' ? feuilletonAvant(now) : feuilletonPendant(t));   // essais
+  // présentations courtes des pilotes : une fois chacune par course (pas à chaque reconnexion)
+  function presentation() {
+    const done = mem.get(edKey('pres'), []); const r = E.racers.find((x) => !done.includes(x.id) && TX.PRESENTATIONS[x.id]);
+    if (!r) return null; mem.set(edKey('pres'), [...done, r.id]); return TX.PRESENTATIONS[r.id];
+  }
+  // pas de plaisanterie juste après un incident (choc, panne, surchauffe, dégâts) : 30 min de course
+  const calme = (t) => !nar.tl.some((x) => x.t <= t && t - x.t < 1800 && INCIDENTS.has(x.kind));
+  const blague = (t) => (t != null && !calme(t) ? null : TX.BLAGUES[(blagueI++) % TX.BLAGUES.length]);
+  const fait = (t) => (t != null && !calme(t) ? null : [['A', pick(TX.AMORCES)], ...TX.BREVES[(faitI++) % TX.BREVES.length]]);
   let preI = 0;
   function preRace(left) {
-    if ((preI++) % 3 !== 2) { const F = feuilleton('avant'); if (F) return F; }   // avant le départ : surtout le feuilleton
-    const i = (fillI++) % (E.racers.length + 4);
-    if (i === E.racers.length + 3) { const b = BLAGUES[(blagueI++) % BLAGUES.length]; return [['A', b[0]], ['B', b[1]]]; }
-    if (i < E.racers.length) { const r = E.racers[i]; return [['A', `Présentation : ${N[r.id].le}.`], ['B', `${PROFILE[r.id] ? PROFILE[r.id][0].toUpperCase() + PROFILE[r.id].slice(1) : 'Un outsider à surveiller'}. Aux commandes : ${P(r.id)}.`]]; }
-    if (i === E.racers.length) return nv([['A', `Départ dans ${dur(left)} ! Au programme : ${E.systems.map((s) => s.name).join(', puis ')}. Et l'arrivée à la périapse de ${E.systems[E.systems.length - 1].name}.`]]);
-    if (i === E.racers.length + 1) return nv(betLine(feed.standingsAt(0))) || [['B', 'Les paris sont ouverts jusqu\'au départ. Choisissez bien votre vaisseau.']];
-    return [['B', FAITS[(faitI++) % FAITS.length]]];
+    const now = -left;
+    if (now > -2700) return feuilletonAvant(now);                // approche du départ : la montée en pression, puis on laisse respirer
+    if ((preI++) % 3 !== 2) { const F = feuilletonAvant(now); if (F) return F; }   // avant le départ : surtout le feuilleton
+    const k = (fillI++) % 4;
+    if (k === 0) { const P0 = presentation(); if (P0) return P0; }
+    if (k === 1) return nv([['A', `Départ dans ${dur(left)}. Au programme : ${E.systems.map((x) => x.name).join(', puis ')}.`]]);
+    if (k === 2) return nv(betLine(feed.standingsAt(0))) || blague(null);
+    return fait(null) || blague(null);
+  }
+  // reconnexion pendant la course : une formule courte (variantes), puis le point de course réel
+  function retour(t) {
+    const R0 = TX.RETOURS, first = !mem.get(edKey('vu'), false); mem.set(edKey('vu'), true);
+    if (first) return R0['Première entrée pendant la course'] || null;
+    const lead = feed.standingsAt(t)[0], st = lead && feed.stateAt(lead.id, t);
+    const soon = nar.tl.some((x) => x.kind === 'periapsis' && x.t > t && x.t - t < 1200) || E.racers.some((r) => { const s2 = feed.stateAt(r.id, t); return s2.phase === 'system'; });
+    if (soon && R0['Nouveau passage en vue']) return R0['Nouveau passage en vue'];
+    if (st && st.phase === 'leg' && R0['Retour sur une longue traversée']) return R0['Retour sur une longue traversée'];
+    return R0['Première entrée pendant la course'] || null;
   }
 
   /* ── file de parole : sous-titres, et vraies voix (telebyte/voice.js, ElevenLabs) ── */
@@ -362,8 +332,8 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     if (nar.mode === 'off') { lastT = t; lastReal = real; return; }
     const dtR = Math.max(1e-3, (real - (lastReal || real)) / 1000);
     if (lastT == null) {
-      lastT = t < 60 ? -1 : t; lastReal = real; rateT = t; rateReal = real; nextFill = real + 2500; openedAt = real;   // au départ : le départ est annoncé
-      if (t >= 60) enqueue(recap(t), 3, real);
+      lastT = t < 60 ? -1 : t; lastReal = real; rateT = t; rateReal = real; nextFill = real + 2500;   // au départ : le départ est annoncé
+      if (t >= 60 && (now == null || now >= 0)) { const R1 = retour(t); if (R1) enqueue(R1, 3, real); enqueue(recap(t), 3, real); }
     }
     {
       const dt = t - lastT;
@@ -399,7 +369,9 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
       const h0 = queue[0].lines[0];
       if (voice && nar.mode === 'voix' && voice.unlocked && h0[2] !== false && real - queue[0].at < 4000 && voice.status(h0[0], speakable(h0[1])).state === 'pending') return;
       const q = queue.shift(); say(q.lines[0]);
-      if (q.lines.length > 1) queue.unshift({ ...q, lines: q.lines.slice(1), prio: Infinity });   // la suite du même fait, tout de suite
+      // la suite du même fait, tout de suite ; pour l'ambiance (feuilleton, brèves : priorité 1), un vrai fait de course peut
+      // passer entre deux phrases (la suite attend, rafraîchie pour ne pas être jetée comme trop vieille)
+      if (q.lines.length > 1) queue.unshift({ ...q, lines: q.lines.slice(1), prio: q.prio <= 1 ? 2.5 : Infinity, at: real });
       nextFill = real + fillGap(now); return;
     }
     // voix : les phrases des faits des 15 prochaines minutes de course sont préparées d'avance (fichier trouvé, ou lu
@@ -415,7 +387,6 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     }
   };
   const fillGap = (now) => {
-    if (inBurst(now)) return 2500 + rnd() * 2500;                     // ouverture : ils enchaînent (la parole en cours passe d'abord)
     if (now != null && now < 0) return 90000 + rnd() * 60000;     // avant-course : le feuilleton, posément (une réplique toutes les 1 min 30 à 2 min 30)
     const slow = !moving || rate < 30;                            // pause ou direct (×1) : on laisse respirer
     return (slow ? 35000 + rnd() * 40000 : 7000 + rnd() * 6000);
