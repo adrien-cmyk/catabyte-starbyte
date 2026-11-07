@@ -348,8 +348,12 @@ function sportCam(dt) {
   const side = new THREE.Vector3().crossVectors(v, up).normalize();
   const dir = v.clone().multiplyScalar(-Math.cos(0.28)).addScaledVector(up, Math.sin(0.28)).addScaledVector(side, 0.85).normalize();   // trois quarts arrière : la coque et ses panaches de profil
   let yaw = Math.atan2(dir.x, dir.z); const pitch = Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
+  // rotation au doigt d'abord (ramenée à un tour), puis on prend le chemin le plus court vers l'angle visé : recaler
+  // avant d'ajouter le geste faisait basculer d'un tour à chaque image près du demi-tour (caméra de trois quarts avant)
+  cam.u.yaw = Math.atan2(Math.sin(cam.u.yaw), Math.cos(cam.u.yaw));
+  yaw += cam.u.yaw;
   while (yaw - cam.goal.yaw > Math.PI) yaw -= 2 * Math.PI; while (yaw - cam.goal.yaw < -Math.PI) yaw += 2 * Math.PI;
-  yaw += cam.u.yaw; const pitchU = THREE.MathUtils.clamp(pitch + cam.u.pitch, -1.45, 1.45);
+  const pitchU = THREE.MathUtils.clamp(pitch + cam.u.pitch, -1.45, 1.45);
   if (!cam.tr) { cam.goal.yaw = yaw; cam.goal.pitch = pitchU; cam.goal.logD += (Math.log(L * 2.2 + 25) + cam.u.logD - cam.goal.logD) * Math.min(1, dt * 1.5); }
   const k = THREE.MathUtils.clamp((sp - 20000) / 40000, 0, 1);
   fovOv = 50 + 12 * k + 6 * rc.throttle; sportFov = true;
