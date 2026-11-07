@@ -47,7 +47,7 @@ function enterSystem(sysId) {
     sessionStorage.setItem('fronde.sys', sysId); sessionStorage.setItem('fronde.t', String(t));
     sessionStorage.setItem('fronde.sel', view.sel || ''); sessionStorage.setItem('fronde.back', location.href.split('#')[0]);
   } catch (e) {}
-  location.href = SYSTEM_PAGE + (FEED_Q && (FEED_Q !== 'live' || LIVE) ? '?feed=' + FEED_Q : '') + '#course';
+  location.href = SYSTEM_PAGE + (FEED_Q && (FEED_Q !== 'live' || LIVE) ? (SYSTEM_PAGE.includes('?') ? '&' : '?') + 'feed=' + FEED_Q : '') + '#course';
 }
 // retour depuis la vue système : on reprend l'instant et le racer suivi
 let restore = null;
