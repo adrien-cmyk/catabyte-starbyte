@@ -1,7 +1,7 @@
 // STARBYTE — fonction serveur « fronde-voice » (Grande Fronde, 07/11/2026) : les vraies voix des commentateurs.
 // Le Télébyte écrit les phrases ; cette fonction les fait lire UNE fois par ElevenLabs (clé secrète ELEVENLABS_API_KEY,
 // jamais envoyée au jeu), garde le fichier mp3 dans l'espace public « fronde-voix » et le ressert à tous les joueurs.
-// Le nom du fichier est l'empreinte sha-256 de « modèle|voix|v1|texte » : le Télébyte le trouve directement s'il existe.
+// Le nom du fichier est l'empreinte sha-256 de « modèle|voix|version de la voix|texte » : le Télébyte le trouve directement s'il existe.
 //   POST { who: 'A' | 'B', text }  → { url, cached }        (joueur connecté ; A : Arno, B : Mila)
 //   POST { action: 'selftest' }     → la clé et les deux voix répondent-elles ? (sans dépenser de caractères ; bouton
 //                                     « Test » du tableau de bord, sans session de joueur)
@@ -22,13 +22,16 @@ const CORS = {
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 // mêmes valeurs que le Télébyte (telebyte/voice.js : VOICES) — l'empreinte d'une phrase doit être identique
-const MODEL = 'eleven_multilingual_v2', V = 2;   // v2 (07/11) : plus d'élan, débit plus rapide
+const MODEL = 'eleven_multilingual_v2';
+// version des réglages, par voix (elle entre dans l'empreinte : changer un réglage fait relire seulement cette voix)
+// A v2 (07/11) : plus d'élan, débit plus rapide ; B v3 (07/11) : Mila plus rapide et plus enthousiaste
+const VV: Record<string, number> = { A: 2, B: 3 }, V = 3;
 const VOICE: Record<string, string> = { A: 'RlynaiseqcfHE3bZpqe4', B: 'Fgf7ZfILlUOkErHkkl2Y' };
 // réglages d'expression : peu de stabilité et beaucoup de style = de l'élan, de l'excitation (commentateurs de stade) ;
-// débit accéléré (speed : 0,7 à 1,2) ; Mila un peu plus posée qu'Arno, mais vive
+// débit accéléré (speed : 0,7 à 1,2, Mila au maximum)
 const SETTINGS: Record<string, unknown> = {
   A: { stability: 0.22, similarity_boost: 0.75, style: 0.85, use_speaker_boost: true, speed: 1.15 },
-  B: { stability: 0.3, similarity_boost: 0.78, style: 0.7, use_speaker_boost: true, speed: 1.1 },
+  B: { stability: 0.2, similarity_boost: 0.75, style: 0.9, use_speaker_boost: true, speed: 1.2 },
 };
 const BUCKET = 'fronde-voix';
 const hex = (b: ArrayBuffer) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
@@ -58,12 +61,12 @@ Deno.serve(async (req) => {
         const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE[w]}?output_format=mp3_44100_128`, { method: 'POST', headers: { 'xi-api-key': KEY, 'Content-Type': 'application/json', Accept: 'audio/mpeg' }, body: JSON.stringify({ text, model_id: MODEL, voice_settings: SETTINGS[w] }) });
         const key = w === 'A' ? 'arno' : 'mila';
         if (!r.ok) { (out[key] as any).essai = { ok: false, status: r.status, detail: (await r.text().catch(() => '')).slice(0, 200) }; continue; }
-        const path = `essai-v${V}-${w}.mp3`;
+        const path = `essai-v${VV[w]}-${w}.mp3`;
         await admin.storage.from(BUCKET).upload(path, new Uint8Array(await r.arrayBuffer()), { contentType: 'audio/mpeg', upsert: true, cacheControl: '60' });
         (out[key] as any).essai = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
       }
     }
-    return json({ ok: okAll, model: MODEL, version: V, voices: out });
+    return json({ ok: okAll, model: MODEL, version: V, versions: VV, voices: out });
   }
 
   const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
@@ -75,7 +78,7 @@ Deno.serve(async (req) => {
   const sp = String(body?.who || ''), text = String(body?.text || '').trim();
   if (!VOICE[sp]) return json({ error: 'bad_voice' }, 400);
   if (!text || text.length > 400) return json({ error: 'bad_text' }, 400);
-  const hash = await sha256(`${MODEL}|${VOICE[sp]}|v${V}|${text}`), path = `${hash}.mp3`;
+  const hash = await sha256(`${MODEL}|${VOICE[sp]}|v${VV[sp]}|${text}`), path = `${hash}.mp3`;
   const pub = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 
   // déjà lue : rien à payer

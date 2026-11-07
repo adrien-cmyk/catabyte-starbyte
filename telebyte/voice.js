@@ -6,16 +6,16 @@
 //   un cadre) ; generate : seulement pour une vraie course en direct (la démo et la répétition n'usent pas le quota)
 //   vo.prepare(who, text)  → lance la recherche ou la création du fichier (A : Arno, B : Mila)
 //   vo.status(who, text)   → { state: 'ready' | 'pending' | 'none', url }
-//   vo.play(url, onEnd)    → joue le fichier (onEnd à la fin, ou en cas d'échec) ; vo.stop()
+//   vo.play(url, onEnd, who) → joue le fichier (onEnd à la fin, ou en cas d'échec) ; vo.stop()
 //   vo.unlock()            → dans un geste : autorise le son (iPhone)
 import { token, sbConfig } from '../sandbox/race/live.js';
 
 // mêmes valeurs que la fonction serveur (server/fronde-voice/index.ts) : l'empreinte d'une phrase doit être identique
-export const VOICES = { model: 'eleven_multilingual_v2', v: 2, A: 'RlynaiseqcfHE3bZpqe4', B: 'Fgf7ZfILlUOkErHkkl2Y' };
+export const VOICES = { model: 'eleven_multilingual_v2', v: { A: 2, B: 3 }, A: 'RlynaiseqcfHE3bZpqe4', B: 'Fgf7ZfILlUOkErHkkl2Y' };
 const BUCKET = 'fronde-voix';
 const hex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 export async function voiceKey(who, text) {
-  const s = `${VOICES.model}|${VOICES[who]}|v${VOICES.v}|${text}`;
+  const s = `${VOICES.model}|${VOICES[who]}|v${VOICES.v[who]}|${text}`;
   return hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
 }
 // piste muette (autorise la lecture sur iPhone quand elle est lancée dans un geste)
@@ -57,8 +57,11 @@ export function createVoice({ host = window, generate = false } = {}) {   // gen
         } catch (e) { k.state = 'none'; }
       })();
     },
-    play(src, onEnd) {
-      const a = el(); let done = false; const end = () => { if (done) return; done = true; a.onended = a.onerror = null; onEnd && onEnd(); };
+    play(src, onEnd, who = 'A') {
+      const a = el();
+      const rate = who === 'B' ? 1.08 : 1;                       // Mila : un peu plus vive à la lecture (hauteur gardée)
+      try { a.preservesPitch = true; a.defaultPlaybackRate = rate; a.playbackRate = rate; } catch (e) {}   // (un nouveau fichier reprend la vitesse par défaut)
+      let done = false; const end = () => { if (done) return; done = true; a.onended = a.onerror = null; onEnd && onEnd(); };
       try { a.onended = end; a.onerror = end; a.src = src; const p = a.play(); if (p && p.catch) p.catch(end); } catch (e) { end(); }
       return { started: () => !a.paused && a.currentTime > 0 };
     },

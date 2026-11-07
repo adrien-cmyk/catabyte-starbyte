@@ -320,7 +320,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
       const st = voice.status(who, speakable(text));
       if (st.state === 'ready') {
         const me = speaking; me.voice = true; me.until = at + 30000;   // garde : si la fin du son ne vient jamais
-        const h = voice.play(st.url, () => { if (speaking === me) speaking = { until: performance.now() + 450, voice: false }; });
+        const h = voice.play(st.url, () => { if (speaking === me) speaking = { until: performance.now() + 450, voice: false }; }, who);
         // le son n'a pas démarré (lecture refusée) : on retombe sur la durée du sous-titre
         setTimeout(() => { if (speaking === me && !h.started()) { me.voice = false; me.until = at + minMs; } else if (h.started() && !audioOk) { audioOk = true; showSub(who, text); } }, 1500);
       }
