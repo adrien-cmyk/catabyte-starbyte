@@ -11,6 +11,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   if (T) await ctx.route(/cdn\.jsdelivr\.net\/npm\/three@0\.186\.0\//, (r) => r.fulfill({ path: path.join(T, new URL(r.request().url()).pathname.replace(/^\/npm\/three@0\.186\.0\//, '')), contentType: 'application/javascript' }));
   await ctx.addInitScript(() => { try { localStorage.setItem('fronde.voice', 'texte'); } catch (e) {} });
   await ctx.addInitScript(() => { try { localStorage.setItem('fronde.tv', '0'); } catch (e) {} });   // mode TV coupé : l'essai pilote lui-même
+  await ctx.addInitScript(() => { try { for (const k of ['repetition', 'essai']) localStorage.setItem('fronde.racers.' + k, '1'); const S = Storage.prototype.getItem; Storage.prototype.getItem = function (k) { return /^fronde\.racers\./.test(k) ? '1' : S.call(this, k); }; } catch (e) {} });   // fiche des racers déjà vue : l'essai pilote lui-même
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => { errs.push(e.message); console.log('PAGEERR', e.message.slice(0, 200)); });
   await p.goto('http://localhost:8766/telebyte/index.html'); await p.waitForFunction(() => window.TB && TB.ready, null, { timeout: 120000 });
   // un instant d'étape avec un fait : éruption, ou à défaut panne

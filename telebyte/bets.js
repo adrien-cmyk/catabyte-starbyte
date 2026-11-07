@@ -23,7 +23,7 @@ const potential = (pools, id, house, stake, extra = 0) => { const tot = pools.to
 const odds = (pools, id, house) => { const p = (pools.by_racer || {})[id] || 0; return p > 0 ? (pools.total * (100 - house) / 100) / p : null; };
 const errMsg = (e, fallback) => { const k = Object.keys(ERR).find((x) => (e.message || '').includes(x)); return k ? ERR[k] : fallback; };
 
-export function mountBets({ feed, LIVE, GAME, rpc, tick, racer }) {
+export function mountBets({ feed, LIVE, GAME, rpc, tick, racer, openRacers = null }) {
   if (!LIVE) return null;
   const $ = (id) => document.getElementById(id);
   const btn = $('bets-btn'), sheet = $('bets'), body = $('bets-body');
@@ -86,6 +86,7 @@ export function mountBets({ feed, LIVE, GAME, rpc, tick, racer }) {
     else if (before) h += `<p class="bt-h">Les paris ouvrent 3 jours avant le départ, dans <b id="bt-cd">${dur(opensIn)}</b>.</p>`;
     else if (snap.state === 'reglee') h += `<p class="bt-h">Arrivée : <b>${racer[winner] ? racer[winner].name : winner}</b> gagne.</p>`;
     else h += `<p class="bt-h">Paris fermés au départ. Cotes finales :</p>`;
+    if (openRacers) h += `<p class="bt-h"><button type="button" class="bt-racers">Voir les racers et leurs specs</button></p>`;
     h += `<ol class="bt-rows">` + Ed.racers.map((r) => {
       const o = odds(pools, r.id, house), share = pools.total ? ((pools.by_racer || {})[r.id] || 0) / pools.total : 0;
       return `<li data-id="${r.id}" class="${pick === r.id ? 'on' : ''}${winner === r.id ? ' win' : ''}" style="--livery:${r.livery}">
@@ -148,6 +149,7 @@ export function mountBets({ feed, LIVE, GAME, rpc, tick, racer }) {
   }
 
   function wire() {
+    { const b = body.querySelector('.bt-racers'); if (b) b.onclick = (e) => { e.stopPropagation(); openRacers(pick || null); }; }
     for (const li of body.querySelectorAll('.bt-rows li')) li.onclick = () => { if (!phase().openBets) return; pick = li.dataset.id; msg = ''; render(); };
     const { snap } = phase(), pools = snap.pools || { total: 0 }, house = +snap.edition.house_pct;
     const gainLine = () => { const i = $('bt-stake'), g = $('bt-gain'); if (!i || !g) return; const v = Math.floor(+i.value); g.textContent = pick && v >= 1 ? `Si ${racer[pick].name} gagne : ≈ ${fmt(potential(pools, pick, house, v, v))} CG (cote actuelle ; elle bouge jusqu'au départ)` : ''; };

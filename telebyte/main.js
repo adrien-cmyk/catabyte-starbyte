@@ -357,8 +357,18 @@ for (const ev of ['touchend', 'click', 'keydown']) addEventListener(ev, () => na
 requestAnimationFrame(loop);
 
 // accès de test (captures)
-import('./bets.js').then((m) => m.mountBets({ feed, LIVE, GAME, rpc, tick, racer, E })).catch((e) => console.warn('[fronde] paris', e));
+// les racers : fiche des quatre vaisseaux (modèle 3D et specs) ; avant le départ d'une course en direct, elle s'ouvre
+// d'elle-même une fois par édition (puis le bouton du haut et le lien des paris)
+let racersUI = null;
+const openRacers = (id) => (racersUI ? Promise.resolve(racersUI) : import('./racers.js').then((m) => (racersUI = m.mountRacers({ E, racer })))).then((rc) => rc.open(id)).catch((e) => console.warn('[fronde] racers', e));
+$('racers-btn').innerHTML = svg('ship');
+$('racers-btn').onclick = (e) => { e.stopPropagation(); $('racers-btn').classList.remove('hint'); openRacers(); };
+if (LIVE && liveNow() <= 0) {
+  const k = 'fronde.racers.' + E.id; let seen = false; try { seen = localStorage.getItem(k) === '1'; localStorage.setItem(k, '1'); } catch (e) {}
+  if (!seen) setTimeout(() => openRacers(), 1200); else $('racers-btn').classList.add('hint');
+}
+import('./bets.js').then((m) => m.mountBets({ feed, LIVE, GAME, rpc, tick, racer, E, openRacers })).catch((e) => console.warn('[fronde] paris', e));
 // la vue système suit les nouveaux instantanés pendant qu'on y est
 if (LIVE) feed.onSnap((snap) => { if (sysFrame && frameOk) sysFrame.contentWindow.postMessage({ fronde: 1, type: 'snap', snap }, '*'); });
 
-window.TB = { nar, news, replay, cor, dir, get p3d() { return p3d; }, get in3d() { return in3d; }, live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };
+window.TB = { nar, news, replay, openRacers, get racers() { return racersUI; }, cor, dir, get p3d() { return p3d; }, get in3d() { return in3d; }, live: () => LIVE && { state: LIVE.snap.state, now: liveNow(), id: E.id }, view, dive: (id) => dive(id), get state() { return { frameOk, inSystem, t, sel: view.sel }; }, set: (x) => { t = x; playing = false; if (feed.sync) feed.sync(t); renderStandings(true); renderClock(); view.update(t, 1); }, select: (id) => view.select(id), feed, ready: true };

@@ -616,7 +616,8 @@ $('cine').onclick = () => { if (director.active) { director.stop(); cam.enabled 
 $('shot').onclick = () => { render(); const a = document.createElement('a'); a.download = `fronde_${giantKey}_${Date.now()}.png`; a.href = renderer.domElement.toDataURL('image/png'); a.click(); };
 
 // entrée depuis Télébyte : …/sandbox/index.html#course (système, instant et racer suivis dans sessionStorage)
-if (location.hash.startsWith('#course')) {
+// (après l'évaluation du module : la suite déclare des variables que la vue de course utilise, comme `slow`)
+if (location.hash.startsWith('#course')) queueMicrotask(() => {
   let sys = 'kerath', t = null, sel = null;
   try { sys = sessionStorage.getItem('fronde.sys') || sys; const ts = sessionStorage.getItem('fronde.t'); t = ts ? +ts : null; sel = sessionStorage.getItem('fronde.sel') || null; } catch (e) {}
   if (sys !== curSys.id) setSystem(sys);
@@ -624,7 +625,7 @@ if (location.hash.startsWith('#course')) {
   if (new URLSearchParams(location.search).get('feed') === 'live') {   // repli par changement de page : on relit l'édition
     loadEdition().then((snap) => { if (snap) useSnap(snap); courseView({ t, sel }); }).catch(() => courseView({ t, sel }));
   } else courseView({ t, sel });
-}
+});
 
 // en direct (Phase 3) : le flux de la vue est celui de l'édition du serveur, reconstruit à partir de ses instantanés
 function useSnap(snap) {
