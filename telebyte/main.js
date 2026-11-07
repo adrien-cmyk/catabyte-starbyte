@@ -347,13 +347,16 @@ function replayFlat(e) {
 // commentaire : voix + sous-titres, sous-titres seuls, ou rien (mémorisé) ; le son ne part qu'après un premier toucher
 const VOICE_L = { voix: svg('speaker'), texte: svg('captions'), off: svg('muted') }, VOICE_T = { voix: 'voix off et sous-titres', texte: 'sous-titres seuls', off: 'coupé' };
 const setVoice = (m) => { nar.setMode(m); $('voice').innerHTML = VOICE_L[m]; $('voice').title = 'Commentaire : ' + VOICE_T[m]; $('voice').classList.toggle('off', m === 'off'); $('voice').setAttribute('aria-label', 'Commentaire : ' + VOICE_T[m]); try { localStorage.setItem('fronde.voice', m); } catch (e) {} };
-{ let m = 'voix'; try { m = localStorage.getItem('fronde.voice') || 'voix'; } catch (e) {} setVoice(VOICE_L[m] ? m : 'voix'); }
+// voix off désactivée pour l'instant (07/11 : la synthèse du téléphone sonne trop « VoiceOver » ; de vraies voix viendront) :
+// sous-titres seuls ou coupé ; une préférence « voix » mémorisée devient « sous-titres »
+const VOICE_ON = false;
+{ let m = 'texte'; try { m = localStorage.getItem('fronde.voice') || 'texte'; } catch (e) {} if (!VOICE_ON && m === 'voix') m = 'texte'; setVoice(VOICE_L[m] ? m : 'texte'); }
 $('voice').onclick = () => {
-  nar.unlock(); const m = nar.mode === 'voix' ? 'texte' : nar.mode === 'texte' ? 'off' : 'voix'; setVoice(m);
+  if (VOICE_ON) nar.unlock(); const m = VOICE_ON ? (nar.mode === 'voix' ? 'texte' : nar.mode === 'texte' ? 'off' : 'voix') : (nar.mode === 'off' ? 'texte' : 'off'); setVoice(m);
   const sb = $('sub'); sb.hidden = false; sb.classList.remove('b'); sb.innerHTML = `<b>Commentaire</b> ${VOICE_T[m]}`;   // ce que fait le bouton, un instant
   clearTimeout(sb._h); sb._h = setTimeout(() => { if (sb.textContent.startsWith('Commentaire')) sb.hidden = true; }, 1800);
 };
-for (const ev of ['touchend', 'click', 'keydown']) addEventListener(ev, () => nar.unlock(), { capture: true, passive: true });   // vrai geste (iOS) ; sans effet une fois le son parti
+if (VOICE_ON) for (const ev of ['touchend', 'click', 'keydown']) addEventListener(ev, () => nar.unlock(), { capture: true, passive: true });   // vrai geste (iOS) ; sans effet une fois le son parti
 
 requestAnimationFrame(loop);
 

@@ -22,7 +22,7 @@ const STUB = () => {
   if (T) await ctx.route(/cdn\.jsdelivr\.net\/npm\/three@0\.186\.0\//, (r) => r.fulfill({ path: path.join(T, new URL(r.request().url()).pathname.replace(/^\/npm\/three@0\.186\.0\//, '')), contentType: 'application/javascript' }));
   await ctx.addInitScript(STUB);
   await ctx.addInitScript(() => { try { localStorage.setItem('fronde.tv', '0'); } catch (e) {} });   // mode TV coupé : l'essai pilote lui-même
-  await ctx.addInitScript(() => { try { for (const k of ['repetition', 'essai']) localStorage.setItem('fronde.racers.' + k, '1'); const S = Storage.prototype.getItem; Storage.prototype.getItem = function (k) { return /^fronde\.racers\./.test(k) ? '1' : S.call(this, k); }; } catch (e) {} });   // fiche des racers déjà vue : l'essai pilote lui-même
+  await ctx.addInitScript(() => { try { for (const k of ['repetition', 'essai']) localStorage.setItem('fronde.racers.' + k, '1'); localStorage.setItem('sb_fronde_hello', '9'); const S = Storage.prototype.getItem; Storage.prototype.getItem = function (k) { return /^fronde\.racers\./.test(k) ? '1' : S.call(this, k); }; } catch (e) {} });   // fiche des racers déjà vue : l'essai pilote lui-même
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => { errs.push(e.message); console.log('PAGEERR', e.message.slice(0, 200)); });
   p.on('console', (m) => { if (m.type() === 'warning' && /commentaire/.test(m.text())) { errs.push(m.text()); console.log('WARN', m.text().slice(0, 200)); } });
   await p.goto('http://localhost:8766/telebyte/index.html');
@@ -32,7 +32,10 @@ const STUB = () => {
   const s1 = await p.evaluate(() => ({ log: TB.nar.log.map((x) => x.who + ' ' + x.text), sub: document.getElementById('sub').hidden ? null : document.getElementById('sub').textContent, spoken: window.__spoken.filter((x) => x.text.trim()), news: document.getElementById('news').hidden ? null : document.getElementById('news').textContent, t: TB.state.t }));
   console.log('  dit :', s1.log.slice(0, 6).join(' | '));
   ok(s1.log.length >= 2, `la voix off parle dès la lecture (${s1.log.length} phrases en 9 s, t = ${(s1.t / 3600).toFixed(1)} h)`);
-  ok(s1.spoken.length >= 1 && s1.spoken.some((x) => x.voice === 'Thomas') , `synthèse vocale appelée (${s1.spoken.length} phrases, voix ${[...new Set(s1.spoken.map((x) => x.voice))].join(', ')})`);
+  // voix off désactivée pour l'instant (main.js VOICE_ON) : sous-titres seuls, aucune synthèse vocale
+  const voiceOn = await p.evaluate(() => TB.nar.mode === 'voix');
+  if (voiceOn) ok(s1.spoken.length >= 1 && s1.spoken.some((x) => x.voice === 'Thomas') , `synthèse vocale appelée (${s1.spoken.length} phrases, voix ${[...new Set(s1.spoken.map((x) => x.voice))].join(', ')})`);
+  else ok(!s1.spoken.filter((x) => x.text.trim()).length && !!s1.sub, `voix désactivée : sous-titres seuls (${s1.spoken.length} phrase parlée, sous-titre « ${(s1.sub || '').slice(0, 40)}… »)`);
   ok(!!s1.news && /Dernière minute/.test(s1.news), `bandeau « dernière minute » : ${s1.news}`);
   await p.screenshot({ path: `${OUT}/c1_voix.png` });
   // avancer au cœur de la course : faits forts
@@ -63,7 +66,7 @@ const STUB = () => {
   // bouton : voix → sous-titres → rien → voix
   const modes = [];
   for (let i = 0; i < 3; i++) { await p.click('#voice'); await sleep(200); modes.push(await p.evaluate(() => TB.nar.mode)); }
-  ok(modes.join(',') === 'texte,off,voix', `bouton du commentaire : ${modes.join(' → ')}`);
+  ok(modes.join(',') === (voiceOn ? 'texte,off,voix' : 'off,texte,off'), `bouton du commentaire : ${modes.join(' → ')}${voiceOn ? '' : ' (voix désactivée : sous-titres ↔ coupé)'}`);
   await p.click('#voice'); await sleep(200); const before = await p.evaluate(() => window.__spoken.length); await sleep(8000);
   const after = await p.evaluate(() => ({ n: window.__spoken.length, log: TB.nar.log.length }));
   ok(after.n === before, 'mode sous-titres : plus aucune parole');
