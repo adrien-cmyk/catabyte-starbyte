@@ -149,6 +149,7 @@ if (liveErr) { const b = document.createElement('div'); b.id = 'offline'; b.text
 const setBoard = (min) => { document.body.classList.toggle('board-min', min); $('board-h').setAttribute('aria-expanded', String(!min)); try { localStorage.setItem('fronde.board', min ? 'min' : ''); } catch (e) {} setTimeout(placeSub, 30); };
 $('board-h').onclick = () => setBoard(!document.body.classList.contains('board-min'));
 { let m = false; try { m = localStorage.getItem('fronde.board') === 'min'; } catch (e) {} setBoard(m); }
+$('focus-enter').querySelector('.fo-ic').innerHTML = svg('dive'); $('focus-clear').querySelector('.fo-ic').innerHTML = svg('target');
 $('focus-clear').onclick = () => { cor.close(); view.overview(); };
 $('focus-enter').onclick = () => { const s = feed.stateAt(view.sel, t); if (s.phase === 'leg') return cor.open(null, t, view.sel); dive(s.phase === 'system' || s.phase === 'start' ? s.system : s.phase === 'leg' ? s.legTo : E.systems[E.systems.length - 1].id); };
 $('edition').textContent = E.name;
@@ -232,7 +233,7 @@ function renderClock() {
     const s = feed.stateAt(view.sel, t);
     setTxt($('focus-tele'), s.phase === 'system' ? `${(s.speed / 1e3).toFixed(1)} km/s · carburant ${Math.round(s.fuel * 100)} % · intégrité ${Math.round(s.integrity * 100)} %`
       : s.phase === 'leg' ? `voyage interstellaire ${Math.round(s.f * 100)} % · carburant ${Math.round(s.fuel * 100)} %` : 'arrivé');
-    setTxt($('focus-enter'), s.phase === 'leg' ? 'Couloir' : 'Vue système');   // en voyage : le bouton ouvre le couloir
+    setTxt($('focus-enter-t'), s.phase === 'leg' ? 'Couloir' : 'Vue système');   // en voyage : le bouton ouvre le couloir
   }
 }
 

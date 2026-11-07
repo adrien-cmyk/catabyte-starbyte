@@ -14,7 +14,7 @@
   :root {
     color-scheme: dark;
     --bg: #020306; --ink: #e6eef3; --dim: #8b9aa6; --faint: #5a6873; --line: rgba(200, 214, 224, .16);
-    --panel: rgba(4, 8, 13, .78); --accent: #9fd4ec; --live: #ff5a4f; --amber: #ffd27a;   /* --accent : navigation seulement */
+    --panel: rgba(4, 8, 13, .78); --accent: #9fd4ec; --sb-cyan: #5fffe8; --live: #ff5a4f; --amber: #ffd27a;   /* --accent : navigation seulement */
     --f-ui: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     --f-num: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
     --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
@@ -75,7 +75,14 @@
   #standings .gp { font: 12px var(--f-num); font-variant-numeric: tabular-nums; color: var(--ink); }
   #focus { margin: 8px 14px 4px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 11px; color: var(--dim); }
   #focus b { color: var(--ink); }
-  #focus button { float: right; margin-left: 6px; background: none; border: 1px solid var(--line); color: var(--dim); border-radius: 6px; font: inherit; padding: 1px 7px; cursor: pointer; }
+  /* boutons de navigation du racer suivi : turquoise de l'interface Starbyte (navigation), bien visibles */
+  #focus .fo-act { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 9px; }
+  #focus .fo-act button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 7px 8px; white-space: nowrap; font: 700 12px var(--f-ui); letter-spacing: .02em; color: var(--sb-cyan); background: rgba(95, 255, 232, .08); border: 1px solid rgba(95, 255, 232, .5); border-radius: 9px; cursor: pointer; box-shadow: 0 0 14px rgba(95, 255, 232, .12); transition: background .15s, box-shadow .15s; }
+  #focus .fo-act button#focus-enter { color: #04110f; background: var(--sb-cyan); border-color: var(--sb-cyan); box-shadow: 0 0 16px rgba(95, 255, 232, .35); }
+  #focus .fo-act button:hover, #focus .fo-act button:focus-visible { background: rgba(95, 255, 232, .18); box-shadow: 0 0 18px rgba(95, 255, 232, .3); outline: none; }
+  #focus .fo-act button#focus-enter:hover, #focus .fo-act button#focus-enter:focus-visible { background: #8ffff0; }
+  #focus .fo-act button:active { transform: translateY(1px); }
+  #focus .fo-ic { display: inline-flex; } #focus .fo-ic svg { width: 15px; height: 15px; }
 
   footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px max(16px, var(--sar)) calc(var(--sab) + 12px) max(16px, var(--sal)); display: flex; gap: 10px; align-items: center; background: linear-gradient(to top, rgba(2, 3, 6, .9), rgba(2, 3, 6, 0)); }
   footer .track { flex: 1; min-width: 0; } footer [hidden] { display: none; }
@@ -260,7 +267,7 @@
 <aside id="board" aria-label="Classement">
   <h2><button id="board-h" type="button" aria-expanded="true" aria-controls="standings"><span>Classement</span><em id="board-lead"></em><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></h2>
   <ol id="standings"></ol>
-  <div id="focus" hidden><button id="focus-clear" type="button">Tout le parcours</button><button id="focus-enter" type="button">Vue système</button><b id="focus-name"></b><br><span id="focus-tele"></span></div>
+  <div id="focus" hidden><b id="focus-name"></b><br><span id="focus-tele"></span><div class="fo-act"><button id="focus-enter" type="button"><i class="fo-ic"></i><span id="focus-enter-t">Vue système</span></button><button id="focus-clear" type="button"><i class="fo-ic"></i><span>Tout le parcours</span></button></div></div>
 </aside>
 <section id="bets" hidden role="dialog" aria-label="Paris de la Grande Fronde"><header><b>Paris · vainqueur</b><button id="bets-close" type="button" aria-label="Fermer les paris">×</button></header><div id="bets-body"></div></section>
 <button id="news" type="button" hidden aria-expanded="false" aria-controls="news-list"><span class="nw-k">Dernière minute</span><span class="nw-t"></span><span class="nw-h"></span></button>
