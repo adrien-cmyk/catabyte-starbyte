@@ -102,6 +102,11 @@ const VECU_LEG = [
 ];
 
 const NB = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze'];
+import { AVANT, PENDANT } from './feuilleton.js';
+// feuilleton : chaque joueur reprend là où il s'était arrêté (mémorisé sur l'appareil ; à la fin, retour au début)
+const FKEY = { avant: 'fronde.feuilleton.avant', pendant: 'fronde.feuilleton.pendant' };
+const fGet = (k) => { try { return parseInt(globalThis.localStorage.getItem(FKEY[k]) || '0', 10) || 0; } catch (e) { return 0; } };
+const fSet = (k, i) => { try { globalThis.localStorage.setItem(FKEY[k], String(i)); } catch (e) {} };
 export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mine = () => [], sub = null, voice = null }) {
   const N = Object.fromEntries(E.racers.map((r) => [r.id, names(r)]));
   const P = (id) => PILOTS[id] || 'son pilote';
@@ -201,7 +206,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     if (now != null && now < 0) return preRace(-now);
     const rows = feed.standingsAt(t), lead = rows[0], done = rows.every((r) => r.done);
     if (done) { const w = nar.tl.find((x) => x.kind === 'finish' && x.data.place === 1); return w ? [['A', `Rappel du résultat : victoire ${N[w.racer].du}. Rendez-vous dans trois semaines pour la prochaine Grande Fronde !`]] : null; }
-    const kinds = ['recap', 'blague', 'vecu', 'fait', 'paris', 'blague', 'tele', 'finale', 'vecu', 'blague'];
+    const kinds = ['recap', 'feuilleton', 'blague', 'vecu', 'feuilleton', 'fait', 'paris', 'feuilleton', 'tele', 'finale', 'blague', 'vecu'];
     for (let k = 0; k < kinds.length; k++) {
       const kind = kinds[(fillI++) % kinds.length], L = fillOf(kind, t, rows, lead);
       if (L) return L;
@@ -228,6 +233,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     }
     if (kind === 'fait') { const f = FAITS[(faitI++) % FAITS.length]; return [['A', 'Un petit fait divers en passant.'], ['B', f]]; }
     if (kind === 'paris') return nv(betLine(rows));
+    if (kind === 'feuilleton') return feuilleton('pendant');
     if (kind === 'blague') { const b = BLAGUES[(blagueI++) % BLAGUES.length]; return [['A', b[0]], ['B', b[1]]]; }
     if (kind === 'finale') {
       const last = E.systems[E.systems.length - 1], s0 = feed.stateAt(lead.id, t);
@@ -253,7 +259,15 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
       ? [['A', `Côté paris : ${N[fav].le} est le favori des commandants, ${pct(share)} % des mises. Cagnotte : ${fmt(pl.total)} CG.`]]
       : [['B', `Si ${N[long].le} gagne, ceux qui y ont cru touchent ${odds.toFixed(1).replace('.', ',')} fois leur mise. Le coup de poker de la soirée.`]];
   }
+  function feuilleton(k) {
+    const T = k === 'avant' ? AVANT : PENDANT; if (!T.length) return null;
+    const i = fGet(k) % T.length; fSet(k, i + 1);
+    return T[i].map((l) => [l[0], l[1]]);
+  }
+  nar.feuilleton = feuilleton;                                    // essais
+  let preI = 0;
   function preRace(left) {
+    if ((preI++) % 3 !== 2) { const F = feuilleton('avant'); if (F) return F; }   // avant le départ : surtout le feuilleton
     const i = (fillI++) % (E.racers.length + 4);
     if (i === E.racers.length + 3) { const b = BLAGUES[(blagueI++) % BLAGUES.length]; return [['A', b[0]], ['B', b[1]]]; }
     if (i < E.racers.length) { const r = E.racers[i]; return [['A', `Présentation : ${N[r.id].le}.`], ['B', `${PROFILE[r.id] ? PROFILE[r.id][0].toUpperCase() + PROFILE[r.id].slice(1) : 'Un outsider à surveiller'}. Aux commandes : ${P(r.id)}.`]]; }
@@ -381,9 +395,11 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     }
   };
   const fillGap = (now) => {
-    const slow = !moving || rate < 30 || (now != null && now < 0);   // pause, direct (×1) ou avant-course : on laisse respirer           // direct (×1) ou avant-course : on laisse respirer
+    if (now != null && now < 0) return 90000 + rnd() * 60000;     // avant-course : le feuilleton, posément (une réplique toutes les 1 min 30 à 2 min 30)
+    const slow = !moving || rate < 30;                            // pause ou direct (×1) : on laisse respirer
     return (slow ? 35000 + rnd() * 40000 : 7000 + rnd() * 6000);
   };
+
   let recapAt = -1e9;
   function recap(t) {
     const rows = feed.standingsAt(t), real = performance.now();
