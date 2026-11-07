@@ -67,6 +67,7 @@ const VECU_LEG = [
   (n) => `${n.Le} file entre les étoiles. Là-dedans, l'équipage vérifie chaque soudure.`,
 ];
 
+const NB = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze'];
 export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mine = () => [], sub = null }) {
   const N = Object.fromEntries(E.racers.map((r) => [r.id, names(r)]));
   const P = (id) => PILOTS[id] || 'son pilote';
@@ -88,7 +89,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   function linesFor(e, t) {
     const n = e.racer ? N[e.racer] : null, d = e.data, S = e.sys ? sysName(e.sys) : '';
     switch (e.kind) {
-      case 'start': return [['A', pick(['Et c\'est parti pour la Grande Fronde ! Quatre vaisseaux, trois systèmes, une seule trajectoire parfaite !', 'Top départ ! La Grande Fronde est lancée, et quelle ambiance dans les tribunes !'])],
+      case 'start': return [['A', pick([`Et c'est parti pour la Grande Fronde ! Quatre vaisseaux, ${NB[E.systems.length] || E.systems.length} systèmes, une seule trajectoire parfaite !`, 'Top départ ! La Grande Fronde est lancée, et quelle ambiance dans les tribunes !'])],
         ['B', `Premier rendez-vous : ${sysName(E.systems[0].id)}. Il va falloir choisir sa trajectoire, et vite.`]];
       case 'plan':
         if (d.plan === 'plongée') return [['A', pick([`${n.Le} choisit la plongée rasante à ${S} ! ${n.Il} va frôler la géante !`, `Attention, ${n.le} plonge ! Plongée rasante annoncée à ${S} !`])],
@@ -208,7 +209,13 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   }
 
   /* ── file de parole et synthèse vocale ── */
-  const synth = typeof speechSynthesis !== 'undefined' ? speechSynthesis : null;
+  // dans le jeu, le Télébyte vit dans un cadre : sur iPhone, une voix lancée depuis un cadre reste muette tant que le
+  // toucher n'a pas eu lieu dans ce cadre même. On parle donc par la page du jeu (même origine), que le toucher sur le
+  // drapeau a déjà autorisée (assets/fronde-bridge.js : SBFronde.speechReady). Hors du jeu : la page elle-même.
+  const host = (() => { const me = typeof window !== 'undefined' ? window : globalThis; try { const w = me.parent; return w && w !== me && w.speechSynthesis && w.SBFronde ? w : me; } catch (e) { return me; } })();
+  const synth = typeof host.speechSynthesis !== 'undefined' ? host.speechSynthesis : null;
+  const Utt = host.SpeechSynthesisUtterance || (typeof SpeechSynthesisUtterance !== 'undefined' ? SpeechSynthesisUtterance : null);
+  const gameReady = () => { try { return !!(host.SBFronde && host.SBFronde.speechReady && host !== globalThis.window); } catch (e) { return false; } };
   let voices = { A: null, B: null };
   function chooseVoices() {
     if (!synth) return;
@@ -239,9 +246,10 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     showSub(who, text); lastLine = text;
     const minMs = 1200 + text.length * 55;                  // durée de lecture d'un sous-titre (et repli sans voix)
     speaking = { until: at + minMs, voice: false };
+    if (!unlocked && gameReady()) unlocked = true;                // le jeu a déjà eu le geste : on parle tout de suite
     if (nar.mode === 'voix' && synth && unlocked) {
       try {
-        const u = new SpeechSynthesisUtterance(speakable(text));
+        const u = new Utt(speakable(text));
         u.lang = 'fr-FR'; if (voices[who]) u.voice = voices[who];
         u.rate = SPK[who].rate * (rate > 1000 ? 1.12 : 1); u.pitch = SPK[who].pitch; u.volume = 1;
         const me = speaking; me.voice = true; me.until = at + Math.max(minMs, 25000);   // garde : si onend ne vient jamais
@@ -267,7 +275,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
   };
   const keepAlive = (on) => {
     try {
-      if (on) { if (!keep) { keep = new Audio(silentWav()); keep.loop = true; keep.setAttribute('playsinline', ''); } if (keep.paused) keep.play().catch(() => {}); }
+      if (on) { if (!keep) { keep = new (host.Audio || Audio)(silentWav()); keep.loop = true; keep.setAttribute('playsinline', ''); } if (keep.paused) keep.play().catch(() => {}); }
       else if (keep && !keep.paused) keep.pause();
     } catch (e) {}
   };
@@ -278,7 +286,7 @@ export function createNarrator({ feed, E, racer, hh, dur, pools = () => null, mi
     unlocked = true;
     try {
       synth.cancel(); try { synth.resume(); } catch (e) {}
-      const u = new SpeechSynthesisUtterance(speakable(lastLine && sub && !sub.hidden ? lastLine : 'Bienvenue sur le Télébyte !'));
+      const u = new Utt(speakable(lastLine && sub && !sub.hidden ? lastLine : 'Bienvenue sur le Télébyte !'));
       u.lang = 'fr-FR'; if (voices.A) u.voice = voices.A; u.rate = SPK.A.rate; u.pitch = SPK.A.pitch;
       u.onstart = () => { audioOk = true; if (sub && !sub.hidden) { const h = sub.querySelector('.hint'); if (h) h.remove(); } };
       nar._u0 = u; synth.speak(u);
