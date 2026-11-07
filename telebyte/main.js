@@ -124,7 +124,10 @@ $('speed').onclick = () => { speedI = (speedI + 1) % SPEEDS.length; $('speed').t
 $('speed').textContent = '×' + SPEEDS[speedI];
 const countdown = (s) => { const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60); return d ? `${d} j ${h} h` : h ? `${h} h ${String(m).padStart(2, '0')}` : `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`; };   // court : tient dans la pastille
 const startLabel = LIVE ? new Date(LIVE.snap.edition.start_at).toLocaleString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '';
-if (GAME) document.body.classList.add('in-game');                 // ouvert depuis le jeu : place pour son bouton « fermer »
+if (GAME) document.body.classList.add('in-game');   // ouvert depuis le jeu : place pour son bouton « fermer »
+// dans le jeu : TV, fiche des racers et « ? » en colonne sous la croix du jeu ; sortis de l'en-tête (sa couche passerait
+// sous les sous-titres)
+if (GAME) for (const id of ['tv', 'racers-btn', 'help']) { const b = document.getElementById(id); if (b) document.body.appendChild(b); }
 /* ── en direct : l'horloge est celle du serveur ; le curseur permet de revoir, jamais d'aller au-delà du présent ── */
 let following = true;
 const liveNow = () => LIVE ? LIVE.source.now() : 0;
